@@ -3,7 +3,9 @@ import styled from 'styled-components';
 import {
   AppBar, Toolbar, Typography, IconButton, Box, Card, CardContent,
   Switch, FormControlLabel, Select, MenuItem, FormControl, InputLabel,
-  Slider, Button, Divider, Alert, useMediaQuery, useTheme
+  Slider, Button, Divider, Alert, useMediaQuery, useTheme, TextField,
+  InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions,
+  CircularProgress
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -14,6 +16,9 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import SecurityIcon from '@mui/icons-material/Security';
 import StorageIcon from '@mui/icons-material/Storage';
 import RestoreIcon from '@mui/icons-material/Restore';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import LockIcon from '@mui/icons-material/Lock';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -23,7 +28,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth() || {};
+  const { user, isAuthenticated, changePassword } = useAuth() || {};
   const { userSettings, updateSettings } = useData();
   const toast = useToast();
   const theme = useTheme();
@@ -42,6 +47,19 @@ const Settings = () => {
     showDifficulty: userSettings.showDifficulty !== false,
     compactMode: userSettings.compactMode || false
   });
+
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const handleSettingChange = (key, value) => {
     setLocalSettings(prev => ({
@@ -72,6 +90,36 @@ const Settings = () => {
     setLocalSettings(defaultSettings);
     updateSettings(defaultSettings);
     toast.info('Settings reset to defaults');
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('새 비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      toast.success('비밀번호가 성공적으로 변경되었습니다.');
+      setPasswordModalOpen(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast.error(error.message || '비밀번호 변경에 실패했습니다.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handlePasswordModalClose = () => {
+    setPasswordModalOpen(false);
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setShowPasswords({ current: false, new: false, confirm: false });
   };
 
   const clearData = () => {
@@ -155,6 +203,36 @@ const Settings = () => {
               </Button>
             </HeaderActions>
           </Header>
+
+          {/* 보안 설정 */}
+          {user?.provider === 'email' && (
+            <SettingsSection>
+              <SectionHeader>
+                <SecurityIcon sx={{ mr: 1, color: '#1976d2' }} />
+                <Typography variant="h6">Security</Typography>
+              </SectionHeader>
+              
+              <SettingsCard>
+                <CardContent>
+                  <SettingRow>
+                    <SettingLabel>
+                      <Typography variant="subtitle1">Password</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Change your account password
+                      </Typography>
+                    </SettingLabel>
+                    <Button
+                      variant="outlined"
+                      startIcon={<LockIcon />}
+                      onClick={() => setPasswordModalOpen(true)}
+                    >
+                      Change Password
+                    </Button>
+                  </SettingRow>
+                </CardContent>
+              </SettingsCard>
+            </SettingsSection>
+          )}
 
           {/* 언어 및 번역 설정 */}
           <SettingsSection>
@@ -446,6 +524,104 @@ const Settings = () => {
             </SettingsCard>
           </SettingsSection>
         </Container>
+
+        {/* 비밀번호 변경 모달 */}
+        <Dialog
+          open={passwordModalOpen}
+          onClose={handlePasswordModalClose}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <LockIcon sx={{ mr: 1 }} />
+              비밀번호 변경
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 1 }}>
+              <TextField
+                fullWidth
+                label="현재 비밀번호"
+                type={showPasswords.current ? 'text' : 'password'}
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                        edge="end"
+                      >
+                        {showPasswords.current ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+                sx={{ mb: 2 }}
+                required
+              />
+
+              <TextField
+                fullWidth
+                label="새 비밀번호"
+                type={showPasswords.new ? 'text' : 'password'}
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                        edge="end"
+                      >
+                        {showPasswords.new ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+                helperText="8자 이상, 영문/숫자/특수문자 포함"
+                sx={{ mb: 2 }}
+                required
+              />
+
+              <TextField
+                fullWidth
+                label="새 비밀번호 확인"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                        edge="end"
+                      >
+                        {showPasswords.confirm ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+                error={passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword}
+                helperText={passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword ? '비밀번호가 일치하지 않습니다' : ''}
+                required
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handlePasswordModalClose}>
+              취소
+            </Button>
+            <Button
+              onClick={handlePasswordChange}
+              variant="contained"
+              disabled={passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+            >
+              {passwordLoading ? <CircularProgress size={20} /> : '변경'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </MobileContentWrapper>
     </>
   );

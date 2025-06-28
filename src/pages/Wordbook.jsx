@@ -17,6 +17,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import AuthModal from '../components/AuthModal';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -81,6 +82,7 @@ const Wordbook = () => {
   const [sortBy, setSortBy] = useState('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // 경로 변경 시 네비게이션 탭 업데이트
   useEffect(() => {
@@ -123,7 +125,7 @@ const Wordbook = () => {
   };
 
   const handleLoginClick = () => {
-    navigate('/login');
+    setAuthModalOpen(true);
   };
 
   return (
@@ -354,6 +356,12 @@ const Wordbook = () => {
             </EmptyState>
           )}
         </Container>
+
+        {/* 인증 모달 */}
+        <AuthModal 
+          open={authModalOpen} 
+          onClose={() => setAuthModalOpen(false)} 
+        />
       </MobileContentWrapper>
     </AuthGuard>
   );

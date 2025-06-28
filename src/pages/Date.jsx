@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import AuthModal from '../components/AuthModal';
 
 const categories = ['All', 'Technology', 'Science', 'Business', 'Health', 'Culture'];
 const monthNames = [
@@ -55,6 +56,7 @@ const DatePage = () => {
   const [navTab, setNavTab] = useState(1); // Date 탭이 선택된 상태
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   // 기사 데이터 가져오기
   const { 
@@ -219,7 +221,7 @@ const DatePage = () => {
   };
 
   const handleLoginClick = () => {
-    navigate('/login');
+    setAuthModalOpen(true);
   };
 
   return (
@@ -400,14 +402,14 @@ const DatePage = () => {
           {/* 헤더 */}
           <Header>
             <HeaderContent>
-              <CalendarTodayIcon sx={{ mr: 1, fontSize: '2rem', color: '#1976d2' }} />
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                News Calendar
+              <CalendarTodayIcon sx={{ mr: 1, fontSize: '1.8rem', color: '#1976d2' }} />
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
+                📅 News Calendar
               </Typography>
             </HeaderContent>
-            <Typography variant="body1" color="text.secondary">
-              Browse articles by publication date
-            </Typography>
+            <div>
+              {/* 빈 공간 - 다른 페이지의 정렬 기능과 동일한 위치 */}
+            </div>
           </Header>
 
           {/* 로딩 상태 표시 */}
@@ -550,6 +552,12 @@ const DatePage = () => {
           )}
         </Container>
       </MobileContentWrapper>
+
+      {/* 인증 모달 */}
+      <AuthModal 
+        open={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
     </>
   );
 };
@@ -563,27 +571,20 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  text-align: center;
-  margin-bottom: 3rem;
-  padding: 2rem 0;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 `;
 
 const HeaderContent = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
 `;
 
 const CalendarSection = styled(Card)`
   margin-bottom: 2rem;
   padding: 1.5rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
   
   @media (min-width: 768px) {
     padding: 2rem;
@@ -700,9 +701,6 @@ const ArticlesSection = styled.div`
   border-radius: 16px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.08);
   padding: 1.5rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
   
   @media (min-width: 768px) {
     padding: 2rem;
@@ -783,8 +781,6 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 1rem;
   color: #666;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 export default DatePage;

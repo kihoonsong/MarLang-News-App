@@ -17,6 +17,7 @@ import { useToast } from '../components/ToastProvider';
 import { ArticleListSkeleton, LoadingSpinner } from '../components/LoadingComponents';
 import ErrorBoundary, { NewsListErrorFallback } from '../components/ErrorBoundary';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import AuthModal from '../components/AuthModal';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -31,6 +32,7 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [allNewsData, setAllNewsData] = React.useState({});
+  const [authModalOpen, setAuthModalOpen] = React.useState(false);
   
   // 동적 카테고리 관리
   const [categories, setCategories] = React.useState(() => {
@@ -131,7 +133,7 @@ const Home = () => {
   };
 
   const handleLoginClick = () => {
-    navigate('/login');
+    setAuthModalOpen(true);
   };
 
   const scrollToCategory = (categoryId) => {
@@ -413,6 +415,12 @@ const Home = () => {
         )}
         
       </MobileContentWrapper>
+      
+      {/* 인증 모달 */}
+      <AuthModal 
+        open={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
     </>
   );
 };

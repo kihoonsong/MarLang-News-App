@@ -301,6 +301,10 @@ export const MobileContentWrapper = styled.div`
     padding-bottom: 80px;
     min-height: 100vh;
   }
+  
+  @media (min-width: 960px) {
+    min-height: 100vh;
+  }
 `;
 
 export default MobileNavigation; 

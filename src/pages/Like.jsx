@@ -15,6 +15,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import AuthModal from '../components/AuthModal';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -28,6 +29,7 @@ const Like = () => {
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // 샘플 데이터 (실제로는 useData에서 가져옴)
   const sampleLikedArticles = [
@@ -74,7 +76,7 @@ const Like = () => {
   };
 
   const handleLoginClick = () => {
-    navigate('/login');
+    setAuthModalOpen(true);
   };
 
   const displayArticles = likedArticles || sampleLikedArticles;
@@ -231,6 +233,11 @@ const Like = () => {
           )}
         </Container>
       </MobileContentWrapper>
+      {/* 인증 모달 */}
+      <AuthModal 
+        open={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
     </AuthGuard>
   );
 };

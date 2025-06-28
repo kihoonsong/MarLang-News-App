@@ -10,8 +10,6 @@ import AuthGuard from './components/AuthGuard';
 import Home from './pages/Home';
 import ArticleDetail from './pages/ArticleDetail';
 import Search from './pages/Search';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
 import Wordbook from './pages/Wordbook';
 import Like from './pages/Like';
 import DatePage from './pages/Date';
@@ -47,10 +45,16 @@ function App() {
                   <Routes>
                     {/* 공개 페이지 */}
                     <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
                     <Route path="/article/:id" element={<ArticleDetail />} />
                     <Route path="/search" element={<Search />} />
+                    <Route 
+                      path="/date" 
+                      element={
+                        <ErrorBoundary>
+                          <DatePage />
+                        </ErrorBoundary>
+                      } 
+                    />
                     
                     {/* 인증이 필요한 페이지 */}
                     <Route 
@@ -107,14 +111,6 @@ function App() {
                         <AuthGuard>
                           <Dashboard />
                         </AuthGuard>
-                      } 
-                    />
-                    <Route 
-                      path="/date" 
-                      element={
-                        <ErrorBoundary>
-                          <DatePage />
-                        </ErrorBoundary>
                       } 
                     />
                   </Routes>
