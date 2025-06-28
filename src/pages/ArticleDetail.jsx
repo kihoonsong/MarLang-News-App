@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  AppBar, Toolbar, Typography, IconButton, InputBase, Tabs, Tab, Box, Button, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Alert,
-  Select, MenuItem, FormControl, InputLabel, CircularProgress, Popover, Paper
+  AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Button, Chip,
+  Snackbar, Alert, Select, MenuItem, FormControl, InputLabel, CircularProgress, 
+  Popover, Paper, Avatar, Menu, ListItemIcon, ListItemText, useMediaQuery, useTheme
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -11,14 +11,20 @@ import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import TranslateIcon from '@mui/icons-material/Translate';
+
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import CloseIcon from '@mui/icons-material/Close';
 import SpeedIcon from '@mui/icons-material/Speed';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
+import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
+import SearchDropdown from '../components/SearchDropdown';
+import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
@@ -72,6 +78,9 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const { addWord, toggleLike, isArticleLiked, userSettings, updateSettings } = useData();
   const { allArticles, loading: articlesLoading } = useArticles();
+  const { user, isAuthenticated, signOut } = useAuth() || {};
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // 실제 기사 데이터 찾기
   const [articleData, setArticleData] = useState(null);
@@ -82,6 +91,9 @@ const ArticleDetail = () => {
   const [currentSentence, setCurrentSentence] = useState(-1);
   const [savedWords, setSavedWords] = useState(new Set());
   const [highlightedWords, setHighlightedWords] = useState(new Set());
+  
+  // 상단바 상태
+  const [anchorEl, setAnchorEl] = useState(null);
   
   // 단어 팝업 상태
   const [wordPopup, setWordPopup] = useState({
@@ -99,8 +111,7 @@ const ArticleDetail = () => {
     selectedWord: null
   });
   
-  // 언어 설정 다이얼로그
-  const [languageDialog, setLanguageDialog] = useState(false);
+  // 언어 설정
   const [selectedLanguage, setSelectedLanguage] = useState(userSettings.translationLanguage || 'ko');
   
   // 알림 상태
@@ -493,15 +504,78 @@ const ArticleDetail = () => {
     });
   };
 
-  // 언어 설정 저장
-  const handleLanguageChange = () => {
-    updateSettings({ translationLanguage: selectedLanguage });
-    setLanguageDialog(false);
-    setSnackbar({
-      open: true,
-      message: 'Language preference updated!',
-      severity: 'success'
-    });
+  // 상단바 관련 함수들
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    signOut();
+    handleUserMenuClose();
+    navigate('/');
+  };
+
+  // 단어 팝업에서 언어 변경 처리
+  const handlePopupLanguageChange = async (newLanguage) => {
+    setSelectedLanguage(newLanguage);
+    updateSettings({ translationLanguage: newLanguage });
+    
+    // 현재 단어가 있으면 새로운 언어로 다시 검색
+    if (wordPopup.word && wordPopup.open) {
+      setWordPopup(prev => ({
+        ...prev,
+        isLoading: true,
+        error: null
+      }));
+
+      try {
+        const wordData = await fetchWordDefinitionAndTranslation(
+          wordPopup.word, 
+          newLanguage === 'en' ? 'en' : newLanguage
+        );
+
+        if (wordData.error) {
+          setWordPopup(prev => ({
+            ...prev,
+            isLoading: false,
+            error: wordData.error,
+            englishDefinition: `Definition not found for "${wordPopup.word}"`,
+            translatedDefinition: newLanguage === 'en' 
+              ? `Definition not found for "${wordPopup.word}"`
+              : `"${wordPopup.word}"에 대한 정의를 찾을 수 없습니다.`
+          }));
+        } else {
+          setWordPopup(prev => ({
+            ...prev,
+            isLoading: false,
+            englishDefinition: wordData.englishDefinition,
+            translatedDefinition: newLanguage === 'en' 
+              ? wordData.englishDefinition 
+              : wordData.translatedDefinition,
+            phonetic: wordData.phonetic,
+            partOfSpeech: wordData.partOfSpeech,
+            example: wordData.example,
+            audio: wordData.audio,
+            error: null
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching word data:', error);
+        setWordPopup(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Failed to fetch word definition',
+          englishDefinition: `Error loading definition for "${wordPopup.word}"`,
+          translatedDefinition: newLanguage === 'en'
+            ? `Error loading definition for "${wordPopup.word}"`
+            : `"${wordPopup.word}"의 정의를 불러오는데 실패했습니다.`
+        }));
+      }
+    }
   };
 
   // 음성 재생
@@ -548,68 +622,170 @@ const ArticleDetail = () => {
 
   return (
     <>
-      {/* 상단바 */}
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate('/')}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
-            MarLang Eng News
-          </Typography>
-          <InputBase
-            placeholder="Search articles..."
-            startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-            sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2 }}
-          />
-          <IconButton 
-            color="inherit" 
-            onClick={() => setLanguageDialog(true)}
-            sx={{ mr: 1 }}
-            title="Language Settings"
-          >
-            <TranslateIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+      {/* 모바일 네비게이션 */}
+      <MobileNavigation />
       
-      {/* 네비게이션 바 */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-        <Tabs value={navTab} onChange={(_, v) => setNavTab(v)}>
-          {navigationTabs.map((nav, idx) => (
-            <Tab 
-              key={nav} 
-              label={nav} 
-              onClick={() => {
-                setNavTab(idx);
-                switch(nav) {
-                  case 'Home':
-                    navigate('/');
-                    break;
-                  case 'Date':
-                    navigate('/date');
-                    break;
-                  case 'Wordbook':
-                    navigate('/wordbook');
-                    break;
-                  case 'Like':
-                    navigate('/like');
-                    break;
-                  case 'Profile':
-                    navigate('/profile');
-                    break;
-                  default:
-                    break;
+      <MobileContentWrapper>
+        {/* 상단바 - 항상 표시 */}
+        <AppBar position="static" color="default" elevation={1}>
+          <Toolbar>
+            <IconButton color="inherit" onClick={() => navigate('/')}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+              MarLang Eng News
+            </Typography>
+            <SearchDropdown placeholder="Search articles..." />
+            
+            {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
+            {isAuthenticated ? (
+              <IconButton
+                size="large"
+                onClick={handleUserMenuOpen}
+                color="inherit"
+              >
+                <Avatar 
+                  src={user?.picture} 
+                  alt={user?.name}
+                  sx={{ width: 32, height: 32 }}
+                >
+                  {!user?.picture && <AccountCircleIcon />}
+                </Avatar>
+              </IconButton>
+            ) : (
+              <IconButton
+                size="large"
+                onClick={() => navigate('/')}
+                color="inherit"
+                sx={{ 
+                  border: '1px solid #1976d2', 
+                  borderRadius: 2,
+                  padding: '6px 12px',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <AccountCircleIcon sx={{ mr: 0.5 }} />
+                Login
+              </IconButton>
+            )}
+            
+            {isAuthenticated && (
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleUserMenuClose}
+                onClick={handleUserMenuClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                    mt: 1.5,
+                    '& .MuiAvatar-root': {
+                      width: 32,
+                      height: 32,
+                      ml: -0.5,
+                      mr: 1,
+                    },
+                    '&:before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: 0,
+                      right: 14,
+                      width: 10,
+                      height: 10,
+                      bgcolor: 'background.paper',
+                      transform: 'translateY(-50%) rotate(45deg)',
+                      zIndex: 0,
+                    },
+                  },
+                }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <MenuItem onClick={() => navigate('/profile')}>
+                  <ListItemIcon>
+                    <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
+                      <AccountCircleIcon fontSize="small" />
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {user?.name || 'Guest User'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {user?.email || 'guest@marlang.com'}
+                    </Typography>
+                  </ListItemText>
+                </MenuItem>
+                
+                <MenuItem onClick={() => navigate('/settings')}>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Settings</ListItemText>
+                </MenuItem>
+                
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
+            )}
+          </Toolbar>
+        </AppBar>
+        
+        {/* 네비게이션 바 - 데스크톱만 */}
+        {!isMobile && (
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+            <Tabs 
+              value={navTab} 
+              onChange={(_, v) => setNavTab(v)}
+              sx={{
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  padding: '12px 16px'
                 }
               }}
-            />
-          ))}
-        </Tabs>
-      </Box>
+            >
+              {navigationTabs.map((nav, idx) => (
+                <Tab 
+                  key={nav} 
+                  label={nav} 
+                  onClick={() => {
+                    setNavTab(idx);
+                    switch(nav) {
+                      case 'Home':
+                        navigate('/');
+                        break;
+                      case 'Date':
+                        navigate('/date');
+                        break;
+                      case 'Wordbook':
+                        navigate('/wordbook');
+                        break;
+                      case 'Like':
+                        navigate('/like');
+                        break;
+                      case 'Profile':
+                        navigate('/profile');
+                        break;
+                      default:
+                        break;
+                    }
+                  }}
+                />
+              ))}
+            </Tabs>
+          </Box>
+        )}
 
-      {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
-      </Box>
+        {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
+        </Box>
 
       {/* 기사 상세 내용 */}
       <Container>
@@ -798,7 +974,7 @@ const ArticleDetail = () => {
               <InputLabel>Language</InputLabel>
               <Select
                 value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
+                onChange={(e) => handlePopupLanguageChange(e.target.value)}
                 label="Language"
               >
                 <MenuItem value="en">
@@ -874,85 +1050,37 @@ const ArticleDetail = () => {
         </WordPopupContent>
       </Popover>
 
-      {/* 언어 설정 다이얼로그 */}
-      <Dialog
-        open={languageDialog}
-        onClose={() => setLanguageDialog(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-            Word Lookup Language
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 1 }}>
-            <InputLabel>Select Language</InputLabel>
-            <Select
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              label="Select Language"
-            >
-              <MenuItem value="en">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>🇺🇸</span>
-                  <Box>
-                    <Typography variant="body2">English</Typography>
-                    <Typography variant="caption" color="text.secondary">Dictionary definitions</Typography>
-                  </Box>
-                </Box>
-              </MenuItem>
-              {getSupportedLanguages().map((lang) => (
-                <MenuItem key={lang.code} value={lang.code}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <span>{lang.flag}</span>
-                    <Box>
-                      <Typography variant="body2">{lang.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">Word translations</Typography>
-                    </Box>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Typography variant="body2" sx={{ mt: 2, color: '#666' }}>
-            English provides detailed dictionary definitions. Other languages show word translations in your preferred language.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLanguageDialog(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={handleLanguageChange} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* 알림 스낵바 */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+
+        {/* 알림 스낵바 */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert 
+            onClose={() => setSnackbar({ ...snackbar, open: false })} 
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </MobileContentWrapper>
     </>
   );
 };
 
 const Container = styled.div`
-  max-width: 800px;
+  padding: 0 1rem 2rem 1rem;
+  
+  @media (min-width: 768px) {
+    padding: 0 2rem 2rem 2rem;
+  }
+  
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
 `;
 
 const ThumbnailImage = styled.img`

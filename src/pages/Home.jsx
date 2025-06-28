@@ -18,6 +18,7 @@ import { ArticleListSkeleton, LoadingSpinner } from '../components/LoadingCompon
 import ErrorBoundary, { NewsListErrorFallback } from '../components/ErrorBoundary';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
+import SearchDropdown from '../components/SearchDropdown';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -163,19 +164,7 @@ const Home = () => {
               <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
                 MarLang Eng News
               </Typography>
-              <InputBase
-                placeholder="Search articles..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && searchQuery.trim()) {
-                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                  }
-                }}
-                onClick={() => navigate('/search')}
-                startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-                sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
-              />
+              <SearchDropdown placeholder="Search articles..." />
               
               {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
               {isAuthenticated ? (

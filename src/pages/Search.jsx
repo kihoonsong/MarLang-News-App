@@ -519,9 +519,14 @@ const Search = () => {
 };
 
 const Container = styled.div`
+  padding: 0 1rem 2rem 1rem;
+  
+  @media (min-width: 768px) {
+    padding: 0 2rem 2rem 2rem;
+  }
+  
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
 `;
 
 const SearchContainer = styled.div`

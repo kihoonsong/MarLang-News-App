@@ -628,9 +628,14 @@ const Settings = () => {
 };
 
 const Container = styled.div`
-  max-width: 800px;
+  padding: 0 1rem 2rem 1rem;
+  
+  @media (min-width: 768px) {
+    padding: 0 2rem 2rem 2rem;
+  }
+  
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
 `;
 
 const Header = styled.div`

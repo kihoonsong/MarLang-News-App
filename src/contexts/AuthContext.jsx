@@ -20,7 +20,9 @@ export const useAuth = () => {
       signInAsGuest: () => {},
       updateUserProfile: () => {},
       isAuthenticated: false,
-      isGuest: false
+      isGuest: false,
+      isModalOpen: false,
+      setIsModalOpen: () => {}
     };
   }
   return context;
@@ -30,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 초기화 - 로컬 스토리지에서 사용자 정보 로드
   useEffect(() => {
@@ -63,12 +66,33 @@ export const AuthProvider = ({ children }) => {
       // 현재는 시뮬레이션
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // 테스트용 계정 추가
+      if (email === 'test@test.com' && password === 'test123') {
+        const testUser = {
+          id: 'test_user',
+          name: '테스트 사용자',
+          email: 'test@test.com',
+          picture: 'https://ui-avatars.com/api/?name=Test&background=1976d2&color=fff',
+          provider: 'email',
+          createdAt: new Date().toISOString(),
+          loginTime: new Date().toISOString(),
+          rememberMe
+        };
+        
+        setUser(testUser);
+        localStorage.setItem('marlang_user', JSON.stringify(testUser));
+        setIsModalOpen(false); // 로그인 성공 시 모달 닫기
+        
+        console.log('✅ 테스트 로그인 성공:', testUser.name);
+        return;
+      }
+      
       // 저장된 사용자 정보 확인 (시뮬레이션)
       const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
       const foundUser = storedUsers.find(u => u.email === email);
       
       if (!foundUser) {
-        throw new Error('등록되지 않은 이메일입니다.');
+        throw new Error('등록되지 않은 이메일입니다. 테스트용: test@test.com / test123');
       }
       
       if (foundUser.password !== password) {
@@ -83,10 +107,12 @@ export const AuthProvider = ({ children }) => {
       
       setUser(loginUser);
       localStorage.setItem('marlang_user', JSON.stringify(loginUser));
+      setIsModalOpen(false); // 로그인 성공 시 모달 닫기
       
       console.log('✅ 이메일 로그인 성공:', loginUser.name);
     } catch (error) {
       console.error('❌ 이메일 로그인 실패:', error.message);
+      setError(error.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -121,7 +147,6 @@ export const AuthProvider = ({ children }) => {
         id: 'user_' + Date.now(),
         name: signupData.name,
         email: signupData.email,
-        phone: signupData.phone,
         password: signupData.password, // 실제로는 해시화 필요
         picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(signupData.name)}&background=1976d2&color=fff`,
         provider: 'email',
@@ -163,6 +188,7 @@ export const AuthProvider = ({ children }) => {
       
       setUser(naverUser);
       localStorage.setItem('marlang_user', JSON.stringify(naverUser));
+      setIsModalOpen(false); // 로그인 성공 시 모달 닫기
       
       console.log('✅ 네이버 로그인 성공:', naverUser.name);
     } catch (error) {
@@ -183,14 +209,26 @@ export const AuthProvider = ({ children }) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      const foundUser = storedUsers.find(u => u.email === email);
+      const userIndex = storedUsers.findIndex(u => u.email === email);
       
-      if (!foundUser) {
+      if (userIndex === -1) {
         throw new Error('등록되지 않은 이메일입니다.');
       }
       
-      // 실제로는 이메일 발송
-      console.log('📧 비밀번호 재설정 이메일 발송 완료');
+      // 임시 비밀번호 생성 (8자리)
+      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+      
+      // 사용자 비밀번호 업데이트
+      storedUsers[userIndex].password = tempPassword;
+      storedUsers[userIndex].tempPassword = true; // 임시 비밀번호 플래그
+      localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
+      
+      // 실제로는 이메일 발송, 여기서는 alert로 임시 비밀번호 표시
+      setTimeout(() => {
+        alert(`임시 비밀번호가 생성되었습니다: ${tempPassword}\n\n로그인 후 반드시 비밀번호를 변경해주세요.`);
+      }, 500);
+      
+      console.log('📧 비밀번호 재설정 완료 - 임시 비밀번호:', tempPassword);
     } catch (error) {
       console.error('❌ 비밀번호 재설정 실패:', error.message);
       throw error;
@@ -252,6 +290,7 @@ export const AuthProvider = ({ children }) => {
       
       setUser(testUser);
       localStorage.setItem('marlang_user', JSON.stringify(testUser));
+      setIsModalOpen(false); // 로그인 성공 시 모달 닫기
       
       console.log('✅ Google 로그인 완료:', testUser.name);
     } catch (error) {
@@ -306,7 +345,9 @@ export const AuthProvider = ({ children }) => {
     signInAsGuest, // deprecated
     updateUserProfile,
     isAuthenticated: !!user,
-    isGuest: user?.isGuest || false
+    isGuest: user?.isGuest || false,
+    isModalOpen,
+    setIsModalOpen
   };
 
   return (

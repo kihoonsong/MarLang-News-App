@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
+import SearchDropdown from '../components/SearchDropdown';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -23,13 +24,12 @@ const Like = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, isAuthenticated, signOut } = useAuth() || {};
+  const { user, isAuthenticated, signOut, isModalOpen, setIsModalOpen } = useAuth() || {};
   const { likedArticles, toggleLike, sortLikedArticles } = useData();
   const [navTab, setNavTab] = useState(3);
   const [sortBy, setSortBy] = useState('date');
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // 샘플 데이터 (실제로는 useData에서 가져옴)
   const sampleLikedArticles = [
@@ -48,6 +48,8 @@ const Like = () => {
       likedAt: '2024-06-24T10:00:00Z'
     }
   ];
+
+
 
   const handleSort = (value) => {
     setSortBy(value);
@@ -76,10 +78,87 @@ const Like = () => {
   };
 
   const handleLoginClick = () => {
-    setAuthModalOpen(true);
+    if (setIsModalOpen) {
+      setIsModalOpen(true);
+    }
   };
 
   const displayArticles = likedArticles || sampleLikedArticles;
+
+  // 비로그인 상태에서는 빈 화면 표시
+  if (!isAuthenticated) {
+    return (
+      <AuthGuard feature="your liked articles">
+        <MobileNavigation />
+        <MobileContentWrapper>
+          {/* 상단바 - 항상 표시 */}
+          <AppBar position="static" color="default" elevation={1}>
+            <Toolbar>
+              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+                MarLang Eng News
+              </Typography>
+                             <SearchDropdown placeholder="Search articles..." />
+              
+              <IconButton size="large" onClick={handleLoginClick} color="inherit" 
+                sx={{ border: '1px solid #1976d2', borderRadius: 2, padding: '6px 12px', fontSize: '0.875rem' }}>
+                <AccountCircleIcon sx={{ mr: 0.5 }} />
+                Login
+              </IconButton>
+            </Toolbar>
+          </AppBar>
+          
+          {!isMobile && (
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+              <Tabs 
+                value={navTab} 
+                onChange={(_, v) => setNavTab(v)}
+                sx={{
+                  '& .MuiTab-root': {
+                    minWidth: 'auto',
+                    padding: '12px 16px'
+                  }
+                }}
+              >
+                {navigationTabs.map((nav, idx) => (
+                  <Tab 
+                    key={nav} 
+                    label={nav} 
+                    onClick={() => {
+                      setNavTab(idx);
+                      switch(nav) {
+                        case 'Home': navigate('/'); break;
+                        case 'Date': navigate('/date'); break;
+                        case 'Wordbook': navigate('/wordbook'); break;
+                        case 'Like': break;
+                        case 'Profile': navigate('/profile'); break;
+                        case 'Dashboard': navigate('/dashboard'); break;
+                        default: break;
+                      }
+                    }}
+                  />
+                ))}
+              </Tabs>
+            </Box>
+          )}
+
+          {/* 빈 컨테이너 - 로그인 필요 메시지 */}
+          <Container>
+            <EmptyAuthState>
+              <EmptyIcon>❤️</EmptyIcon>
+              <EmptyText>Please sign in to access your liked articles</EmptyText>
+              <EmptySubtext>Like articles to save them for later reading!</EmptySubtext>
+            </EmptyAuthState>
+          </Container>
+
+          {/* 인증 모달 */}
+          <AuthModal 
+            open={isModalOpen || false} 
+            onClose={() => setIsModalOpen && setIsModalOpen(false)} 
+          />
+        </MobileContentWrapper>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard feature="your liked articles">
@@ -91,19 +170,7 @@ const Like = () => {
             <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
               MarLang Eng News
             </Typography>
-            <InputBase
-              placeholder="Search articles..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                }
-              }}
-              onClick={() => navigate('/search')}
-              startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-              sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
-            />
+            <SearchDropdown placeholder="Search articles..." />
             
             {isAuthenticated ? (
               <IconButton size="large" onClick={handleUserMenuOpen} color="inherit">
@@ -235,8 +302,8 @@ const Like = () => {
       </MobileContentWrapper>
       {/* 인증 모달 */}
       <AuthModal 
-        open={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)} 
+        open={isModalOpen || false} 
+        onClose={() => setIsModalOpen && setIsModalOpen(false)} 
       />
     </AuthGuard>
   );
@@ -248,6 +315,9 @@ const Container = styled.div`
   @media (min-width: 768px) {
     padding: 0 2rem 2rem 2rem;
   }
+  
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 const Header = styled.div`
@@ -388,6 +458,13 @@ const EmptySubtext = styled.p`
   font-size: 1rem;
   color: #888;
   margin: 0;
+`;
+
+const EmptyAuthState = styled.div`
+  text-align: center;
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 export default Like; 

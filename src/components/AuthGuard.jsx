@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -17,10 +17,23 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import LockIcon from '@mui/icons-material/Lock';
 
 const AuthGuard = ({ children, feature = 'this feature' }) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, setIsModalOpen } = useAuth();
   const navigate = useNavigate();
+  const modalTriggeredRef = useRef(false);
 
   console.log('AuthGuard:', { isAuthenticated, user, isLoading, feature });
+
+  // 비로그인 상태에서 모달 자동 표시
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !modalTriggeredRef.current && setIsModalOpen) {
+      const timer = setTimeout(() => {
+        setIsModalOpen(true);
+        modalTriggeredRef.current = true;
+      }, 300); // 0.3초 후에 모달 표시
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, setIsModalOpen]);
 
   // 로딩 중일 때는 로딩 표시
   if (isLoading) {
@@ -35,74 +48,9 @@ const AuthGuard = ({ children, feature = 'this feature' }) => {
     );
   }
 
-  if (isAuthenticated) {
-    return children;
-  }
-
-  return (
-    <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
-      <Card elevation={3} sx={{ borderRadius: 3 }}>
-        <CardContent sx={{ textAlign: 'center', p: 4 }}>
-          <Box sx={{ mb: 3 }}>
-            <LockIcon sx={{ fontSize: 60, color: '#1976d2', mb: 2 }} />
-            <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Authentication Required
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Please sign in to access {feature}
-            </Typography>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Get Started Today
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Join MarLang to save articles, track your vocabulary, and personalize your learning experience.
-            </Typography>
-          </Box>
-        </CardContent>
-
-        <CardActions sx={{ p: 3, pt: 0, flexDirection: 'column', gap: 2 }}>
-          <Button
-            variant="contained"
-            fullWidth
-            size="large"
-            startIcon={<LoginIcon />}
-            onClick={() => navigate('/login')}
-            sx={{ 
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 'bold'
-            }}
-          >
-            Sign In
-          </Button>
-          
-          <Button
-            variant="outlined"
-            fullWidth
-            size="large"
-            startIcon={<PersonAddIcon />}
-            onClick={() => navigate('/signup')}
-            sx={{ 
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 'bold'
-            }}
-          >
-            Create Account
-          </Button>
-
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-            Free to join • No credit card required
-          </Typography>
-        </CardActions>
-      </Card>
-    </Container>
-  );
+  // 로그인된 상태이거나 비로그인 상태 모두 children을 렌더링
+  // 비로그인 상태에서는 위의 useEffect에서 모달을 자동으로 표시
+  return children;
 };
 
 export default AuthGuard;

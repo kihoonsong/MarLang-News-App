@@ -568,6 +568,9 @@ const Container = styled.div`
   @media (min-width: 768px) {
     padding: 0 2rem 2rem 2rem;
   }
+  
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 const Header = styled.div`

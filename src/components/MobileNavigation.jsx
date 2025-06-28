@@ -18,14 +18,16 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import AuthModal from './AuthModal';
 
 const MobileNavigation = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth() || {};
+  const { user, isAuthenticated, signOut } = useAuth() || {};
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // 현재 경로에 따른 네비게이션 값 설정
   const getCurrentNavValue = () => {
@@ -45,11 +47,23 @@ const MobileNavigation = () => {
     setNavValue(getCurrentNavValue());
   }, [location.pathname]);
 
+  // 인증이 필요한 경로 체크
+  const requiresAuth = (path) => {
+    return ['/wordbook', '/like', '/profile', '/dashboard', '/settings'].includes(path);
+  };
+
   const handleNavChange = (event, newValue) => {
-    setNavValue(newValue);
-    
     const routes = ['/', '/date', '/search', '/wordbook', '/like'];
-    navigate(routes[newValue]);
+    const targetRoute = routes[newValue];
+    
+    // 인증이 필요한 경로인데 로그인하지 않은 경우
+    if (requiresAuth(targetRoute) && !isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+    
+    setNavValue(newValue);
+    navigate(targetRoute);
   };
 
   const toggleDrawer = () => {
@@ -57,6 +71,13 @@ const MobileNavigation = () => {
   };
 
   const handleMenuItemClick = (path) => {
+    // 인증이 필요한 경로인데 로그인하지 않은 경우
+    if (requiresAuth(path) && !isAuthenticated) {
+      setAuthModalOpen(true);
+      setDrawerOpen(false);
+      return;
+    }
+    
     navigate(path);
     setDrawerOpen(false);
   };
@@ -64,6 +85,14 @@ const MobileNavigation = () => {
   const handleLogout = () => {
     signOut();
     setDrawerOpen(false);
+  };
+
+  const handleAvatarClick = () => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+    } else {
+      toggleDrawer();
+    }
   };
 
   // 모바일이 아닌 경우 렌더링하지 않음
@@ -77,7 +106,7 @@ const MobileNavigation = () => {
       <MobileHeader>
         <IconButton
           color="inherit"
-          onClick={toggleDrawer}
+          onClick={isAuthenticated ? toggleDrawer : () => setAuthModalOpen(true)}
           sx={{ mr: 2 }}
         >
           <MenuIcon />
@@ -87,122 +116,139 @@ const MobileNavigation = () => {
           MarLang Eng News
         </Typography>
         
-        <Avatar 
-          src={user?.picture} 
-          alt={user?.name}
-          sx={{ width: 32, height: 32 }}
-          onClick={toggleDrawer}
-        />
+        {isAuthenticated ? (
+          <Avatar 
+            src={user?.picture} 
+            alt={user?.name}
+            sx={{ width: 32, height: 32, cursor: 'pointer' }}
+            onClick={handleAvatarClick}
+          />
+        ) : (
+          <IconButton
+            color="inherit"
+            onClick={() => setAuthModalOpen(true)}
+            sx={{ 
+              border: '1px solid rgba(255,255,255,0.3)', 
+              borderRadius: 2,
+              padding: '4px 8px',
+              fontSize: '0.75rem'
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
       </MobileHeader>
 
-      {/* 사이드 드로어 메뉴 */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={toggleDrawer}
-        PaperProps={{
-          sx: { width: 280 }
-        }}
-      >
-        <DrawerContent>
-          {/* 드로어 헤더 */}
-          <DrawerHeader>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar 
-                src={user?.picture} 
-                alt={user?.name}
-                sx={{ width: 48, height: 48 }}
-              />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {user?.name || 'Guest User'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.email || 'guest@marlang.com'}
-                </Typography>
+      {/* 사이드 드로어 메뉴 - 로그인한 경우만 표시 */}
+      {isAuthenticated && (
+        <Drawer
+          anchor="left"
+          open={drawerOpen}
+          onClose={toggleDrawer}
+          PaperProps={{
+            sx: { width: 280 }
+          }}
+        >
+          <DrawerContent>
+            {/* 드로어 헤더 */}
+            <DrawerHeader>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar 
+                  src={user?.picture} 
+                  alt={user?.name}
+                  sx={{ width: 48, height: 48 }}
+                />
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    {user?.name || 'Guest User'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {user?.email || 'guest@marlang.com'}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-            
-            <IconButton onClick={toggleDrawer}>
-              <CloseIcon />
-            </IconButton>
-          </DrawerHeader>
+              
+              <IconButton onClick={toggleDrawer}>
+                <CloseIcon />
+              </IconButton>
+            </DrawerHeader>
 
-          <Divider />
+            <Divider />
 
-          {/* 메뉴 리스트 */}
-          <List sx={{ flex: 1 }}>
-            <ListItem button onClick={() => handleMenuItemClick('/')}>
-              <ListItemIcon>
-                <HomeIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Home" />
-            </ListItem>
+            {/* 메뉴 리스트 */}
+            <List sx={{ flex: 1 }}>
+              <ListItem button onClick={() => handleMenuItemClick('/')}>
+                <ListItemIcon>
+                  <HomeIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Home" />
+              </ListItem>
 
-            <ListItem button onClick={() => handleMenuItemClick('/search')}>
-              <ListItemIcon>
-                <SearchIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Search" />
-            </ListItem>
+              <ListItem button onClick={() => handleMenuItemClick('/search')}>
+                <ListItemIcon>
+                  <SearchIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Search" />
+              </ListItem>
 
-            <ListItem button onClick={() => handleMenuItemClick('/wordbook')}>
-              <ListItemIcon>
-                <BookIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Wordbook" />
-            </ListItem>
+              <ListItem button onClick={() => handleMenuItemClick('/wordbook')}>
+                <ListItemIcon>
+                  <BookIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Wordbook" />
+              </ListItem>
 
-            <ListItem button onClick={() => handleMenuItemClick('/like')}>
-              <ListItemIcon>
-                <FavoriteIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Favorites" />
-            </ListItem>
+              <ListItem button onClick={() => handleMenuItemClick('/like')}>
+                <ListItemIcon>
+                  <FavoriteIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Favorites" />
+              </ListItem>
 
-            <ListItem button onClick={() => handleMenuItemClick('/date')}>
-              <ListItemIcon>
-                <CalendarTodayIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Calendar" />
-            </ListItem>
+              <ListItem button onClick={() => handleMenuItemClick('/date')}>
+                <ListItemIcon>
+                  <CalendarTodayIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Calendar" />
+              </ListItem>
 
-            <ListItem button onClick={() => handleMenuItemClick('/profile')}>
-              <ListItemIcon>
-                <PersonIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Profile" />
-            </ListItem>
+              <ListItem button onClick={() => handleMenuItemClick('/profile')}>
+                <ListItemIcon>
+                  <PersonIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Profile" />
+              </ListItem>
 
-            {/* 대시보드 메뉴 (모든 로그인 사용자) */}
-            <ListItem button onClick={() => handleMenuItemClick('/dashboard')}>
-              <ListItemIcon>
-                <DashboardIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Dashboard" />
-            </ListItem>
-          </List>
+              {/* 대시보드 메뉴 (모든 로그인 사용자) */}
+              <ListItem button onClick={() => handleMenuItemClick('/dashboard')}>
+                <ListItemIcon>
+                  <DashboardIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Dashboard" />
+              </ListItem>
+            </List>
 
-          <Divider />
+            <Divider />
 
-          {/* 하단 메뉴 */}
-          <List>
-            <ListItem button onClick={() => handleMenuItemClick('/profile')}>
-              <ListItemIcon>
-                <SettingsIcon />
-              </ListItemIcon>
-              <ListItemText primary="Settings" />
-            </ListItem>
+            {/* 하단 메뉴 */}
+            <List>
+              <ListItem button onClick={() => handleMenuItemClick('/settings')}>
+                <ListItemIcon>
+                  <SettingsIcon />
+                </ListItemIcon>
+                <ListItemText primary="Settings" />
+              </ListItem>
 
-            <ListItem button onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItem>
-          </List>
-        </DrawerContent>
-      </Drawer>
+              <ListItem button onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary="Logout" />
+              </ListItem>
+            </List>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* 하단 네비게이션 */}
       <MobileBottomNav>
@@ -236,13 +282,21 @@ const MobileNavigation = () => {
           <BottomNavigationAction 
             label="Words" 
             icon={<BookIcon />} 
+            sx={!isAuthenticated ? { opacity: 0.6 } : {}}
           />
           <BottomNavigationAction 
             label="Likes" 
             icon={<FavoriteIcon />} 
+            sx={!isAuthenticated ? { opacity: 0.6 } : {}}
           />
         </BottomNavigation>
       </MobileBottomNav>
+
+      {/* 인증 모달 */}
+      <AuthModal 
+        open={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
     </>
   );
 };

@@ -49,7 +49,6 @@ const AuthModal = ({ open, onClose }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    phone: '',
     agreeTerms: false,
     agreePrivacy: false
   });
@@ -66,7 +65,7 @@ const AuthModal = ({ open, onClose }) => {
     setError('');
     setSuccess('');
     setLoginForm({ email: '', password: '', rememberMe: false });
-    setSignupForm({ name: '', email: '', password: '', confirmPassword: '', phone: '', agreeTerms: false, agreePrivacy: false });
+    setSignupForm({ name: '', email: '', password: '', confirmPassword: '', agreeTerms: false, agreePrivacy: false });
     setResetForm({ email: '' });
     onClose();
   };
@@ -85,7 +84,7 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithEmail(loginForm.email, loginForm.password, loginForm.rememberMe);
-      handleClose();
+      // handleClose()는 AuthContext에서 자동으로 처리됨
     } catch (error) {
       setError(error.message || '로그인에 실패했습니다.');
     } finally {
@@ -146,7 +145,7 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithGoogle();
-      handleClose();
+      // handleClose()는 AuthContext에서 자동으로 처리됨
     } catch (error) {
       setError(error.message || 'Google 로그인에 실패했습니다.');
     } finally {
@@ -379,22 +378,6 @@ const AuthModal = ({ open, onClose }) => {
                   }}
                   sx={{ mb: 2 }}
                   required
-                />
-
-                <TextField
-                  fullWidth
-                  label="전화번호"
-                  value={signupForm.phone}
-                  onChange={(e) => setSignupForm({...signupForm, phone: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
-                  placeholder="010-1234-5678"
                 />
 
                 <TextField
