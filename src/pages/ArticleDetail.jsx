@@ -411,9 +411,10 @@ const ArticleDetail = () => {
   };
 
   const handleSaveWord = () => {
+    // 깔끔한 정의만 저장 (불필요한 라벨 제거)
     const finalDefinition = selectedLanguage === 'en' 
-      ? `Definition: ${wordPopup.englishDefinition}`
-      : `Translation (${selectedLanguage.toUpperCase()}): ${wordPopup.translatedDefinition}\n\nEnglish Definition: ${wordPopup.englishDefinition}`;
+      ? wordPopup.englishDefinition
+      : wordPopup.translatedDefinition;
     
     const success = addWord(
       wordPopup.word,

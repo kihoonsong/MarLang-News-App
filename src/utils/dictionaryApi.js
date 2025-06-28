@@ -37,6 +37,28 @@ export const fetchEnglishDefinition = async (word) => {
   }
 };
 
+// Google Translate API function
+const translateWithGoogle = async (text, targetLang) => {
+  try {
+    // Google Translate API 기본 엔드포인트 (무료 티어 사용)
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      // Google Translate 응답 형식: [[[번역된_텍스트, 원본_텍스트, null, null, 1]], ...]
+      if (data && data[0] && data[0][0] && data[0][0][0]) {
+        return data[0][0][0];
+      }
+    }
+    throw new Error('Google Translate failed');
+  } catch (error) {
+    console.error('Google Translate error:', error);
+    throw error;
+  }
+};
+
 // Enhanced translation with multiple fallback services
 export const translateText = async (text, targetLang = 'ko') => {
   // Language code mapping for different APIs
@@ -58,9 +80,14 @@ export const translateText = async (text, targetLang = 'ko') => {
 
   const mappedLang = langMap[targetLang] || targetLang;
   
-  // Try multiple translation services in order
+  // Try multiple translation services in order (Google first, then free APIs as backup)
   const translationServices = [
-    // 1. MyMemory API (most reliable free option)
+    // 1. Google Translate API (primary choice)
+    async () => {
+      return await translateWithGoogle(text, mappedLang);
+    },
+    
+    // 2. MyMemory API (backup - most reliable free option)
     async () => {
       const response = await fetch(
         `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${mappedLang}`
@@ -75,7 +102,7 @@ export const translateText = async (text, targetLang = 'ko') => {
       throw new Error('MyMemory translation failed');
     },
     
-    // 2. Libre Translate (backup)
+    // 3. Libre Translate (backup)
     async () => {
       const response = await fetch('https://libretranslate.de/translate', {
         method: 'POST',
@@ -97,7 +124,7 @@ export const translateText = async (text, targetLang = 'ko') => {
       throw new Error('LibreTranslate failed');
     },
     
-    // 3. Simple hardcoded translations for common words (final fallback)
+    // 4. Simple hardcoded translations for common words (final fallback)
     async () => {
       const commonTranslations = {
         'ko': {
@@ -187,6 +214,11 @@ export const translateText = async (text, targetLang = 'ko') => {
     try {
       const result = await translationServices[i]();
       if (result && result.trim()) {
+        // 번역 서비스 성공 로그 (개발용)
+        console.log(`Translation successful with service ${i + 1}:`, 
+          i === 0 ? 'Google Translate' : 
+          i === 1 ? 'MyMemory' : 
+          i === 2 ? 'LibreTranslate' : 'Hardcoded');
         return result;
       }
     } catch (error) {

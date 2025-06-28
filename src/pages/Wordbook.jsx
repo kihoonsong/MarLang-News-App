@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, InputBase, Tabs, Tab, Box, 
@@ -7,11 +7,12 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
@@ -58,21 +59,48 @@ const savedWords = [
 
 const Wordbook = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, signOut } = useAuth() || {};
   const { savedWords, removeWord, sortWords } = useData();
-  const [navTab, setNavTab] = useState(2); // Wordbook 탭 활성화
+  
+  // 현재 경로에 따른 네비게이션 탭 인덱스 계산
+  const getCurrentNavTab = () => {
+    const path = location.pathname;
+    if (path === '/') return 0;
+    if (path === '/date') return 1;
+    if (path === '/wordbook') return 2;
+    if (path === '/like') return 3;
+    if (path === '/profile') return 4;
+    if (path === '/dashboard') return 5;
+    return 2; // 기본값
+  };
+  
+  const [navTab, setNavTab] = useState(getCurrentNavTab());
   const [sortBy, setSortBy] = useState('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+
+  // 경로 변경 시 네비게이션 탭 업데이트
+  useEffect(() => {
+    setNavTab(getCurrentNavTab());
+  }, [location.pathname]);
+
+  // 컴포넌트 마운트 시 최근순으로 정렬
+  useEffect(() => {
+    if (savedWords.length > 0) {
+      sortWords('recent');
+    }
+  }, []); // 빈 배열로 변경하여 마운트 시에만 실행
 
   const handleSort = (value) => {
     setSortBy(value);
     sortWords(value);
   };
 
-  const handleDeleteWord = (wordId) => {
+  const handleDeleteWord = (event, wordId) => {
+    event.stopPropagation();
     removeWord(wordId);
   };
 
@@ -294,17 +322,19 @@ const Wordbook = () => {
             </SortContainer>
           </Header>
 
-          <WordList>
+          <WordGrid>
             {savedWords.map(word => (
-              <WordCard key={word.id}>
+              <WordCard 
+                key={word.id}
+                onClick={() => handleGoToArticle(word.articleId)}
+              >
                 <WordHeader>
                   <WordText>{word.word}</WordText>
                   <ActionButtons>
-                    <ActionButton onClick={() => handleGoToArticle(word.articleId)}>
-                      <ArticleIcon sx={{ fontSize: 18 }} />
-                    </ActionButton>
-                    <ActionButton onClick={() => handleDeleteWord(word.id)}>
-                      <DeleteIcon sx={{ fontSize: 18, color: '#f44336' }} />
+                    <ActionButton 
+                      onClick={(e) => handleDeleteWord(e, word.id)}
+                    >
+                      <CloseIcon sx={{ fontSize: 18, color: '#000' }} />
                     </ActionButton>
                   </ActionButtons>
                 </WordHeader>
@@ -312,14 +342,11 @@ const Wordbook = () => {
                 <Meaning>{word.definition}</Meaning>
                 
                 <WordMeta>
-                  <ArticleInfo onClick={() => handleGoToArticle(word.articleId)}>
-                    From: {word.articleTitle}
-                  </ArticleInfo>
                   <SavedDate>Added: {new Date(word.addedAt).toLocaleDateString()}</SavedDate>
                 </WordMeta>
               </WordCard>
             ))}
-          </WordList>
+          </WordGrid>
 
           {savedWords.length === 0 && (
             <EmptyState>
@@ -364,12 +391,21 @@ const SortContainer = styled.div`
   gap: 1rem;
 `;
 
-const WordList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+const WordGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
+  
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
 `;
 
 const WordCard = styled.div`
@@ -377,10 +413,13 @@ const WordCard = styled.div`
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   padding: 1.5rem;
-  transition: box-shadow 0.2s;
+  transition: all 0.2s;
+  cursor: pointer;
+  height: fit-content;
   
   &:hover {
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
   }
 `;
 
@@ -392,10 +431,11 @@ const WordHeader = styled.div`
 `;
 
 const WordText = styled.h3`
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: bold;
   margin: 0;
   color: #1976d2;
+  word-break: break-word;
 `;
 
 const ActionButtons = styled.div`
@@ -417,10 +457,14 @@ const ActionButton = styled.button`
 `;
 
 const Meaning = styled.p`
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1.5;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 1rem 0;
   color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const Translation = styled.p`

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
   BottomNavigation, BottomNavigationAction, Drawer, List, ListItem,
@@ -39,6 +39,11 @@ const MobileNavigation = () => {
   };
 
   const [navValue, setNavValue] = useState(getCurrentNavValue());
+
+  // 경로 변경 시 네비게이션 값 업데이트
+  useEffect(() => {
+    setNavValue(getCurrentNavValue());
+  }, [location.pathname]);
 
   const handleNavChange = (event, newValue) => {
     setNavValue(newValue);
