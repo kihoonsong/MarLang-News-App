@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Callback</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+        }
+        .loading {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+    <div class="loading">Google 로그인 처리 중...</div>
+    
+    <script>
+        console.log('🔄 OAuth 콜백 페이지 로드됨');
+        
+        // URL에서 access_token 추출
+        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = urlParams.get('access_token');
+        const error = urlParams.get('error');
+        
+        if (error) {
+            console.error('❌ OAuth 에러:', error);
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GOOGLE_AUTH_ERROR',
+                    error: error
+                }, window.location.origin);
+            }
+            window.close();
+        } else if (accessToken) {
+            console.log('✅ Access Token 획득:', accessToken);
+            
+            // 부모 창에 토큰 전달
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GOOGLE_AUTH_SUCCESS',
+                    access_token: accessToken
+                }, window.location.origin);
+            }
+            
+            setTimeout(() => {
+                window.close();
+            }, 1000);
+        } else {
+            console.error('❌ 토큰을 찾을 수 없음');
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'GOOGLE_AUTH_ERROR',
+                    error: 'no_token'
+                }, window.location.origin);
+            }
+            window.close();
+        }
+    </script>
+</body>
+</html> 

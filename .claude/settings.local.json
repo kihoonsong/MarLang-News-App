@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lsof:*)",
+      "Bash(npm run dev:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(curl:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(grep:*)",
+      "Bash(pkill:*)",
+      "Bash(ping:*)",
+      "Bash(python3:*)",
+      "Bash(npm start)",
+      "Bash(find:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}
