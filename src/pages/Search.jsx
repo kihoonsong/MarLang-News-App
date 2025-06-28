@@ -263,6 +263,10 @@ const Search = () => {
         </Toolbar>
       </AppBar>
 
+      {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
+      </Box>
+
       <Container>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>

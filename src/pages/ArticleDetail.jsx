@@ -113,7 +113,7 @@ const ArticleDetail = () => {
   // 음성 합성 설정
   const [speechSynthesis, setSpeechSynthesis] = useState(null);
   const [currentUtterance, setCurrentUtterance] = useState(null);
-  const [ttsSpeed, setTtsSpeed] = useState(0.8);
+  const [ttsSpeed, setTtsSpeed] = useState(1.0);
   const [isRestarting, setIsRestarting] = useState(false);
 
   // 기사 데이터 로드
@@ -605,6 +605,10 @@ const ArticleDetail = () => {
             />
           ))}
         </Tabs>
+      </Box>
+
+      {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
       </Box>
 
       {/* 기사 상세 내용 */}

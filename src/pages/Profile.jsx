@@ -142,6 +142,10 @@ const Profile = () => {
         </Tabs>
       </Box>
 
+      {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
+      </Box>
+
       {/* 프로필 내용 */}
       <Container>
         {/* 프로필 헤더 */}

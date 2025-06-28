@@ -32,7 +32,7 @@ const Settings = () => {
   const [localSettings, setLocalSettings] = useState({
     language: userSettings.language || 'en',
     translationLanguage: userSettings.translationLanguage || 'ko',
-    ttsSpeed: userSettings.ttsSpeed || 0.8,
+    ttsSpeed: userSettings.ttsSpeed || 1.0,
     notifications: userSettings.notifications !== false,
     autoPlay: userSettings.autoPlay || false,
     darkMode: userSettings.darkMode || false,
@@ -59,7 +59,7 @@ const Settings = () => {
     const defaultSettings = {
       language: 'en',
       translationLanguage: 'ko',
-      ttsSpeed: 0.8,
+      ttsSpeed: 1.0,
       notifications: true,
       autoPlay: false,
       darkMode: false,
@@ -124,22 +124,24 @@ const Settings = () => {
 
   return (
     <>
-      <MobileNavigation />
+      {/* <MobileNavigation /> */}
       <MobileContentWrapper>
         {/* 상단바 */}
-        {!isMobile && (
-          <AppBar position="static" color="default" elevation={1}>
-            <Toolbar>
-              <IconButton color="inherit" onClick={() => navigate(-1)}>
-                <ArrowBackIcon />
-              </IconButton>
-              <SettingsIcon sx={{ mr: 1 }} />
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-                Settings
-              </Typography>
-            </Toolbar>
-          </AppBar>
-        )}
+        <AppBar position="static" color="default" elevation={1}>
+          <Toolbar>
+            <IconButton color="inherit" onClick={() => navigate(-1)}>
+              <ArrowBackIcon />
+            </IconButton>
+            <SettingsIcon sx={{ mr: 1 }} />
+            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+              Settings
+            </Typography>
+          </Toolbar>
+        </AppBar>
+
+        {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
+        </Box>
 
         <Container>
           <Header>
