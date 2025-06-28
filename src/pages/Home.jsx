@@ -155,9 +155,8 @@ const Home = () => {
       <MobileNavigation />
       
       <MobileContentWrapper>
-        {/* 상단바 - 데스크톱만 표시 */}
-        {!isMobile && (
-          <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 항상 표시 */}
+        <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
               <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
                 MarLang Eng News
@@ -276,12 +275,20 @@ const Home = () => {
               )}
             </Toolbar>
           </AppBar>
-        )}
         
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-            <Tabs value={navTab} onChange={(_, v) => setNavTab(v)}>
+            <Tabs 
+              value={navTab} 
+              onChange={(_, v) => setNavTab(v)}
+              sx={{
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  padding: '12px 16px'
+                }
+              }}
+            >
               {navigationTabs.map((nav, idx) => (
                 <Tab 
                   key={nav} 
@@ -293,7 +300,6 @@ const Home = () => {
                         navigate('/');
                         break;
                       case 'Date':
-                        console.log('🏠 Home - Date 탭 클릭, /date로 이동');
                         navigate('/date');
                         break;
                       case 'Wordbook':

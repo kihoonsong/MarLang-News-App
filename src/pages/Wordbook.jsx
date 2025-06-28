@@ -254,7 +254,16 @@ const Wordbook = () => {
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-            <Tabs value={navTab} onChange={(_, v) => setNavTab(v)}>
+            <Tabs 
+              value={navTab} 
+              onChange={(_, v) => setNavTab(v)}
+              sx={{
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  padding: '12px 16px'
+                }
+              }}
+            >
               {navigationTabs.map((nav, idx) => (
                 <Tab 
                   key={nav} 
@@ -290,17 +299,6 @@ const Wordbook = () => {
           </Box>
         )}
 
-        {/* Home과 높이 맞추기 위한 빈 공간 */}
-        <Box sx={{ 
-          borderBottom: 1, 
-          borderColor: 'divider', 
-          px: 2, 
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          {/* 빈 공간 - Home의 카테고리 탭과 동일한 높이 */}
-        </Box>
 
         {/* 단어장 내용 */}
         <Container>
