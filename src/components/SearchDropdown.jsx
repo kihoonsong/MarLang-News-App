@@ -3,9 +3,6 @@ import styled from 'styled-components';
 import {
   InputBase,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
   Typography,
   Chip,
   Box,
@@ -135,6 +132,21 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleArticleClick = (articleId, event) => {
+    console.log('handleArticleClick called with:', articleId);
+    console.log('Event:', event);
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('Setting isOpen to false and clearing query');
+    setIsOpen(false);
+    setQuery('');
+    
+    console.log('Navigating to:', `/article/${articleId}`);
+    navigate(`/article/${articleId}`);
+  };
+
   const handleInputChange = (e) => {
     setQuery(e.target.value);
     setIsOpen(true);
@@ -143,14 +155,6 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   const handleInputFocus = () => {
     setIsOpen(true);
   };
-
-  const handleArticleClick = (articleId) => {
-    setIsOpen(false);
-    setQuery('');
-    navigate(`/article/${articleId}`);
-  };
-
-
 
   const highlightText = (text, searchQuery) => {
     if (!searchQuery.trim()) return text;
@@ -203,8 +207,18 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                 
                 <ResultsList>
                   {results.map((article, index) => (
-                    <React.Fragment key={article.id}>
-                      <ResultItem onClick={() => handleArticleClick(article.id)}>
+                    <div key={article.id}>
+                      <ResultItem 
+                        onClick={(e) => handleArticleClick(article.id, e)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleArticleClick(article.id, e);
+                          }
+                        }}
+                      >
                         <ArticleImage>
                           <img src={article.image} alt={article.title} />
                         </ArticleImage>
@@ -240,7 +254,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                       </ResultItem>
                       
                       {index < results.length - 1 && <Divider />}
-                    </React.Fragment>
+                    </div>
                   ))}
                 </ResultsList>
               </>
@@ -330,19 +344,32 @@ const DropdownHeader = styled.div`
   border-bottom: 1px solid #f0f0f0;
 `;
 
-const ResultsList = styled(List)`
+const ResultsList = styled.div`
   padding: 0 !important;
 `;
 
-const ResultItem = styled(ListItem)`
-  cursor: pointer !important;
-  padding: 1rem !important;
-  transition: background-color 0.2s !important;
-  display: flex !important;
-  align-items: flex-start !important;
+const ResultItem = styled.div`
+  cursor: pointer;
+  padding: 1rem;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: flex-start;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
   
   &:hover {
-    background-color: #f8f9fa !important;
+    background-color: #f8f9fa;
+  }
+  
+  &:active {
+    background-color: #e9ecef;
+  }
+  
+  &:focus {
+    outline: 2px solid #1976d2;
+    outline-offset: -2px;
   }
 `;
 
@@ -413,8 +440,6 @@ const HighlightedText = styled.span`
   border-radius: 2px;
   padding: 0 2px;
 `;
-
-
 
 const NoResultsContainer = styled.div`
   padding: 2rem 1rem;
