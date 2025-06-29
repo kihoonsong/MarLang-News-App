@@ -148,7 +148,8 @@ const ArticleDetail = () => {
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
     if (isArticleLiked && articleData) {
-      setIsLiked(isArticleLiked(articleData.id));
+      const likedStatus = isArticleLiked(articleData.id);
+      setIsLiked(likedStatus);
     }
   }, [isArticleLiked, articleData]);
 
@@ -372,8 +373,21 @@ const ArticleDetail = () => {
   };
 
   const handleLike = () => {
-    const newLikeStatus = toggleLike(articleData);
-    setIsLiked(newLikeStatus);
+    if (!articleData) {
+      return;
+    }
+    
+    try {
+      const newLikeStatus = toggleLike(articleData);
+      setIsLiked(newLikeStatus);
+      
+      // 좋아요 상태 변경을 다른 컴포넌트에 알림
+      window.dispatchEvent(new CustomEvent('likeUpdated', {
+        detail: { articleId: articleData.id, isLiked: newLikeStatus }
+      }));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
   const handleWordClick = async (event, word) => {
@@ -872,7 +886,10 @@ const ArticleDetail = () => {
                 $active={selectedLevel === level}
                 onClick={() => handleLevelChange(level)}
               >
-                {level}
+                {selectedLevel === level 
+                  ? (level === 1 ? '❶' : level === 2 ? '❷' : '❸')
+                  : (level === 1 ? '①' : level === 2 ? '②' : '③')
+                }
               </LevelTab>
             ))}
           </LevelTabs>
@@ -1202,22 +1219,32 @@ const LikeButton = styled.button`
 
 const LevelTabs = styled.div`
   display: flex;
-  gap: 0.8rem;
+  gap: 0.1rem;
 `;
 
 const LevelTab = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid ${props => props.$active ? '#1976d2' : '#ddd'};
-  background: ${props => props.$active ? '#1976d2' : 'white'};
-  color: ${props => props.$active ? 'white' : '#666'};
+  background: transparent;
+  border: none;
+  color: ${props => props.$active ? '#1976d2' : '#999'};
   cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s;
+  font-size: 1.5rem;
+  font-weight: normal;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
-    border-color: #1976d2;
+    background: ${props => props.$active ? 'rgba(25, 118, 210, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
   }
 `;
 

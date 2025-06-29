@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box,
@@ -9,6 +9,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
@@ -23,8 +24,23 @@ const Like = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, signOut, isModalOpen, setIsModalOpen } = useAuth() || {};
+  const { likedArticles } = useData();
   const [navTab, setNavTab] = useState(3);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  // 좋아요 상태 변경 감지
+  useEffect(() => {
+    const handleLikeUpdate = (event) => {
+      // 강제 리렌더링으로 최신 데이터 반영
+      setForceUpdate(prev => prev + 1);
+    };
+
+    window.addEventListener('likeUpdated', handleLikeUpdate);
+    return () => {
+      window.removeEventListener('likeUpdated', handleLikeUpdate);
+    };
+  }, []);
 
   const handleUserMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -44,36 +60,6 @@ const Like = () => {
       setIsModalOpen(true);
     }
   };
-
-  const { allArticles, loading } = useArticles() || {};
-  
-  // 실제 기사 데이터에서 좋아요 샘플 생성
-  const testArticles = allArticles?.slice(0, 3) || [
-    {
-      id: 'article-1',
-      title: 'AI Technology Breakthrough in Healthcare',
-      category: 'Technology',
-      summary: 'Revolutionary AI systems are transforming medical diagnosis and treatment procedures.',
-      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80',
-      publishedAt: '2024-06-28T12:00:00Z'
-    },
-    {
-      id: 'article-2',
-      title: 'Climate Change Research Shows Promising Results',
-      category: 'Science',
-      summary: 'New environmental technologies offer hope for sustainable future solutions.',
-      image: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80',
-      publishedAt: '2024-06-27T12:00:00Z'
-    },
-    {
-      id: 'article-3',
-      title: 'Global Economic Markets Show Recovery Signs',
-      category: 'Business',
-      summary: 'Market analysis reveals positive trends in global economic recovery.',
-      image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80',
-      publishedAt: '2024-06-26T12:00:00Z'
-    }
-  ];
 
   return (
     <>
@@ -175,20 +161,28 @@ const Like = () => {
         <PageContainer>
           <Title>❤️ Liked Articles</Title>
           
-          <CardsContainer>
-            {testArticles.map(article => (
-              <CardWrapper key={article.id}>
-                <ArticleCard 
-                  id={article.id}
-                  title={article.title}
-                  category={article.category}
-                  summary={article.summary}
-                  image={article.image}
-                  publishedAt={article.publishedAt}
-                />
-              </CardWrapper>
-            ))}
-          </CardsContainer>
+          {likedArticles.length === 0 ? (
+            <EmptyState>
+              <EmptyIcon>💙</EmptyIcon>
+              <EmptyText>No liked articles yet.</EmptyText>
+              <EmptySubtext>Start exploring articles and heart the ones you love!</EmptySubtext>
+            </EmptyState>
+          ) : (
+            <CardsContainer>
+              {likedArticles.map(article => (
+                <CardWrapper key={article.id}>
+                  <ArticleCard 
+                    id={article.id}
+                    title={article.title}
+                    category={article.category}
+                    summary={article.summary}
+                    image={article.image}
+                    publishedAt={article.publishedAt}
+                  />
+                </CardWrapper>
+              ))}
+            </CardsContainer>
+          )}
         </PageContainer>
       </MobileContentWrapper>
       
@@ -211,15 +205,60 @@ const Title = styled.h1`
 `;
 
 const CardsContainer = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
-  overflow-x: auto;
   padding-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (min-width: 1025px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @media (min-width: 1400px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
 `;
 
 const CardWrapper = styled.div`
-  flex: 0 0 320px;
-  width: 320px;
+  width: 100%;
+  max-width: 400px;
+  justify-self: center;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 4rem;
+  margin-bottom: 1rem;
+`;
+
+const EmptyText = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+`;
+
+const EmptySubtext = styled.p`
+  font-size: 1rem;
+  color: #666;
+  max-width: 400px;
 `;
 
 export default Like; 
