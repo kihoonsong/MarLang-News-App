@@ -7,7 +7,7 @@ import {
   Snackbar, Alert, Avatar, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, Switch, FormControlLabel, Divider, Badge,
   List, ListItem, ListItemText, ListItemIcon, Accordion, AccordionSummary,
-  AccordionDetails, Tooltip, Fab
+  AccordionDetails, Tooltip, Fab, RadioGroup, Radio, FormLabel
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon, Article, Add, Edit, Delete, Save, Cancel,
@@ -34,14 +34,16 @@ const homeCategories = [
 const BlogStyleDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const { 
-    allArticles, 
-    setAllArticles, 
+    const {
+    allArticles,
+    setAllArticles,
     loading,
     getRecentArticles,
     getPopularArticles,
     getArticlesByCategory,
-    refreshArticles
+    refreshArticles,
+    deleteArticle,
+    updateArticles
   } = useArticles();
   
   const [activeTab, setActiveTab] = useState(0);
@@ -53,13 +55,17 @@ const BlogStyleDashboard = () => {
   const [articleForm, setArticleForm] = useState({
     title: '',
     summary: '',
-    content: '',
+    content: {
+      beginner: '',
+      intermediate: '',
+      advanced: ''
+    },
     category: 'Technology',
-    level: 'Beginner',
     image: '',
     imageFile: null,
-    readingTime: 5,
-    author: user?.name || 'Admin'
+    publishType: 'immediate', // 'immediate' | 'scheduled'
+    publishedAt: new Date().toISOString().slice(0, 16),
+    status: 'published' // 'draft' | 'published' | 'scheduled'
   });
 
   // 카테고리 관리 상태
@@ -133,21 +139,8 @@ const BlogStyleDashboard = () => {
     };
   }, []);
 
-  // 읽기 시간 자동 계산 (단어 수 기반)
-  const calculateReadingTime = (text) => {
-    const wordsPerMinute = 200; // 평균 읽기 속도
-    const words = text.trim().split(/\s+/).length;
-    return Math.max(1, Math.ceil(words / wordsPerMinute));
-  };
-
-  // 내용 변경시 읽기 시간 자동 업데이트
-  useEffect(() => {
-    const fullText = `${articleForm.title} ${articleForm.summary} ${articleForm.content}`;
-    const calculatedTime = calculateReadingTime(fullText);
-    if (calculatedTime !== articleForm.readingTime) {
-      setArticleForm(prev => ({ ...prev, readingTime: calculatedTime }));
-    }
-  }, [articleForm.title, articleForm.summary, articleForm.content]);
+  // 3개 본문 탭 상태
+  const [activeContentTab, setActiveContentTab] = useState(0);
 
   // 이미지 파일 업로드 처리
   const handleImageUpload = (event) => {
@@ -237,15 +230,20 @@ const BlogStyleDashboard = () => {
     setArticleForm({
       title: '',
       summary: '',
-      content: '',
+      content: {
+        beginner: '',
+        intermediate: '',
+        advanced: ''
+      },
       category: 'Technology',
-      level: 'Beginner',
       image: '',
       imageFile: null,
-      readingTime: 5,
-      author: user?.name || 'Admin'
+      publishType: 'immediate',
+      publishedAt: new Date().toISOString().slice(0, 16),
+      status: 'published'
     });
     setEditingArticle(null);
+    setActiveContentTab(0);
   };
 
   // 새 기사 추가
@@ -255,31 +253,57 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    if (!articleForm.content.trim()) {
+    if (!articleForm.content.beginner.trim() && !articleForm.content.intermediate.trim() && !articleForm.content.advanced.trim()) {
       setSnackbar({ open: true, message: '내용을 입력해주세요.', severity: 'error' });
       return;
+    }
+
+    // 발행 날짜 처리
+    const publishDate = articleForm.publishType === 'immediate' 
+      ? new Date() 
+      : new Date(articleForm.publishedAt);
+    
+    // 상태 결정
+    let status = articleForm.status;
+    if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
+      status = 'scheduled';
     }
 
     const newArticle = {
       id: `article-${Date.now()}`,
       title: articleForm.title.trim(),
       summary: articleForm.summary.trim(),
-      content: articleForm.content.trim(), // 본문만 저장
+      content: {
+        beginner: articleForm.content.beginner.trim(),
+        intermediate: articleForm.content.intermediate.trim(),
+        advanced: articleForm.content.advanced.trim()
+      },
       category: articleForm.category,
-      level: articleForm.level,
       image: articleForm.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80',
-      readingTime: articleForm.readingTime,
       source: 'MarLang News',
-      author: articleForm.author,
-      publishedAt: new Date().toISOString(),
+      author: user?.name || 'Admin',
+      publishType: articleForm.publishType,
+      publishedAt: publishDate.toISOString(),
+      status: status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      likes: Math.floor(Math.random() * 50) + 10,
-      views: Math.floor(Math.random() * 200) + 50
+      likes: 0, // 좋아요 자동 생성 제거
+      views: 0  // 조회수 자동 생성 제거
     };
 
-    setAllArticles(prev => [newArticle, ...prev]);
-    setSnackbar({ open: true, message: '새 기사가 성공적으로 추가되었습니다! 🎉', severity: 'success' });
+    const updatedArticles = [newArticle, ...allArticles];
+    updateArticles(updatedArticles);
+    
+    // 홈페이지에 실시간 알림 (실제 연동)
+    window.dispatchEvent(new CustomEvent('articleUpdated', {
+      detail: { type: 'add', article: newArticle }
+    }));
+    
+    const successMessage = status === 'scheduled' 
+      ? `기사가 ${new Date(publishDate).toLocaleString()}에 발행 예약되었습니다! 📅`
+      : '새 기사가 성공적으로 발행되었습니다! 🎉';
+    
+    setSnackbar({ open: true, message: successMessage, severity: 'success' });
     resetArticleForm();
     setArticleDialog(false);
   };
@@ -290,14 +314,19 @@ const BlogStyleDashboard = () => {
     setArticleForm({
       title: article.title,
       summary: article.summary,
-      content: article.content,
+      content: {
+        beginner: article.content?.beginner || '',
+        intermediate: article.content?.intermediate || '',
+        advanced: article.content?.advanced || ''
+      },
       category: article.category,
-      level: article.level,
       image: article.image,
       imageFile: null,
-      readingTime: article.readingTime,
-      author: article.author || user?.name || 'Admin'
+      publishType: article.publishType || 'immediate',
+      publishedAt: article.publishedAt ? new Date(article.publishedAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+      status: article.status || 'published'
     });
+    setActiveContentTab(0);
     setArticleDialog(true);
   };
 
@@ -308,29 +337,43 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    if (!articleForm.content.trim()) {
+    if (!articleForm.content.beginner.trim() && !articleForm.content.intermediate.trim() && !articleForm.content.advanced.trim()) {
       setSnackbar({ open: true, message: '내용을 입력해주세요.', severity: 'error' });
       return;
+    }
+
+        // 발행 날짜 처리
+    const publishDate = articleForm.publishType === 'immediate' 
+      ? new Date() 
+      : new Date(articleForm.publishedAt);
+    
+    // 상태 결정
+    let status = articleForm.status;
+    if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
+      status = 'scheduled';
     }
 
     const updatedArticle = {
       ...editingArticle,
       title: articleForm.title.trim(),
       summary: articleForm.summary.trim(),
-      content: articleForm.content.trim(), // 본문만 저장
+      content: {
+        beginner: articleForm.content.beginner.trim(),
+        intermediate: articleForm.content.intermediate.trim(),
+        advanced: articleForm.content.advanced.trim()
+      },
       category: articleForm.category,
-      level: articleForm.level,
       image: articleForm.image,
-      readingTime: articleForm.readingTime,
-      author: articleForm.author,
+      publishType: articleForm.publishType,
+      publishedAt: publishDate.toISOString(),
+      status: status,
       updatedAt: new Date().toISOString()
     };
 
-    setAllArticles(prev => 
-      prev.map(article => 
-        article.id === editingArticle.id ? updatedArticle : article
-      )
+    const updatedArticles = allArticles.map(article => 
+      article.id === editingArticle.id ? updatedArticle : article
     );
+    updateArticles(updatedArticles);
 
     setSnackbar({ open: true, message: '기사가 성공적으로 수정되었습니다! ✨', severity: 'success' });
     resetArticleForm();
@@ -339,7 +382,7 @@ const BlogStyleDashboard = () => {
 
   // 기사 삭제
   const handleDeleteArticle = (articleId) => {
-    setAllArticles(prev => prev.filter(article => article.id !== articleId));
+    deleteArticle(articleId);
     setSnackbar({ open: true, message: '기사가 삭제되었습니다.', severity: 'info' });
   };
 
@@ -367,7 +410,7 @@ const BlogStyleDashboard = () => {
     const updatedArticles = allArticles.map(article =>
       article.category === categoryName ? { ...article, category: 'Technology' } : article
     );
-    setAllArticles(updatedArticles);
+    updateArticles(updatedArticles);
     
     const newCategories = editableCategories.filter(cat => cat !== categoryName);
     updateCategoriesAndNotify(newCategories);
@@ -551,10 +594,9 @@ const BlogStyleDashboard = () => {
             <TableRow>
               <TableCell>제목</TableCell>
               <TableCell>카테고리</TableCell>
-              <TableCell>레벨</TableCell>
               <TableCell>조회수</TableCell>
               <TableCell>좋아요</TableCell>
-              <TableCell>읽기시간</TableCell>
+              <TableCell>상태</TableCell>
               <TableCell>발행일</TableCell>
               <TableCell>작업</TableCell>
             </TableRow>
@@ -577,19 +619,15 @@ const BlogStyleDashboard = () => {
                 <TableCell>
                   <Chip label={article.category} size="small" />
                 </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={article.level} 
-                    size="small" 
-                    color={
-                      article.level === 'Beginner' ? 'success' :
-                      article.level === 'Intermediate' ? 'warning' : 'error'
-                    }
-                  />
-                </TableCell>
                 <TableCell>{article.views || 0}</TableCell>
                 <TableCell>{article.likes || 0}</TableCell>
-                <TableCell>{article.readingTime || 5}분</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={article.status === 'published' ? '발행됨' : article.status === 'draft' ? '초안' : '예약됨'} 
+                    color={article.status === 'published' ? 'success' : article.status === 'draft' ? 'default' : 'warning'}
+                    size="small"
+                  />
+                </TableCell>
                 <TableCell>
                   {new Date(article.publishedAt).toLocaleDateString()}
                 </TableCell>
@@ -737,16 +775,9 @@ const BlogStyleDashboard = () => {
         {/* 기사 추가/편집 다이얼로그 - 모든 필드를 한 페이지에 */}
         <Dialog open={articleDialog} onClose={() => setArticleDialog(false)} maxWidth="lg" fullWidth>
           <DialogTitle>
-            <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Typography variant="h5" fontWeight="bold">
-                {editingArticle ? '✏️ 기사 편집' : '✨ 새 기사 추가'}
-              </Typography>
-              <Chip 
-                label={`예상 읽기시간: ${articleForm.readingTime}분`} 
-                color="primary" 
-                variant="outlined"
-              />
-            </Box>
+            <Typography variant="h5" fontWeight="bold">
+              {editingArticle ? '✏️ 기사 편집' : '✨ 새 기사 추가'}
+            </Typography>
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2 }}>
@@ -792,39 +823,69 @@ const BlogStyleDashboard = () => {
                         </Select>
                       </FormControl>
                     </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>난이도 레벨 *</InputLabel>
-                        <Select
-                          value={articleForm.level}
-                          onChange={(e) => setArticleForm({ ...articleForm, level: e.target.value })}
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* 발행 설정 섹션 */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="h6" fontWeight="bold">📅 발행 설정</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <FormControl>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
+                          발행 방식 선택 *
+                        </Typography>
+                        <RadioGroup
+                          value={articleForm.publishType}
+                          onChange={(e) => setArticleForm({ ...articleForm, publishType: e.target.value })}
+                          row
                         >
-                          <MenuItem value="Beginner">🟢 Beginner (초급)</MenuItem>
-                          <MenuItem value="Intermediate">🟡 Intermediate (중급)</MenuItem>
-                          <MenuItem value="Advanced">🔴 Advanced (고급)</MenuItem>
-                        </Select>
+                          <FormControlLabel
+                            value="immediate"
+                            control={<Radio />}
+                            label="📱 즉시 발행"
+                          />
+                          <FormControlLabel
+                            value="scheduled"
+                            control={<Radio />}
+                            label="⏰ 예약 발행"
+                          />
+                        </RadioGroup>
                       </FormControl>
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="작성자"
-                        value={articleForm.author}
-                        onChange={(e) => setArticleForm({ ...articleForm, author: e.target.value })}
-                      />
-                    </Grid>
+                    {/* 예약 발행 시 날짜/시간 선택 */}
+                    {articleForm.publishType === 'scheduled' && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="발행 날짜 및 시간"
+                          type="datetime-local"
+                          value={articleForm.publishedAt}
+                          onChange={(e) => setArticleForm({ ...articleForm, publishedAt: e.target.value })}
+                          InputLabelProps={{ shrink: true }}
+                          helperText="미래 날짜와 시간을 선택하세요"
+                        />
+                      </Grid>
+                    )}
 
+                    {/* 기사 상태 */}
                     <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="읽기 시간 (분)"
-                        type="number"
-                        value={articleForm.readingTime}
-                        onChange={(e) => setArticleForm({ ...articleForm, readingTime: parseInt(e.target.value) || 1 })}
-                        helperText="내용 길이에 따라 자동 계산됩니다"
-                      />
+                      <FormControl fullWidth>
+                        <InputLabel>기사 상태</InputLabel>
+                        <Select
+                          value={articleForm.status}
+                          label="기사 상태"
+                          onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}
+                        >
+                          <MenuItem value="published">✅ 발행됨</MenuItem>
+                          <MenuItem value="draft">📝 초안</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                   </Grid>
                 </AccordionDetails>
@@ -890,31 +951,179 @@ const BlogStyleDashboard = () => {
                 </AccordionDetails>
               </Accordion>
 
-              {/* 본문 내용 섹션 */}
+              {/* 본문 내용 섹션 - 3개 탭 */}
               <Accordion defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant="h6" fontWeight="bold">📖 본문 내용</Typography>
+                  <Typography variant="h6" fontWeight="bold">📖 본문 내용 (3종류 작성)</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <TextField
-                    fullWidth
-                    label="본문 내용 *"
-                    value={articleForm.content}
-                    onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })}
-                    multiline
-                    rows={15}
-                    placeholder="기사의 본문 내용을 작성해주세요. 마크다운 문법을 지원합니다."
-                    sx={{
-                      '& textarea': {
-                        fontFamily: 'monospace',
-                        fontSize: '14px',
-                        lineHeight: 1.6
-                      }
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    현재 글자 수: {articleForm.content.length}자 | 예상 단어 수: {articleForm.content.trim().split(/\s+/).length}개
-                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      💡 하나의 기사에 대해 초급자, 중급자, 고급자용 3가지 버전의 본문을 작성해주세요.
+                    </Alert>
+                    
+                    {/* 본문 작성 탭 */}
+                    <Tabs 
+                      value={activeContentTab} 
+                      onChange={(_, newValue) => setActiveContentTab(newValue)}
+                      variant="fullWidth"
+                      sx={{ mb: 3 }}
+                    >
+                      <Tab 
+                        label="🟢 초급자용 본문" 
+                        sx={{ 
+                          color: articleForm.content.beginner.length > 0 ? 'success.main' : 'text.secondary',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                      <Tab 
+                        label="🟡 중급자용 본문" 
+                        sx={{ 
+                          color: articleForm.content.intermediate.length > 0 ? 'warning.main' : 'text.secondary',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                      <Tab 
+                        label="🔴 고급자용 본문" 
+                        sx={{ 
+                          color: articleForm.content.advanced.length > 0 ? 'error.main' : 'text.secondary',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                    </Tabs>
+
+                    {/* 초급자용 본문 */}
+                    {activeContentTab === 0 && (
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'success.main' }}>
+                          🟢 초급자용 본문 작성
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          쉬운 단어와 짧은 문장을 사용하여 기본 개념 위주로 작성해주세요.
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          label="초급자용 본문 내용 *"
+                          value={articleForm.content.beginner}
+                          onChange={(e) => setArticleForm({ 
+                            ...articleForm, 
+                            content: { ...articleForm.content, beginner: e.target.value } 
+                          })}
+                          multiline
+                          rows={12}
+                          placeholder="초급자도 쉽게 이해할 수 있는 내용으로 작성해주세요..."
+                          sx={{
+                            '& textarea': {
+                              fontFamily: 'monospace',
+                              fontSize: '14px',
+                              lineHeight: 1.6
+                            }
+                          }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          현재 글자 수: {articleForm.content.beginner.length}자
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* 중급자용 본문 */}
+                    {activeContentTab === 1 && (
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'warning.main' }}>
+                          🟡 중급자용 본문 작성
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          적당한 수준의 어휘와 세부 내용을 포함하여 실용적인 정보를 제공해주세요.
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          label="중급자용 본문 내용 *"
+                          value={articleForm.content.intermediate}
+                          onChange={(e) => setArticleForm({ 
+                            ...articleForm, 
+                            content: { ...articleForm.content, intermediate: e.target.value } 
+                          })}
+                          multiline
+                          rows={12}
+                          placeholder="중급자 수준에 맞는 상세한 내용으로 작성해주세요..."
+                          sx={{
+                            '& textarea': {
+                              fontFamily: 'monospace',
+                              fontSize: '14px',
+                              lineHeight: 1.6
+                            }
+                          }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          현재 글자 수: {articleForm.content.intermediate.length}자
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* 고급자용 본문 */}
+                    {activeContentTab === 2 && (
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'error.main' }}>
+                          🔴 고급자용 본문 작성
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          전문 용어와 복잡한 구조를 사용하여 심화 분석과 고급 개념을 포함해주세요.
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          label="고급자용 본문 내용 *"
+                          value={articleForm.content.advanced}
+                          onChange={(e) => setArticleForm({ 
+                            ...articleForm, 
+                            content: { ...articleForm.content, advanced: e.target.value } 
+                          })}
+                          multiline
+                          rows={12}
+                          placeholder="고급자 수준에 맞는 전문적인 내용으로 작성해주세요..."
+                          sx={{
+                            '& textarea': {
+                              fontFamily: 'monospace',
+                              fontSize: '14px',
+                              lineHeight: 1.6
+                            }
+                          }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          현재 글자 수: {articleForm.content.advanced.length}자
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* 작성 진행상황 표시 */}
+                    <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                        📊 작성 진행상황
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={4}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" sx={{ color: articleForm.content.beginner.length > 0 ? 'success.main' : 'text.secondary' }}>
+                              🟢 초급자: {articleForm.content.beginner.length}자
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" sx={{ color: articleForm.content.intermediate.length > 0 ? 'warning.main' : 'text.secondary' }}>
+                              🟡 중급자: {articleForm.content.intermediate.length}자
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" sx={{ color: articleForm.content.advanced.length > 0 ? 'error.main' : 'text.secondary' }}>
+                              🔴 고급자: {articleForm.content.advanced.length}자
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Box>
                 </AccordionDetails>
               </Accordion>
             </Box>

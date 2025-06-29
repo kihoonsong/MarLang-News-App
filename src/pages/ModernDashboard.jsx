@@ -20,7 +20,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 const ModernDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const { allArticles, setAllArticles } = useArticles();
+  const { allArticles, setAllArticles, deleteArticle } = useArticles();
   const [activeTab, setActiveTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -143,8 +143,7 @@ const ModernDashboard = () => {
 
   // 기사 삭제
   const handleDeleteArticle = (id) => {
-    const updatedArticles = (allArticles || []).filter(article => article.id !== id);
-    setAllArticles(updatedArticles);
+    deleteArticle(id);
     setSnackbar({ open: true, message: '기사가 삭제되었습니다.', severity: 'info' });
   };
 

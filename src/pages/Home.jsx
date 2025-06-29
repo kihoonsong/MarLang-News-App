@@ -94,13 +94,31 @@ const Home = () => {
       }
     };
 
+    // 대시보드에서 기사 변경 이벤트 처리
+    const handleArticleUpdate = (event) => {
+      const { type, article } = event.detail;
+      
+      if (type === 'add') {
+        toast.success(`새 기사가 추가되었습니다: ${article.title}`);
+        refreshArticles(); // 기사 목록 새로고침
+      } else if (type === 'update') {
+        toast.info(`기사가 수정되었습니다: ${article.title}`);
+        refreshArticles();
+      } else if (type === 'delete') {
+        toast.info(`기사가 삭제되었습니다: ${article.title}`);
+        refreshArticles();
+      }
+    };
+
     // 커스텀 이벤트 리스너 등록
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
+    window.addEventListener('articleUpdated', handleArticleUpdate);
     
     return () => {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
+      window.removeEventListener('articleUpdated', handleArticleUpdate);
     };
-  }, []);
+  }, [refreshArticles, toast]);
 
   // Load category data from context
   React.useEffect(() => {

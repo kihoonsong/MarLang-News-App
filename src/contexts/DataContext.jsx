@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
@@ -25,6 +26,8 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }) => {
+  const { user } = useAuth();
+  
   // 단어장 상태
   const [savedWords, setSavedWords] = useState([]);
   
@@ -39,26 +42,57 @@ export const DataProvider = ({ children }) => {
     lastVisited: new Date().toISOString()
   });
 
-  // 로컬 스토리지에서 데이터 불러오기
+  // 사용자별 localStorage 키 생성
+  const getUserKey = (baseKey) => {
+    if (!user?.id) return null;
+    return `${baseKey}_${user.id}`;
+  };
+
+  // 사용자가 변경될 때마다 해당 사용자의 데이터 로드
   useEffect(() => {
     const loadFromStorage = (key, setter) => {
       try {
         const stored = localStorage.getItem(key);
         if (stored) {
           setter(JSON.parse(stored));
+        } else {
+          setter([]); // 데이터가 없으면 빈 배열로 초기화
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage:`, error);
+        setter([]); // 오류 발생시 빈 배열로 초기화
       }
     };
 
-    loadFromStorage('marlang_saved_words', setSavedWords);
-    loadFromStorage('marlang_liked_articles', setLikedArticles);
-    loadFromStorage('marlang_user_settings', setUserSettings);
-  }, []);
+    if (user?.id) {
+      // 로그인한 사용자의 데이터 로드
+      console.log('👤 사용자별 데이터 로드:', user.name);
+      
+      const wordsKey = getUserKey('marlang_saved_words');
+      const likedKey = getUserKey('marlang_liked_articles');
+      const settingsKey = getUserKey('marlang_user_settings');
+      
+      loadFromStorage(wordsKey, setSavedWords);
+      loadFromStorage(likedKey, setLikedArticles);
+      loadFromStorage(settingsKey, setUserSettings);
+    } else {
+      // 로그아웃 상태일 때 모든 데이터 초기화
+      console.log('🚪 로그아웃 - 데이터 초기화');
+      setSavedWords([]);
+      setLikedArticles([]);
+      setUserSettings({
+        language: 'en',
+        translationLanguage: 'ko',
+        ttsSpeed: 0.8,
+        lastVisited: new Date().toISOString()
+      });
+    }
+  }, [user]);
 
   // 로컬 스토리지에 데이터 저장
   const saveToStorage = (key, data) => {
+    if (!key) return; // 사용자가 로그인하지 않은 경우 저장하지 않음
+    
     try {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
@@ -68,6 +102,11 @@ export const DataProvider = ({ children }) => {
 
   // 단어 추가 - 뜻과 번역을 모두 저장
   const addWord = (word, definition, articleId, articleTitle, translation = null) => {
+    if (!user?.id) {
+      console.warn('로그인이 필요합니다');
+      return false;
+    }
+
     const newWord = {
       id: Date.now(),
       word: word.toLowerCase(),
@@ -85,7 +124,7 @@ export const DataProvider = ({ children }) => {
     if (!exists) {
       const updatedWords = [...savedWords, newWord];
       setSavedWords(updatedWords);
-      saveToStorage('marlang_saved_words', updatedWords);
+      saveToStorage(getUserKey('marlang_saved_words'), updatedWords);
       return true;
     }
     return false;
@@ -93,6 +132,8 @@ export const DataProvider = ({ children }) => {
 
   // 단어 삭제
   const removeWord = (wordId) => {
+    if (!user?.id) return;
+
     // 삭제할 단어 찾기
     const wordToRemove = savedWords.find(w => w.id === wordId);
     
@@ -118,11 +159,16 @@ export const DataProvider = ({ children }) => {
     
     const updatedWords = savedWords.filter(w => w.id !== wordId);
     setSavedWords(updatedWords);
-    saveToStorage('marlang_saved_words', updatedWords);
+    saveToStorage(getUserKey('marlang_saved_words'), updatedWords);
   };
 
   // 기사 좋아요 토글
   const toggleLike = (article) => {
+    if (!user?.id) {
+      console.warn('좋아요는 로그인 후 이용 가능합니다');
+      return false;
+    }
+
     const isLiked = likedArticles.some(a => a.id === article.id);
     let updatedLikes;
     
@@ -137,20 +183,23 @@ export const DataProvider = ({ children }) => {
     }
     
     setLikedArticles(updatedLikes);
-    saveToStorage('marlang_liked_articles', updatedLikes);
+    saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
     return !isLiked;
   };
 
   // 기사가 좋아요되었는지 확인
   const isArticleLiked = (articleId) => {
+    if (!user?.id) return false;
     return likedArticles.some(a => a.id === articleId);
   };
 
   // 사용자 설정 업데이트
   const updateSettings = (newSettings) => {
+    if (!user?.id) return;
+
     const updated = { ...userSettings, ...newSettings };
     setUserSettings(updated);
-    saveToStorage('marlang_user_settings', updated);
+    saveToStorage(getUserKey('marlang_user_settings'), updated);
   };
 
   // 단어장 정렬

@@ -104,12 +104,32 @@ export const ArticlesProvider = ({ children }) => {
     setError(null);
     
     try {
-      const articles = generateArticles();
-      setAllArticles(articles);
+      // 먼저 localStorage에서 저장된 기사들을 확인
+      const savedArticles = localStorage.getItem('marlang_articles');
+      const isInitialized = localStorage.getItem('marlang_articles_initialized');
+      
+      if (savedArticles !== null) {
+        // 저장된 기사가 있으면 그것을 사용 (빈 배열도 포함)
+        const parsedArticles = JSON.parse(savedArticles);
+        setAllArticles(parsedArticles);
+        console.log('✅ 저장된 기사 로드됨:', parsedArticles.length + '개');
+      } else if (!isInitialized) {
+        // 처음 시작하는 경우에만 샘플 데이터 생성
+        const articles = generateArticles();
+        setAllArticles(articles);
+        localStorage.setItem('marlang_articles', JSON.stringify(articles));
+        localStorage.setItem('marlang_articles_initialized', 'true');
+        console.log('✅ 샘플 기사 생성됨:', articles.length + '개');
+      } else {
+        // 초기화는 되었지만 기사가 없는 경우 (모든 기사가 삭제됨)
+        setAllArticles([]);
+        console.log('✅ 빈 기사 목록 로드됨');
+      }
+      
       setLastUpdated(new Date().toISOString());
     } catch (err) {
       setError('Failed to load articles');
-      console.error('Error generating articles:', err);
+      console.error('Error loading articles:', err);
     } finally {
       setLoading(false);
     }
@@ -161,22 +181,51 @@ export const ArticlesProvider = ({ children }) => {
     });
   };
 
-  // Refresh data
+  // Refresh data (localStorage에서 다시 로드)
   const refreshArticles = () => {
     setLoading(true);
     setError(null);
     
     setTimeout(() => {
       try {
-        const articles = generateArticles();
-        setAllArticles(articles);
+        const savedArticles = localStorage.getItem('marlang_articles');
+        if (savedArticles) {
+          const parsedArticles = JSON.parse(savedArticles);
+          setAllArticles(parsedArticles);
+          console.log('🔄 기사 새로고침됨:', parsedArticles.length + '개');
+        }
         setLastUpdated(new Date().toISOString());
       } catch (err) {
         setError('Failed to refresh articles');
       } finally {
         setLoading(false);
       }
-    }, 500);
+    }, 300);
+  };
+
+  // localStorage에 기사 저장
+  const saveArticlesToStorage = (articles) => {
+    try {
+      localStorage.setItem('marlang_articles', JSON.stringify(articles));
+      console.log('💾 기사 저장됨:', articles.length + '개');
+    } catch (error) {
+      console.error('❌ 기사 저장 실패:', error);
+    }
+  };
+
+  // 기사 삭제
+  const deleteArticle = (articleId) => {
+    const updatedArticles = allArticles.filter(article => article.id !== articleId);
+    setAllArticles(updatedArticles);
+    saveArticlesToStorage(updatedArticles);
+    console.log('🗑️ 기사 삭제됨:', articleId);
+  };
+
+  // 기사 추가/업데이트
+  const updateArticles = (newArticles) => {
+    setAllArticles(newArticles);
+    saveArticlesToStorage(newArticles);
+    setLastUpdated(new Date().toISOString());
   };
 
   const value = {
@@ -190,7 +239,10 @@ export const ArticlesProvider = ({ children }) => {
     getPopularArticles,
     getArticlesByDate,
     getArticlesForDate,
-    refreshArticles
+    refreshArticles,
+    saveArticlesToStorage,
+    deleteArticle,
+    updateArticles
   };
 
   return (

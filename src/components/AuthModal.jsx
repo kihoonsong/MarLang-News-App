@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -58,7 +58,24 @@ const AuthModal = ({ open, onClose }) => {
     email: ''
   });
 
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, signInWithNaver } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, signInWithNaver, isAuthenticated } = useAuth();
+
+  // 로그인 성공 시 자동으로 팝업 닫기
+  useEffect(() => {
+    if (isAuthenticated && open) {
+      console.log('✅ 로그인 성공으로 인한 자동 팝업 닫기');
+      setTimeout(() => {
+        // 폼 상태 초기화
+        setTabValue(0);
+        setError('');
+        setSuccess('');
+        setLoginForm({ email: '', password: '', rememberMe: false });
+        setSignupForm({ name: '', email: '', password: '', confirmPassword: '', agreeTerms: false, agreePrivacy: false });
+        setResetForm({ email: '' });
+        onClose();
+      }, 500); // 0.5초 후 닫기 (사용자가 성공을 확인할 수 있도록)
+    }
+  }, [isAuthenticated, open, onClose]);
 
   const handleClose = () => {
     setTabValue(0);
@@ -84,7 +101,8 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithEmail(loginForm.email, loginForm.password, loginForm.rememberMe);
-      // handleClose()는 AuthContext에서 자동으로 처리됨
+      setSuccess('로그인 성공! 환영합니다.');
+      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
     } catch (error) {
       setError(error.message || '로그인에 실패했습니다.');
     } finally {
@@ -113,8 +131,8 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signUpWithEmail(signupForm);
-      setSuccess('회원가입이 완료되었습니다. 로그인해주세요.');
-      setTimeout(() => setTabValue(0), 2000);
+      setSuccess('회원가입이 완료되었습니다! 자동으로 로그인됩니다.');
+      // 회원가입 성공 시 자동 로그인으로 인해 useEffect에서 팝업이 닫힘
     } catch (error) {
       setError(error.message || '회원가입에 실패했습니다.');
     } finally {
@@ -145,7 +163,8 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithGoogle();
-      // handleClose()는 AuthContext에서 자동으로 처리됨
+      setSuccess('Google 로그인 성공! 환영합니다.');
+      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
     } catch (error) {
       setError(error.message || 'Google 로그인에 실패했습니다.');
     } finally {
@@ -160,7 +179,8 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithNaver();
-      // handleClose()는 AuthContext에서 자동으로 처리됨
+      setSuccess('네이버 로그인 성공! 환영합니다.');
+      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
     } catch (error) {
       setError(error.message || '네이버 로그인에 실패했습니다.');
     } finally {

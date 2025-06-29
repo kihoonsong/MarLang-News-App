@@ -28,7 +28,7 @@ import { useArticles } from '../contexts/ArticlesContext';
 const ImprovedDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, signOut } = useAuth();
-  const { allArticles, setAllArticles } = useArticles();
+  const { allArticles, setAllArticles, deleteArticle } = useArticles();
   const [activeTab, setActiveTab] = useState('overview');
   const [articleDialog, setArticleDialog] = useState(false);
   const [categoryDialog, setCategoryDialog] = useState(false);
@@ -275,8 +275,7 @@ const ImprovedDashboard = () => {
 
   const handleDeleteArticle = (id) => {
     try {
-      const updatedArticles = (allArticles || []).filter(article => article.id !== id);
-      setAllArticles(updatedArticles);
+      deleteArticle(id);
       setSnackbar({ open: true, message: '기사가 삭제되었습니다.', severity: 'info' });
       setDeleteConfirm({ open: false, id: null, type: '' });
     } catch (error) {

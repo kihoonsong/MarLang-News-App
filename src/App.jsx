@@ -88,7 +88,7 @@ function App() {
                     <Route 
                       path="/dashboard" 
                       element={
-                        <AuthGuard>
+                        <AuthGuard requireAdmin={true}>
                           <BlogStyleDashboard />
                         </AuthGuard>
                       } 
@@ -96,7 +96,7 @@ function App() {
                     <Route 
                       path="/dashboard-new" 
                       element={
-                        <AuthGuard>
+                        <AuthGuard requireAdmin={true}>
                           <ModernDashboard />
                         </AuthGuard>
                       } 
@@ -104,7 +104,7 @@ function App() {
                     <Route 
                       path="/admin" 
                       element={
-                        <AuthGuard>
+                        <AuthGuard requireAdmin={true}>
                           <Dashboard />
                         </AuthGuard>
                       } 

@@ -25,7 +25,7 @@ import { useArticles } from '../contexts/ArticlesContext';
 const FullDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, signOut } = useAuth();
-  const { allArticles, setAllArticles } = useArticles();
+  const { allArticles, setAllArticles, deleteArticle } = useArticles();
   const [activeTab, setActiveTab] = useState('overview');
   const [articleDialog, setArticleDialog] = useState(false);
   const [editDialog, setEditDialog] = useState({ open: false, type: '', data: null });
@@ -186,8 +186,7 @@ const FullDashboard = () => {
   };
 
   const handleDeleteArticle = (id) => {
-    const updatedArticles = allArticles.filter(article => article.id !== id);
-    setAllArticles(updatedArticles);
+    deleteArticle(id);
     setDeleteConfirm({ open: false, id: null, type: '' });
   };
 

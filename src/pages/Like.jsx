@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box,
-  Avatar, Menu, MenuItem, ListItemIcon, ListItemText, useMediaQuery, useTheme
+  Avatar, Menu, MenuItem, ListItemIcon, ListItemText, useMediaQuery, useTheme,
+  Button, Select, FormControl, InputLabel
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SortIcon from '@mui/icons-material/Sort';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -24,10 +26,13 @@ const Like = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, signOut, isModalOpen, setIsModalOpen } = useAuth() || {};
-  const { likedArticles } = useData();
+  const { likedArticles, sortLikedArticles } = useData();
+  const { allArticles } = useArticles(); // 전체 기사 데이터 가져오기
   const [navTab, setNavTab] = useState(3);
   const [anchorEl, setAnchorEl] = useState(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [sortBy, setSortBy] = useState('date'); // 기본 정렬: 좋아요한 날짜순
+  const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
 
   // 좋아요 상태 변경 감지
   useEffect(() => {
@@ -41,6 +46,45 @@ const Like = () => {
       window.removeEventListener('likeUpdated', handleLikeUpdate);
     };
   }, []);
+
+  // 좋아요한 기사들을 최신 데이터로 보강
+  const enrichedLikedArticles = likedArticles.map(likedArticle => {
+    // 전체 기사에서 해당 기사 찾기
+    const fullArticle = allArticles.find(article => article.id === likedArticle.id);
+    
+    if (fullArticle) {
+      // 전체 기사 데이터로 보강
+      return {
+        ...fullArticle,
+        likedAt: likedArticle.likedAt // 좋아요한 시간은 유지
+      };
+    }
+    
+    // 전체 기사에서 찾지 못한 경우 기본값 제공
+    return {
+      ...likedArticle,
+      summary: likedArticle.summary || 'No summary available for this article.',
+      publishedAt: likedArticle.publishedAt || likedArticle.likedAt || new Date().toISOString(),
+      image: likedArticle.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80',
+      category: likedArticle.category || 'General'
+    };
+  });
+
+  // 정렬된 기사 목록
+  const sortedArticles = [...enrichedLikedArticles].sort((a, b) => {
+    switch (sortBy) {
+      case 'date':
+        return new Date(b.likedAt || b.publishedAt) - new Date(a.likedAt || a.publishedAt);
+      case 'title':
+        return a.title.localeCompare(b.title);
+      case 'category':
+        return a.category.localeCompare(b.category);
+      case 'published':
+        return new Date(b.publishedAt) - new Date(a.publishedAt);
+      default:
+        return 0;
+    }
+  });
 
   const handleUserMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -58,6 +102,29 @@ const Like = () => {
   const handleLoginClick = () => {
     if (setIsModalOpen) {
       setIsModalOpen(true);
+    }
+  };
+
+  const handleSortMenuOpen = (event) => {
+    setSortMenuAnchor(event.currentTarget);
+  };
+
+  const handleSortMenuClose = () => {
+    setSortMenuAnchor(null);
+  };
+
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
+    handleSortMenuClose();
+  };
+
+  const getSortLabel = (sortType) => {
+    switch (sortType) {
+      case 'date': return '좋아요한 날짜순';
+      case 'title': return '제목순';
+      case 'category': return '카테고리순';
+      case 'published': return '발행일순';
+      default: return '좋아요한 날짜순';
     }
   };
 
@@ -159,9 +226,81 @@ const Like = () => {
         )}
 
         <PageContainer>
-          <Title>❤️ Liked Articles</Title>
+          <TitleContainer>
+            <TitleSection>
+              <Title>❤️ Liked Articles</Title>
+              {isAuthenticated && (
+                <ArticleCount>
+                  {sortedArticles.length} article{sortedArticles.length !== 1 ? 's' : ''}
+                </ArticleCount>
+              )}
+            </TitleSection>
+            
+            {isAuthenticated && sortedArticles.length > 0 && (
+              <SortSection>
+                <SortButton 
+                  variant="outlined" 
+                  startIcon={<SortIcon />}
+                  onClick={handleSortMenuOpen}
+                  size="small"
+                >
+                  {getSortLabel(sortBy)}
+                </SortButton>
+                
+                <Menu
+                  anchorEl={sortMenuAnchor}
+                  open={Boolean(sortMenuAnchor)}
+                  onClose={handleSortMenuClose}
+                  PaperProps={{
+                    style: {
+                      minWidth: 180,
+                    },
+                  }}
+                >
+                  <MenuItem 
+                    onClick={() => handleSortChange('date')}
+                    selected={sortBy === 'date'}
+                  >
+                    좋아요한 날짜순
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => handleSortChange('published')}
+                    selected={sortBy === 'published'}
+                  >
+                    발행일순
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => handleSortChange('title')}
+                    selected={sortBy === 'title'}
+                  >
+                    제목순 (A-Z)
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => handleSortChange('category')}
+                    selected={sortBy === 'category'}
+                  >
+                    카테고리순
+                  </MenuItem>
+                </Menu>
+              </SortSection>
+            )}
+          </TitleContainer>
           
-          {likedArticles.length === 0 ? (
+          {!isAuthenticated ? (
+            <EmptyState>
+              <EmptyIcon>🔐</EmptyIcon>
+              <EmptyText>로그인이 필요합니다</EmptyText>
+              <EmptySubtext>좋아요한 기사를 확인하려면 먼저 로그인해주세요.</EmptySubtext>
+              <LoginButton 
+                variant="contained" 
+                color="primary"
+                onClick={handleLoginClick}
+                sx={{ mt: 2 }}
+              >
+                로그인하기
+              </LoginButton>
+            </EmptyState>
+          ) : sortedArticles.length === 0 ? (
             <EmptyState>
               <EmptyIcon>💙</EmptyIcon>
               <EmptyText>No liked articles yet.</EmptyText>
@@ -169,7 +308,7 @@ const Like = () => {
             </EmptyState>
           ) : (
             <CardsContainer>
-              {likedArticles.map(article => (
+              {sortedArticles.map(article => (
                 <CardWrapper key={article.id}>
                   <ArticleCard 
                     id={article.id}
@@ -197,11 +336,74 @@ const Like = () => {
   );
 };
 
+const TitleContainer = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+`;
+
+const TitleSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  
+  @media (max-width: 768px) {
+    justify-content: space-between;
+  }
+`;
+
+const SortSection = styled.div`
+  display: flex;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    justify-content: flex-end;
+  }
+`;
+
 const Title = styled.h1`
   font-size: 1.8rem;
   font-weight: bold;
-  margin-bottom: 2rem;
+  margin: 0;
   color: #333;
+`;
+
+const ArticleCount = styled.span`
+  font-size: 0.9rem;
+  color: #666;
+  background: #f5f5f5;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+`;
+
+const SortButton = styled(Button)`
+  && {
+    min-width: 140px;
+    color: #666;
+    border-color: #ddd;
+    background: white;
+    
+    &:hover {
+      background: #f8f9fa;
+      border-color: #1976d2;
+      color: #1976d2;
+    }
+    
+    .MuiButton-startIcon {
+      margin-right: 0.5rem;
+    }
+  }
 `;
 
 const CardsContainer = styled.div`
@@ -259,6 +461,25 @@ const EmptySubtext = styled.p`
   font-size: 1rem;
   color: #666;
   max-width: 400px;
+`;
+
+const LoginButton = styled(Button)`
+  && {
+    min-width: 140px;
+    color: #666;
+    border-color: #ddd;
+    background: white;
+    
+    &:hover {
+      background: #f8f9fa;
+      border-color: #1976d2;
+      color: #1976d2;
+    }
+    
+    .MuiButton-startIcon {
+      margin-right: 0.5rem;
+    }
+  }
 `;
 
 export default Like; 

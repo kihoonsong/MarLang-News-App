@@ -31,46 +31,40 @@ const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
 // 기사 내용에서 3개 레벨 생성
 const generateLevelsFromContent = (article) => {
-  const baseContent = article.summary || article.title;
-  
-  return {
-    1: {
-      title: 'Level 1 - Beginner',
-      content: `${article.title}
-
-${baseContent}
-
-This article discusses important developments in ${article.category.toLowerCase()}. The information presented here helps us understand current trends and future possibilities in this field.
-
-Key points include new research findings, practical applications, and potential impact on society. This topic is relevant for anyone interested in ${article.category.toLowerCase()} and its effects on our daily lives.`
-    },
-    2: {
-      title: 'Level 2 - Intermediate',
-      content: `${article.title}
-
-${baseContent}
-
-This comprehensive analysis explores the significant developments and implications within the ${article.category.toLowerCase()} sector. Recent advances have demonstrated substantial progress in addressing key challenges and opportunities.
-
-The research methodology employed in this study incorporates both quantitative and qualitative approaches, providing a balanced perspective on current market conditions and future projections. Industry experts suggest that these findings will influence policy decisions and strategic planning across multiple sectors.
-
-Furthermore, the interdisciplinary nature of this research highlights the importance of collaboration between various stakeholders, including academic institutions, government agencies, and private sector organizations.`
-    },
-    3: {
-      title: 'Level 3 - Advanced',
-      content: `${article.title}
-
-${baseContent}
-
-This sophisticated examination presents a comprehensive analysis of the multifaceted dynamics influencing contemporary ${article.category.toLowerCase()} paradigms. The research synthesizes empirical data from longitudinal studies, cross-sectional analyses, and meta-analytical frameworks to establish robust theoretical foundations.
-
-The methodological approach incorporates advanced statistical modeling techniques, including multivariate regression analysis, structural equation modeling, and machine learning algorithms to identify significant correlations and predictive patterns within the dataset.
-
-The implications of these findings extend beyond immediate practical applications, contributing to the theoretical discourse surrounding epistemological frameworks and ontological considerations within the broader academic community. The research establishes new benchmarks for future investigations and provides a foundation for interdisciplinary collaboration.
-
-Moreover, the study's innovative approach to data interpretation challenges conventional assumptions and introduces novel perspectives that may revolutionize current understanding of ${article.category.toLowerCase()} phenomena and their societal implications.`
-    }
-  };
+  // 새로운 3개 버전 구조를 그대로 사용
+  if (article.content && typeof article.content === 'object') {
+    return {
+      1: {
+        title: 'Level 1 - Beginner',
+        content: article.content.beginner || ''
+      },
+      2: {
+        title: 'Level 2 - Intermediate', 
+        content: article.content.intermediate || ''
+      },
+      3: {
+        title: 'Level 3 - Advanced',
+        content: article.content.advanced || ''
+      }
+    };
+  } else {
+    // 기존 단일 문자열 구조인 경우 그대로 사용
+    const baseContent = article.content || article.summary || '';
+    return {
+      1: {
+        title: 'Level 1 - Beginner',
+        content: baseContent
+      },
+      2: {
+        title: 'Level 2 - Intermediate',
+        content: baseContent
+      },
+      3: {
+        title: 'Level 3 - Advanced',
+        content: baseContent
+      }
+    };
+  }
 };
 
 
@@ -218,6 +212,45 @@ const ArticleDetail = () => {
     if ('speechSynthesis' in window) {
       setSpeechSynthesis(window.speechSynthesis);
     }
+
+    // 브라우저 탭 닫기/새로고침 시 TTS 중지
+    const handleBeforeUnload = () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        console.log('🔇 브라우저 이벤트로 인한 TTS 중지');
+      }
+    };
+
+    // 페이지 visibility 변경 시 TTS 중지 (다른 탭으로 이동)
+    const handleVisibilityChange = () => {
+      if (document.hidden && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        setIsTTSPlaying(false);
+        setCurrentSentence(-1);
+        setCurrentUtterance(null);
+        console.log('🔇 탭 전환으로 인한 TTS 중지');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 컴포넌트 언마운트 시 TTS 중지
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        console.log('🔇 페이지 이동으로 인한 TTS 중지');
+      }
+      // TTS 상태 초기화
+      setIsTTSPlaying(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
+      setIsRestarting(false);
+
+      // 이벤트 리스너 제거
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const startTTS = () => {
@@ -377,6 +410,12 @@ const ArticleDetail = () => {
       return;
     }
     
+    // 로그인 상태 확인
+    if (!isAuthenticated) {
+      alert('좋아요 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
+      return;
+    }
+    
     try {
       const newLikeStatus = toggleLike(articleData);
       setIsLiked(newLikeStatus);
@@ -457,6 +496,26 @@ const ArticleDetail = () => {
   };
 
   const handleSaveWord = () => {
+    // 로그인 상태 확인
+    if (!isAuthenticated) {
+      alert('단어 저장 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
+      setWordPopup({
+        open: false,
+        anchorEl: null,
+        word: '',
+        englishDefinition: '',
+        translatedDefinition: '',
+        phonetic: '',
+        partOfSpeech: '',
+        example: '',
+        audio: '',
+        isLoading: false,
+        error: null,
+        selectedWord: null
+      });
+      return;
+    }
+
     // 영어 정의와 번역 모두 저장
     const englishDefinition = wordPopup.englishDefinition;
     const translatedDefinition = wordPopup.translatedDefinition;
