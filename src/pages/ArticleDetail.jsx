@@ -77,7 +77,7 @@ Moreover, the study's innovative approach to data interpretation challenges conv
 const ArticleDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { addWord, toggleLike, isArticleLiked, userSettings, updateSettings } = useData();
+  const { addWord, toggleLike, isArticleLiked, userSettings, updateSettings, removeWord, savedWords: contextSavedWords } = useData();
   const { allArticles, loading: articlesLoading } = useArticles();
   const { user, isAuthenticated, signOut } = useAuth() || {};
   const theme = useTheme();
@@ -115,13 +115,6 @@ const ArticleDetail = () => {
   // 언어 설정
   const [selectedLanguage, setSelectedLanguage] = useState(userSettings.translationLanguage || 'ko');
   
-  // 알림 상태
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
-
   // 음성 합성 설정
   const [speechSynthesis, setSpeechSynthesis] = useState(null);
   const [currentUtterance, setCurrentUtterance] = useState(null);
@@ -173,6 +166,38 @@ const ArticleDetail = () => {
         console.error('Error loading highlights:', error);
       }
     }
+  }, [articleData]);
+
+  // localStorage 변경 감지 (다른 탭/창에서 단어장 변경 시)
+  useEffect(() => {
+    if (!articleData) return;
+
+    const handleStorageChange = (event) => {
+      const highlightKey = `marlang_highlights_${articleData.id}`;
+      if (event.key === highlightKey && event.newValue !== event.oldValue) {
+        try {
+          const highlights = event.newValue ? JSON.parse(event.newValue) : [];
+          setHighlightedWords(new Set(highlights));
+        } catch (error) {
+          console.error('Error parsing highlights from storage:', error);
+        }
+      }
+    };
+
+    // 같은 탭 내에서 하이라이트 변경 감지
+    const handleHighlightUpdate = (event) => {
+      if (event.detail.articleId === articleData.id) {
+        setHighlightedWords(new Set(event.detail.highlights));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('highlightUpdated', handleHighlightUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('highlightUpdated', handleHighlightUpdate);
+    };
   }, [articleData]);
 
   // 하이라이트된 단어들을 로컬스토리지에 저장
@@ -349,11 +374,6 @@ const ArticleDetail = () => {
   const handleLike = () => {
     const newLikeStatus = toggleLike(articleData);
     setIsLiked(newLikeStatus);
-    setSnackbar({
-      open: true,
-      message: newLikeStatus ? 'Article added to favorites!' : 'Article removed from favorites!',
-      severity: 'success'
-    });
   };
 
   const handleWordClick = async (event, word) => {
@@ -423,16 +443,16 @@ const ArticleDetail = () => {
   };
 
   const handleSaveWord = () => {
-    // 깔끔한 정의만 저장 (불필요한 라벨 제거)
-    const finalDefinition = selectedLanguage === 'en' 
-      ? wordPopup.englishDefinition
-      : wordPopup.translatedDefinition;
+    // 영어 정의와 번역 모두 저장
+    const englishDefinition = wordPopup.englishDefinition;
+    const translatedDefinition = wordPopup.translatedDefinition;
     
     const success = addWord(
       wordPopup.word,
-      finalDefinition,
+      englishDefinition, // 영어 정의를 메인으로
       articleData.id,
-      articleData.title
+      articleData.title,
+      selectedLanguage !== 'en' ? translatedDefinition : null // 번역이 있을 때만 저장
     );
     
     if (success) {
@@ -444,22 +464,15 @@ const ArticleDetail = () => {
       setHighlightedWords(newHighlights);
       saveHighlights(newHighlights);
       
+      // 같은 탭 내에서 하이라이트 변경 알림
+      window.dispatchEvent(new CustomEvent('highlightUpdated', {
+        detail: { articleId: articleData.id, highlights: [...newHighlights] }
+      }));
+      
       // 해당 단어에 하이라이트 클래스 추가
       if (wordPopup.selectedWord) {
         wordPopup.selectedWord.classList.add('highlighted-word');
       }
-      
-      setSnackbar({
-        open: true,
-        message: `"${wordPopup.word}" saved to wordbook!`,
-        severity: 'success'
-      });
-    } else {
-      setSnackbar({
-        open: true,
-        message: `"${wordPopup.word}" is already in your wordbook!`,
-        severity: 'warning'
-      });
     }
     
     setWordPopup({
@@ -495,14 +508,19 @@ const ArticleDetail = () => {
     setHighlightedWords(newHighlights);
     saveHighlights(newHighlights);
     
+    // 단어장에서도 해당 단어 삭제
+    const wordToRemove = contextSavedWords.find(w => w.word === cleanWord && w.articleId === articleData.id);
+    if (wordToRemove) {
+      removeWord(wordToRemove.id);
+    }
+    
+    // 같은 탭 내에서 하이라이트 변경 알림
+    window.dispatchEvent(new CustomEvent('highlightUpdated', {
+      detail: { articleId: articleData.id, highlights: [...newHighlights] }
+    }));
+    
     // DOM에서 하이라이트 클래스 제거
     event.target.classList.remove('highlighted-word');
-    
-    setSnackbar({
-      open: true,
-      message: `"${cleanWord}" removed from highlights`,
-      severity: 'info'
-    });
   };
 
   // 상단바 관련 함수들
@@ -947,9 +965,6 @@ const ArticleDetail = () => {
                   <VolumeUpIcon fontSize="small" />
                 </IconButton>
               </WordTitle>
-              {wordPopup.phonetic && (
-                <Phonetic>{wordPopup.phonetic}</Phonetic>
-              )}
               {wordPopup.partOfSpeech && (
                 <Chip 
                   label={wordPopup.partOfSpeech} 
@@ -1065,23 +1080,6 @@ const ArticleDetail = () => {
         </WordPopupContent>
       </Popover>
 
-
-
-        {/* 알림 스낵바 */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={() => setSnackbar({ ...snackbar, open: false })} 
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </MobileContentWrapper>
     </>
   );
@@ -1308,14 +1306,6 @@ const WordTitle = styled.div`
   color: #1976d2;
   display: flex;
   align-items: center;
-`;
-
-const Phonetic = styled.div`
-  font-size: 0.85rem;
-  color: #666;
-  font-style: italic;
-  font-weight: normal;
-  margin-top: 2px;
 `;
 
 const LanguageSelector = styled.div`

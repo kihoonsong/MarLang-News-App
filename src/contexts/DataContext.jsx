@@ -66,15 +66,18 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // 단어 추가
-  const addWord = (word, definition, articleId, articleTitle) => {
+  // 단어 추가 - 뜻과 번역을 모두 저장
+  const addWord = (word, definition, articleId, articleTitle, translation = null) => {
     const newWord = {
       id: Date.now(),
       word: word.toLowerCase(),
-      definition,
+      definition, // 영어 정의
+      meaning: definition, // 호환성을 위해 meaning 필드도 추가
+      translation, // 번역된 뜻 (선택사항)
       articleId,
       articleTitle,
-      addedAt: new Date().toISOString()
+      addedAt: new Date().toISOString(),
+      savedDate: new Date().toISOString() // 호환성을 위해 savedDate도 추가
     };
     
     // 이미 존재하는 단어인지 확인
@@ -90,6 +93,29 @@ export const DataProvider = ({ children }) => {
 
   // 단어 삭제
   const removeWord = (wordId) => {
+    // 삭제할 단어 찾기
+    const wordToRemove = savedWords.find(w => w.id === wordId);
+    
+    if (wordToRemove) {
+      // 해당 기사의 하이라이트에서도 제거
+      const highlightKey = `marlang_highlights_${wordToRemove.articleId}`;
+      try {
+        const stored = localStorage.getItem(highlightKey);
+        if (stored) {
+          const highlights = JSON.parse(stored);
+          const updatedHighlights = highlights.filter(word => word !== wordToRemove.word);
+          localStorage.setItem(highlightKey, JSON.stringify(updatedHighlights));
+          
+          // 같은 탭 내에서 하이라이트 변경 알림
+          window.dispatchEvent(new CustomEvent('highlightUpdated', {
+            detail: { articleId: wordToRemove.articleId, highlights: updatedHighlights }
+          }));
+        }
+      } catch (error) {
+        console.error('Error removing highlight:', error);
+      }
+    }
+    
     const updatedWords = savedWords.filter(w => w.id !== wordId);
     setSavedWords(updatedWords);
     saveToStorage('marlang_saved_words', updatedWords);

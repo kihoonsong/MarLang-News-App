@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, InputBase, Tabs, Tab, Box, 
   Select, MenuItem, FormControl, InputLabel, Avatar, Menu, ListItemIcon, 
-  ListItemText, useMediaQuery, useTheme
+  ListItemText, useMediaQuery, useTheme, CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -12,6 +12,8 @@ import ArticleIcon from '@mui/icons-material/Article';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,45 +22,10 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import AuthModal from '../components/AuthModal';
 import SearchDropdown from '../components/SearchDropdown';
 import PageContainer from '../components/PageContainer';
+import { speakWord, isSpeechSynthesisSupported, getCurrentPlayingStatus, stopCurrentSpeech } from '../utils/speechUtils';
+import { designTokens, getColor, getBorderRadius } from '../utils/designTokens';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
-
-// 샘플 저장된 단어 데이터
-const savedWords = [
-  {
-    id: 1,
-    word: 'artificial',
-    meaning: 'made by humans, not natural',
-    translation: '인공의',
-    language: 'Korean',
-    articleId: 1,
-    articleTitle: 'AI Revolution in Healthcare',
-    savedDate: '2024-06-25',
-    category: 'Technology'
-  },
-  {
-    id: 2,
-    word: 'revolutionizing',
-    meaning: 'changing something completely',
-    translation: '혁신하는',
-    language: 'Korean',
-    articleId: 1,
-    articleTitle: 'AI Revolution in Healthcare',
-    savedDate: '2024-06-24',
-    category: 'Technology'
-  },
-  {
-    id: 3,
-    word: 'algorithm',
-    meaning: 'a set of rules or instructions for solving a problem',
-    translation: '알고리즘',
-    language: 'Korean',
-    articleId: 1,
-    articleTitle: 'AI Revolution in Healthcare',
-    savedDate: '2024-06-23',
-    category: 'Technology'
-  }
-];
 
 const Wordbook = () => {
   const navigate = useNavigate();
@@ -84,6 +51,7 @@ const Wordbook = () => {
   const [sortBy, setSortBy] = useState('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [playingWordId, setPlayingWordId] = useState(null); // 현재 재생 중인 단어 ID
 
   // 경로 변경 시 네비게이션 탭 업데이트
   useEffect(() => {
@@ -96,8 +64,6 @@ const Wordbook = () => {
       sortWords('recent');
     }
   }, []); // 빈 배열로 변경하여 마운트 시에만 실행
-
-
 
   const handleSort = (value) => {
     setSortBy(value);
@@ -130,6 +96,38 @@ const Wordbook = () => {
   const handleLoginClick = () => {
     if (setIsModalOpen) {
       setIsModalOpen(true);
+    }
+  };
+
+  // 발음 재생 함수
+  const handlePlayPronunciation = async (event, word, wordId) => {
+    event.stopPropagation(); // 카드 클릭 이벤트 방지
+    
+    if (!isSpeechSynthesisSupported()) {
+      alert('Your browser does not support speech synthesis.');
+      return;
+    }
+
+    // 현재 재생 중인 경우 정지
+    if (playingWordId === wordId) {
+      stopCurrentSpeech();
+      setPlayingWordId(null);
+      return;
+    }
+
+    // 다른 음성이 재생 중인 경우 정지
+    if (playingWordId) {
+      stopCurrentSpeech();
+    }
+
+    setPlayingWordId(wordId);
+    
+    try {
+      await speakWord(word);
+    } catch (error) {
+      console.error('Failed to play pronunciation:', error);
+    } finally {
+      setPlayingWordId(null);
     }
   };
 
@@ -420,7 +418,6 @@ const Wordbook = () => {
           </Box>
         )}
 
-
         {/* 단어장 내용 */}
         <PageContainer>
           <Header>
@@ -448,7 +445,20 @@ const Wordbook = () => {
                 onClick={() => handleGoToArticle(word.articleId)}
               >
                 <WordHeader>
-                  <WordText>{word.word}</WordText>
+                  <WordTextContainer>
+                    <WordText>{word.word}</WordText>
+                    <PronunciationButton
+                      onClick={(e) => handlePlayPronunciation(e, word.word, word.id)}
+                      disabled={playingWordId && playingWordId !== word.id}
+                      isPlaying={playingWordId === word.id}
+                    >
+                      {playingWordId === word.id ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <VolumeUpIcon sx={{ fontSize: 18 }} />
+                      )}
+                    </PronunciationButton>
+                  </WordTextContainer>
                   <ActionButtons>
                     <ActionButton 
                       onClick={(e) => handleDeleteWord(e, word.id)}
@@ -458,10 +468,13 @@ const Wordbook = () => {
                   </ActionButtons>
                 </WordHeader>
                 
-                <Meaning>{word.definition}</Meaning>
+                {/* 한글 번역이 있으면 한글만, 없으면 영어 정의 표시 */}
+                <Meaning>
+                  {word.translation || word.definition || word.meaning}
+                </Meaning>
                 
                 <WordMeta>
-                  <SavedDate>Added: {new Date(word.addedAt).toLocaleDateString('en-US', { 
+                  <SavedDate>Added: {new Date(word.addedAt || word.savedDate).toLocaleDateString('en-US', { 
                     month: 'short', 
                     day: 'numeric',
                     year: 'numeric'
@@ -494,41 +507,42 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: ${designTokens.spacing.lg};
 `;
 
 const Title = styled.h1`
   font-size: 1.8rem;
   font-weight: bold;
   margin: 0;
+  color: ${getColor('text.primary')};
 `;
 
 const SortContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: ${designTokens.spacing.sm};
 `;
 
 const WordGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  gap: ${designTokens.spacing.md};
   
-  @media (min-width: 768px) {
+  @media (min-width: ${designTokens.breakpoints.mobile}) {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
   
-  @media (min-width: 1024px) {
+  @media (min-width: ${designTokens.breakpoints.desktop}) {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
+    gap: ${designTokens.spacing.lg};
   }
 `;
 
 const WordCard = styled.div`
-  background: white;
-  border-radius: 16px;
+  background: ${getColor('background.paper')};
+  border-radius: ${getBorderRadius('large')};
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-  padding: 1.5rem;
+  padding: ${designTokens.spacing.md};
   transition: all 0.2s;
   cursor: pointer;
   height: fit-content;
@@ -542,53 +556,82 @@ const WordCard = styled.div`
 const WordHeader = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: ${designTokens.spacing.sm};
+`;
+
+const WordTextContainer = styled.div`
+  display: flex;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: ${designTokens.spacing.xs};
+  flex: 1;
 `;
 
 const WordText = styled.h3`
   font-size: 1.2rem;
   font-weight: bold;
   margin: 0;
-  color: #1976d2;
+  color: ${getColor('primary')};
   word-break: break-word;
+`;
+
+const PronunciationButton = styled.button`
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: ${props => props.isPlaying ? getColor('primary') : getColor('text.secondary')};
+  border-radius: 4px;
+  
+  &:hover:not(:disabled) {
+    background: ${getColor('primaryLight')};
+    color: ${getColor('primary')};
+    transform: scale(1.1);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: ${designTokens.spacing.xs};
 `;
 
 const ActionButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: ${designTokens.spacing.xs};
+  border-radius: ${getBorderRadius('small')};
   transition: background 0.2s;
   
   &:hover {
-    background: #f5f5f5;
+    background: ${designTokens.colors.background.grey};
   }
 `;
 
 const Meaning = styled.p`
   font-size: 0.9rem;
   line-height: 1.5;
-  margin: 0 0 1rem 0;
-  color: #333;
+  margin: 0 0 ${designTokens.spacing.sm} 0;
+  color: ${getColor('text.primary')};
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-`;
-
-const Translation = styled.p`
-  font-size: 1rem;
-  line-height: 1.5;
-  margin: 0 0 1rem 0;
-  color: #666;
-  font-style: italic;
 `;
 
 const WordMeta = styled.div`
@@ -596,47 +639,38 @@ const WordMeta = styled.div`
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
-  color: #888;
-`;
-
-const ArticleInfo = styled.span`
-  cursor: pointer;
-  color: #1976d2;
-  
-  &:hover {
-    text-decoration: underline;
-  }
+  color: ${getColor('text.hint')};
 `;
 
 const SavedDate = styled.span`
-  color: #888;
+  color: ${getColor('text.hint')};
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
+  padding: ${designTokens.spacing.xxl} ${designTokens.spacing.lg};
 `;
 
 const EmptyIcon = styled.div`
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: ${designTokens.spacing.sm};
 `;
 
 const EmptyText = styled.h3`
   font-size: 1.5rem;
-  margin: 0 0 0.5rem 0;
-  color: #666;
+  margin: 0 0 ${designTokens.spacing.xs} 0;
+  color: ${getColor('text.secondary')};
 `;
 
 const EmptySubtext = styled.p`
   font-size: 1rem;
-  color: #888;
+  color: ${getColor('text.hint')};
   margin: 0;
 `;
 
 const EmptyAuthState = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
+  padding: ${designTokens.spacing.xxl} ${designTokens.spacing.lg};
 `;
 
 export default Wordbook; 

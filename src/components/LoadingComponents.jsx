@@ -1,6 +1,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { CircularProgress, Skeleton, Box, Typography, Card } from '@mui/material';
+import { designTokens, getShadow, getBorderRadius } from '../utils/designTokens';
 
 // 메인 로딩 스피너
 export const LoadingSpinner = ({ size = 40, message = "Loading..." }) => (
@@ -164,7 +165,7 @@ const LoadingContainer = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: ${designTokens.spacing.lg};
   text-align: center;
 `;
 
@@ -179,7 +180,7 @@ const FullPageLoading = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: ${designTokens.zIndex.modal};
 `;
 
 const LoadingContent = styled.div`
@@ -187,14 +188,14 @@ const LoadingContent = styled.div`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background: white;
-  padding: 3rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  background: ${designTokens.colors.background.paper};
+  padding: ${designTokens.spacing.xl};
+  border-radius: ${getBorderRadius('large')};
+  box-shadow: ${getShadow('large')};
 `;
 
 const SkeletonCard = styled(Card)`
-  border-radius: 16px !important;
+  border-radius: ${getBorderRadius('large')} !important;
   overflow: hidden;
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
@@ -202,32 +203,50 @@ const SkeletonCard = styled(Card)`
 const SkeletonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
-  padding: 2rem;
+  gap: ${designTokens.spacing.lg};
+  padding: ${designTokens.spacing.lg};
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    grid-template-columns: 1fr;
+    gap: ${designTokens.spacing.sm};
+    padding: ${designTokens.spacing.sm};
+  }
 `;
 
 const DetailSkeletonContainer = styled.div`
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: ${designTokens.spacing.lg};
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    padding: ${designTokens.spacing.sm};
+  }
 `;
 
 const SearchSkeletonContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: ${designTokens.spacing.lg};
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    padding: ${designTokens.spacing.sm};
+  }
 `;
 
 const WordbookSkeletonContainer = styled.div`
   max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: ${designTokens.spacing.lg};
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    padding: ${designTokens.spacing.sm};
+  }
 `;
 
 const WordSkeletonCard = styled(Card)`
-  padding: 1.5rem !important;
-  margin-bottom: 1rem !important;
-  border-radius: 16px !important;
+  padding: ${designTokens.spacing.md} !important;
+  margin-bottom: ${designTokens.spacing.sm} !important;
+  border-radius: ${getBorderRadius('large')} !important;
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 

@@ -21,6 +21,8 @@ import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
+import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
+import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -431,7 +433,7 @@ const Home = () => {
 };
 
 const CategorySection = styled.div`
-  margin-bottom: 3rem;
+  margin-bottom: ${designTokens.spacing.xl};
   scroll-margin-top: 80px; /* 탭 바 높이 고려 */
 `;
 
@@ -439,7 +441,7 @@ const CategoryHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: ${designTokens.spacing.md};
 `;
 
 const CategoryTitle = styled.h2`
@@ -447,44 +449,57 @@ const CategoryTitle = styled.h2`
   font-weight: bold;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #1976d2;
+  gap: ${designTokens.spacing.xs};
+  color: ${getColor('primary')};
   margin: 0;
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    font-size: 1.3rem;
+  }
 `;
 
 const HorizontalScrollContainer = styled.div`
   overflow-x: auto;
-  padding-bottom: 1rem;
+  padding-bottom: ${designTokens.spacing.sm};
   
   &::-webkit-scrollbar {
     height: 6px;
   }
   
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: ${designTokens.colors.background.grey};
     border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: ${getColor('text.disabled')};
     border-radius: 3px;
     
     &:hover {
-      background: #a8a8a8;
+      background: ${getColor('text.secondary')};
     }
   }
 `;
 
 const ArticleRow = styled.div`
   display: flex;
-  gap: 1.5rem;
+  gap: ${designTokens.spacing.md};
   min-width: max-content;
-  padding: 0.5rem 0;
+  padding: ${designTokens.spacing.xs} 0;
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    gap: ${designTokens.spacing.sm};
+  }
 `;
 
 const ArticleCardWrapper = styled.div`
   flex: 0 0 320px;
   width: 320px;
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    flex: 0 0 280px;
+    width: 280px;
+  }
 `;
 
 const EmptyCategory = styled.div`
@@ -494,9 +509,15 @@ const EmptyCategory = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9f9f9;
-  border-radius: 16px;
-  border: 2px dashed #ddd;
+  background: ${designTokens.colors.background.light};
+  border-radius: ${getBorderRadius('large')};
+  border: 2px dashed ${designTokens.colors.background.grey};
+  
+  @media (max-width: ${designTokens.breakpoints.mobile}) {
+    flex: 0 0 280px;
+    width: 280px;
+    height: 160px;
+  }
 `;
 
 export default Home;

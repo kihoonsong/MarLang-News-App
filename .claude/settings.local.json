@@ -15,7 +15,8 @@
       "Bash(npm start)",
       "Bash(find:*)",
       "Bash(mv:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

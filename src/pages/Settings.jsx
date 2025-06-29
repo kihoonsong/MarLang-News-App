@@ -26,6 +26,7 @@ import { useToast } from '../components/ToastProvider';
 import { getSupportedLanguages } from '../utils/dictionaryApi';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import { WideLayout } from '../components/StandardLayout';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -194,7 +195,7 @@ const Settings = () => {
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
         </Box>
 
-        <PageContainer>
+        <WideLayout>
           <Header>
             <Title>⚙️ Settings</Title>
             <HeaderActions>
@@ -526,7 +527,7 @@ const Settings = () => {
               </CardContent>
             </SettingsCard>
           </SettingsSection>
-        </PageContainer>
+        </WideLayout>
 
         {/* 비밀번호 변경 모달 */}
         <Dialog

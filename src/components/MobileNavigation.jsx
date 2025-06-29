@@ -14,6 +14,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import SearchDropdown from './SearchDropdown';
+import { designTokens, getColor, getShadow } from '../utils/designTokens';
 
 const MobileNavigation = () => {
   const theme = useTheme();
@@ -186,15 +187,15 @@ const MobileHeader = styled.div`
   left: 0;
   right: 0;
   height: 64px;
-  background: white;
-  color: #333;
+  background: ${getColor('background.paper')};
+  color: ${getColor('text.primary')};
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  z-index: 1100;
+  padding: 0 ${designTokens.spacing.sm};
+  box-shadow: ${getShadow('bottom')};
+  z-index: ${designTokens.zIndex.appBar};
   
-  @media (min-width: 960px) {
+  @media (min-width: ${designTokens.breakpoints.tablet}) {
     display: none;
   }
 `;
@@ -205,24 +206,24 @@ const MobileBottomNav = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1100;
+  z-index: ${designTokens.zIndex.appBar};
   box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-  background: white;
+  background: ${getColor('background.paper')};
   
-  @media (min-width: 960px) {
+  @media (min-width: ${designTokens.breakpoints.tablet}) {
     display: none;
   }
 `;
 
 // 모바일 컨텐츠 래퍼 (상단/하단 네비게이션 공간 확보)
 export const MobileContentWrapper = styled.div`
-  @media (max-width: 959px) {
+  @media (max-width: calc(${designTokens.breakpoints.tablet} - 1px)) {
     padding-top: 64px;
     padding-bottom: 80px;
     min-height: 100vh;
   }
   
-  @media (min-width: 960px) {
+  @media (min-width: ${designTokens.breakpoints.tablet}) {
     min-height: 100vh;
   }
 `;
