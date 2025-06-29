@@ -15,6 +15,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import PageContainer from '../components/PageContainer';
+import ArticleCard from '../components/ArticleCard';
 
 // 샘플 기사 데이터 (검색용)
 const sampleArticles = [
@@ -22,7 +23,7 @@ const sampleArticles = [
     id: 1,
     title: 'AI Revolution in Healthcare: How Machine Learning is Transforming Patient Care',
     category: 'Technology',
-    date: 'Jun-25-24',
+    date: 'Jun 25, 2024',
     level: 'Advanced',
     image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
     summary: 'Artificial Intelligence is revolutionizing the healthcare industry...',
@@ -32,7 +33,7 @@ const sampleArticles = [
     id: 2,
     title: 'Climate Change Solutions: Renewable Energy Breakthrough',
     category: 'Environment',
-    date: 'Jun-24-24',
+    date: 'Jun 24, 2024',
     level: 'Intermediate',
     image: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80',
     summary: 'Scientists have discovered new renewable energy technologies...',
@@ -42,7 +43,7 @@ const sampleArticles = [
     id: 3,
     title: 'Space Exploration: Mars Mission Updates',
     category: 'Science',
-    date: 'Jun-23-24',
+    date: 'Jun 23, 2024',
     level: 'Advanced',
     image: 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?auto=format&fit=crop&w=800&q=80',
     summary: 'Latest updates from NASA Mars exploration missions...',
@@ -52,7 +53,7 @@ const sampleArticles = [
     id: 4,
     title: 'Global Economy Trends in 2024',
     category: 'Business',
-    date: 'Jun-22-24',
+    date: 'Jun 22, 2024',
     level: 'Intermediate',
     image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80',
     summary: 'Analysis of global economic trends and market predictions...',
@@ -62,7 +63,7 @@ const sampleArticles = [
     id: 5,
     title: 'Educational Technology in Modern Schools',
     category: 'Education',
-    date: 'Jun-21-24',
+    date: 'Jun 21, 2024',
     level: 'Beginner',
     image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
     summary: 'How technology is changing the way students learn...',
@@ -72,7 +73,7 @@ const sampleArticles = [
     id: 6,
     title: 'Sports News: World Championship Results',
     category: 'Sports',
-    date: 'Jun-20-24',
+    date: 'Jun 20, 2024',
     level: 'Beginner',
     image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80',
     summary: 'Latest results from international sports championships...',
@@ -346,46 +347,17 @@ const Search = () => {
                 </Typography>
                 
                 {filteredResults.length > 0 ? (
-                  <Grid container spacing={3}>
+                  <ArticleGrid>
                     {filteredResults.map(article => (
-                      <Grid item xs={12} sm={6} md={4} key={article.id}>
-                        <ArticleCard onClick={() => handleArticleClick(article.id)}>
-                          <CardMedia
-                            component="img"
-                            height="200"
-                            image={article.image}
-                            alt={article.title}
-                          />
-                          <CardContent>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                              <Chip 
-                                label={article.category} 
-                                color="primary" 
-                                size="small" 
-                              />
-                              <Chip 
-                                label={article.level} 
-                                variant="outlined" 
-                                size="small" 
-                              />
-                            </Box>
-                            
-                            <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold', fontSize: '1rem' }}>
-                              {article.title}
-                            </Typography>
-                            
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                              {article.summary}
-                            </Typography>
-                            
-                            <Typography variant="caption" color="text.secondary">
-                              {article.date}
-                            </Typography>
-                          </CardContent>
-                        </ArticleCard>
-                      </Grid>
+                      <ArticleCardWrapper key={article.id}>
+                        <ArticleCard 
+                          {...article}
+                          publishedAt={article.date}
+                          onClick={() => handleArticleClick(article.id)}
+                        />
+                      </ArticleCardWrapper>
                     ))}
-                  </Grid>
+                  </ArticleGrid>
                 ) : (
                   <NoResults>
                     <Typography variant="h6" color="text.secondary">
@@ -409,36 +381,15 @@ const Search = () => {
                 <Grid container spacing={3}>
                   {sampleArticles.slice(0, 6).map(article => (
                     <Grid item xs={12} sm={6} md={4} key={article.id}>
-                      <ArticleCard onClick={() => handleArticleClick(article.id)}>
-                        <CardMedia
-                          component="img"
-                          height="180"
-                          image={article.image}
-                          alt={article.title}
-                        />
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <Chip 
-                              label={article.category} 
-                              color="primary" 
-                              size="small" 
-                            />
-                            <Chip 
-                              label={article.level} 
-                              variant="outlined" 
-                              size="small" 
-                            />
-                          </Box>
-                          
-                          <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold', fontSize: '0.95rem' }}>
-                            {article.title}
-                          </Typography>
-                          
-                          <Typography variant="caption" color="text.secondary">
-                            {article.date}
-                          </Typography>
-                        </CardContent>
-                      </ArticleCard>
+                      <ArticleCard 
+                        id={article.id}
+                        image={article.image}
+                        title={article.title}
+                        summary={article.summary}
+                        category={article.category}
+                        publishedAt={article.date}
+                        onClick={() => handleArticleClick(article.id)}
+                      />
                     </Grid>
                   ))}
                 </Grid>
@@ -500,7 +451,11 @@ const Search = () => {
                         </ListItemIcon>
                         <ListItemText
                           primary={item.query}
-                          secondary={new Date(item.timestamp).toLocaleDateString()}
+                          secondary={new Date(item.timestamp).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         />
                       </ListItem>
                       {index < searchHistory.length - 1 && <Divider />}
@@ -524,27 +479,6 @@ const Search = () => {
     </>
   );
 };
-
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  
-  @media (min-width: 768px) {
-    padding: 0 4rem 2rem 4rem;
-  }
-  
-  @media (min-width: 1200px) {
-    padding: 0 8rem 2rem 8rem;
-  }
-  
-  @media (min-width: 1600px) {
-    padding: 0 12rem 2rem 12rem;
-  }
-  
-  @media (min-width: 2000px) {
-    padding: 0 16rem 2rem 16rem;
-  }
-`;
 
 const SearchContainer = styled.div`
   display: flex;
@@ -616,15 +550,14 @@ const HistorySection = styled.div`
   margin-top: 1rem;
 `;
 
-const ArticleCard = styled(Card)`
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 12px;
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  }
+const ArticleGrid = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const ArticleCardWrapper = styled.div`
+  flex: 1 1 calc(33.33% - 1rem);
 `;
 
 export default Search; 

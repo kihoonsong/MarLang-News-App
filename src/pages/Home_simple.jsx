@@ -520,7 +520,8 @@ const NewsCard = ({ id, image, title, category, level, readingTime, summary, pub
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', { 
         month: 'short', 
-        day: 'numeric' 
+        day: 'numeric',
+        year: 'numeric'
       });
     } catch {
       return 'Recent';

@@ -20,6 +20,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
+import ArticleCard from '../components/ArticleCard';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -401,7 +402,7 @@ const Home = () => {
                   <ArticleRow>
                     {allNewsData[category.id]?.map(article => (
                       <ArticleCardWrapper key={article.id}>
-                        <NewsCard {...article} navigate={navigate} />
+                        <ArticleCard {...article} navigate={navigate} />
                       </ArticleCardWrapper>
                     ))}
                     {(!allNewsData[category.id] || allNewsData[category.id].length === 0) && (
@@ -496,211 +497,6 @@ const EmptyCategory = styled.div`
   background: #f9f9f9;
   border-radius: 16px;
   border: 2px dashed #ddd;
-`;
-
-const NewsCard = ({ id, image, title, category, level, readingTime, summary, publishedAt, source, likes, navigate }) => {
-  const handleClick = () => {
-    navigate(`/article/${id}`);
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch {
-      return 'Recent';
-    }
-  };
-
-  const getLevelColor = (level) => {
-    switch (level) {
-      case 'Beginner': return '#4caf50';
-      case 'Intermediate': return '#ff9800';
-      case 'Advanced': return '#f44336';
-      default: return '#757575';
-    }
-  };
-
-  return (
-    <CardBox onClick={handleClick}>
-      <Thumb 
-        src={image} 
-        alt={title}
-        onError={(e) => {
-          e.target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
-        }}
-      />
-      <CardContent>
-        <CardHeader>
-          <CategoryChip>{category}</CategoryChip>
-          <MetaInfo>
-            {readingTime && <ReadingTime>{readingTime} min read</ReadingTime>}
-          </MetaInfo>
-        </CardHeader>
-        
-        <CardTitle>{title}</CardTitle>
-        
-        {summary && (
-          <CardSummary>
-            {summary.length > 120 ? `${summary.substring(0, 120)}...` : summary}
-          </CardSummary>
-        )}
-        
-        <CardFooter>
-          <FooterLeft>
-            {level && (
-              <LevelBadge $level={level}>
-                {level}
-              </LevelBadge>
-            )}
-            <PublishDate>{formatDate(publishedAt)}</PublishDate>
-            {likes && (
-              <LikesCount>❤️ {likes}</LikesCount>
-            )}
-          </FooterLeft>
-          {source && (
-            <Source>{source}</Source>
-          )}
-        </CardFooter>
-      </CardContent>
-    </CardBox>
-  );
-};
-
-const CardBox = styled.div`
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-  &:hover {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.13);
-  }
-`;
-
-const Thumb = styled.img`
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-`;
-
-const CardContent = styled.div`
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-`;
-
-const CategoryChip = styled.span`
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-`;
-
-const MetaInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const ReadingTime = styled.span`
-  font-size: 0.75rem;
-  color: #757575;
-`;
-
-const CardTitle = styled.h3`
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin: 0 0 0.75rem 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-const CardSummary = styled.p`
-  font-size: 0.9rem;
-  color: #666;
-  line-height: 1.5;
-  margin: 0 0 1rem 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-const CardFooter = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: 0.5rem;
-`;
-
-const FooterLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const LevelBadge = styled.span`
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: ${props => {
-    switch (props.$level) {
-      case 'Beginner': return '#e8f5e8';
-      case 'Intermediate': return '#fff3e0';
-      case 'Advanced': return '#ffebee';
-      default: return '#f5f5f5';
-    }
-  }};
-  color: ${props => {
-    switch (props.$level) {
-      case 'Beginner': return '#2e7d32';
-      case 'Intermediate': return '#ef6c00';
-      case 'Advanced': return '#c62828';
-      default: return '#757575';
-    }
-  }};
-`;
-
-const PublishDate = styled.span`
-  font-size: 0.75rem;
-  color: #999;
-`;
-
-const LikesCount = styled.span`
-  font-size: 0.75rem;
-  color: #e91e63;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-`;
-
-const Source = styled.span`
-  font-size: 0.75rem;
-  color: #1976d2;
-  font-weight: 500;
 `;
 
 export default Home;

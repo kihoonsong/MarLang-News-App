@@ -461,7 +461,11 @@ const Wordbook = () => {
                 <Meaning>{word.definition}</Meaning>
                 
                 <WordMeta>
-                  <SavedDate>Added: {new Date(word.addedAt).toLocaleDateString()}</SavedDate>
+                  <SavedDate>Added: {new Date(word.addedAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}</SavedDate>
                 </WordMeta>
               </WordCard>
             ))}

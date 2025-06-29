@@ -188,11 +188,6 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                                 color="primary" 
                                 variant="outlined"
                               />
-                              <Chip 
-                                label={article.level} 
-                                size="small" 
-                                variant="outlined"
-                              />
                             </ArticleMeta>
                           </ArticleHeader>
                           
@@ -201,7 +196,11 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                           </ArticleExcerpt>
                           
                           <ArticleDate>
-                            {new Date(article.publishedAt).toLocaleDateString()}
+                            {new Date(article.publishedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric', 
+                              year: 'numeric'
+                            })}
                           </ArticleDate>
                         </ArticleContent>
                       </ResultItem>

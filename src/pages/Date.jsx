@@ -15,12 +15,13 @@ import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
+import ArticleCard from '../components/ArticleCard';
 
 const categories = ['All', 'Technology', 'Science', 'Business', 'Health', 'Culture'];
 const monthNames = [
@@ -496,60 +497,16 @@ const DatePage = () => {
               </ArticlesHeader>
 
               {currentArticles.length > 0 ? (
-                <Grid container spacing={3}>
+                <ArticleGrid>
                   {currentArticles.map(article => (
-                    <Grid item xs={12} sm={6} md={4} key={article.id}>
-                      <NewsCard onClick={() => navigate(`/article/${article.id}`)}>
-                        <CardMedia
-                          component="img"
-                          height="200"
-                          image={article.image}
-                          alt={article.title}
-                          onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
-                          }}
-                        />
-                        <CardContent>
-                          <CategoryChip>
-                            {article.category}
-                          </CategoryChip>
-                          <Typography variant="h6" component="h3" sx={{ 
-                            fontWeight: 'bold', 
-                            mb: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {article.title}
-                          </Typography>
-                          {article.summary && (
-                            <Typography variant="body2" color="text.secondary" sx={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
-                            }}>
-                              {article.summary}
-                            </Typography>
-                          )}
-                          <ArticleFooter>
-                            {article.level && (
-                              <LevelBadge $level={article.level}>
-                                {article.level}
-                              </LevelBadge>
-                            )}
-                            {article.readingTime && (
-                              <Typography variant="caption" color="text.secondary">
-                                {article.readingTime} min read
-                              </Typography>
-                            )}
-                          </ArticleFooter>
-                        </CardContent>
-                      </NewsCard>
-                    </Grid>
+                    <ArticleCardWrapper key={article.id}>
+                      <ArticleCard 
+                        {...article}
+                        publishedAt={article.publishedAt}
+                      />
+                    </ArticleCardWrapper>
                   ))}
-                </Grid>
+                </ArticleGrid>
               ) : (
                 <EmptyState>
                   <Typography variant="h6" color="text.secondary">
@@ -734,6 +691,22 @@ const FilterContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+`;
+
+const ArticleGrid = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const ArticleCardWrapper = styled.div`
+  flex: 1 1 calc(33.33% - 1rem);
+  @media (max-width: 768px) {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+  @media (max-width: 480px) {
+    flex: 1 1 100%;
+  }
 `;
 
 const NewsCard = styled(Card)`

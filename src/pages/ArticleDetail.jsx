@@ -141,7 +141,7 @@ const ArticleDetail = () => {
           date: new Date(foundArticle.publishedAt).toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric', 
-            year: '2-digit' 
+            year: 'numeric' 
           }),
           image: foundArticle.image,
           liked: false,
