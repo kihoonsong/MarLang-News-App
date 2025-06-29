@@ -15,9 +15,11 @@ const ArticleCard = ({
   const navigate = useNavigate();
 
   const handleClick = () => {
+    console.log('Card clicked, id:', id);
     if (onClick) {
       onClick();
     } else {
+      console.log('Navigating to:', `/article/${id}`);
       navigate(`/article/${id}`);
     }
   };

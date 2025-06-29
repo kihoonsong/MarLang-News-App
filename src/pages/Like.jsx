@@ -9,6 +9,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
 import SearchDropdown from '../components/SearchDropdown';
@@ -44,10 +45,12 @@ const Like = () => {
     }
   };
 
-  // 간단한 테스트 데이터
-  const testArticles = [
+  const { allArticles, loading } = useArticles() || {};
+  
+  // 실제 기사 데이터에서 좋아요 샘플 생성
+  const testArticles = allArticles?.slice(0, 3) || [
     {
-      id: 'test-1',
+      id: 'article-1',
       title: 'AI Technology Breakthrough in Healthcare',
       category: 'Technology',
       summary: 'Revolutionary AI systems are transforming medical diagnosis and treatment procedures.',
@@ -55,7 +58,7 @@ const Like = () => {
       publishedAt: '2024-06-28T12:00:00Z'
     },
     {
-      id: 'test-2',
+      id: 'article-2',
       title: 'Climate Change Research Shows Promising Results',
       category: 'Science',
       summary: 'New environmental technologies offer hope for sustainable future solutions.',
@@ -63,7 +66,7 @@ const Like = () => {
       publishedAt: '2024-06-27T12:00:00Z'
     },
     {
-      id: 'test-3',
+      id: 'article-3',
       title: 'Global Economic Markets Show Recovery Signs',
       category: 'Business',
       summary: 'Market analysis reveals positive trends in global economic recovery.',

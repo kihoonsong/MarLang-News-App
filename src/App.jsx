@@ -67,11 +67,7 @@ function App() {
                     />
                     <Route 
                       path="/like" 
-                      element={
-                        <AuthGuard>
-                          <Like />
-                        </AuthGuard>
-                      } 
+                      element={<Like />} 
                     />
                     <Route 
                       path="/profile" 
