@@ -12,55 +12,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
-
-// 샘플 기사 데이터 (실제로는 props나 context에서 가져와야 함)
-const sampleArticles = [
-  {
-    id: 1,
-    title: "AI Revolution in Healthcare: How Machine Learning is Transforming Medical Diagnosis",
-    content: "Artificial intelligence and machine learning technologies are revolutionizing the healthcare industry. From early disease detection to personalized treatment plans, AI is helping doctors make more accurate diagnoses and improve patient outcomes. Recent studies show that AI-powered diagnostic tools can identify certain conditions with higher accuracy than traditional methods.",
-    category: "Technology",
-    level: "Intermediate",
-    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=400&q=80",
-    publishedAt: "2024-06-25"
-  },
-  {
-    id: 2,
-    title: "Climate Change Research: Scientists Discover New Solutions for Carbon Capture",
-    content: "Environmental scientists have made breakthrough discoveries in carbon capture technology. These innovative solutions could significantly reduce atmospheric CO2 levels and help combat climate change. The research focuses on natural and artificial methods to capture and store carbon dioxide from industrial emissions.",
-    category: "Science",
-    level: "Advanced",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
-    publishedAt: "2024-06-24"
-  },
-  {
-    id: 3,
-    title: "Global Economy: Tech Giants Report Record Quarterly Earnings",
-    content: "Major technology companies have reported unprecedented quarterly earnings, driven by increased demand for digital services and cloud computing solutions. The strong financial performance reflects the ongoing digital transformation across industries and the growing reliance on technology infrastructure.",
-    category: "Business",
-    level: "Intermediate",
-    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=400&q=80",
-    publishedAt: "2024-06-23"
-  },
-  {
-    id: 4,
-    title: "Mental Health Awareness: New Study Reveals Impact of Social Media",
-    content: "Recent psychological research has uncovered significant correlations between social media usage patterns and mental health outcomes. The comprehensive study examined thousands of participants and provides insights into healthy digital habits and the importance of mindful technology use.",
-    category: "Health",
-    level: "Beginner",
-    image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=400&q=80",
-    publishedAt: "2024-06-22"
-  },
-  {
-    id: 5,
-    title: "Space Exploration: NASA's Latest Mars Mission Discovers Ancient Water Evidence",
-    content: "NASA's Mars rover has uncovered compelling evidence of ancient water activity on the Red Planet. The discovery includes mineral formations and geological structures that suggest Mars once had a more Earth-like environment capable of supporting microbial life.",
-    category: "Science",
-    level: "Advanced",
-    image: "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?auto=format&fit=crop&w=400&q=80",
-    publishedAt: "2024-06-21"
-  }
-];
+import { useArticles } from '../contexts/ArticlesContext';
 
 const SearchDropdown = ({ placeholder = "Search articles...", className, style, compact = false }) => {
   const [query, setQuery] = useState('');
@@ -69,6 +21,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   const [isLoading, setIsLoading] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+  const { allArticles } = useArticles();
 
   // 검색 실행
   const performSearch = (searchQuery) => {
@@ -79,13 +32,14 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
 
     setIsLoading(true);
     
-    // 실제 환경에서는 API 호출, 여기서는 시뮬레이션
+    // 실제 기사 데이터에서 검색
     setTimeout(() => {
-      const filteredResults = sampleArticles.filter(article => {
+      const filteredResults = allArticles.filter(article => {
         const searchTerm = searchQuery.toLowerCase();
         const titleMatch = article.title.toLowerCase().includes(searchTerm);
-        const contentMatch = article.content.toLowerCase().includes(searchTerm);
-        return titleMatch || contentMatch;
+        const contentMatch = article.content && article.content.toLowerCase().includes(searchTerm);
+        const summaryMatch = article.summary && article.summary.toLowerCase().includes(searchTerm);
+        return titleMatch || contentMatch || summaryMatch;
       });
 
       // 관련도 점수 계산 및 정렬
@@ -99,8 +53,13 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
         }
         
         // 본문에서 매치되면 낮은 점수
-        if (article.content.toLowerCase().includes(searchTerm)) {
+        if (article.content && article.content.toLowerCase().includes(searchTerm)) {
           score += 5;
+        }
+        
+        // 요약에서 매치되면 중간 점수
+        if (article.summary && article.summary.toLowerCase().includes(searchTerm)) {
+          score += 7;
         }
         
         return { ...article, score };
@@ -133,17 +92,11 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   }, []);
 
   const handleArticleClick = (articleId, event) => {
-    console.log('handleArticleClick called with:', articleId);
-    console.log('Event:', event);
-    
     event.preventDefault();
     event.stopPropagation();
     
-    console.log('Setting isOpen to false and clearing query');
     setIsOpen(false);
     setQuery('');
-    
-    console.log('Navigating to:', `/article/${articleId}`);
     navigate(`/article/${articleId}`);
   };
 
@@ -244,7 +197,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                           </ArticleHeader>
                           
                           <ArticleExcerpt>
-                            {highlightText(truncateText(article.content), query)}
+                            {highlightText(truncateText(article.summary || article.content || ''), query)}
                           </ArticleExcerpt>
                           
                           <ArticleDate>
