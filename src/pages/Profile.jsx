@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { 
-  AppBar, Toolbar, Typography, IconButton, InputBase, Tabs, Tab, Box, 
-  Card, CardContent, Avatar, Button, Grid, Paper,
-  List, ListItem, ListItemText, ListItemIcon, Chip, Divider
+  AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Card, CardContent,
+  Avatar, Menu, MenuItem, ListItemIcon, ListItemText, useMediaQuery, useTheme, Button, Grid
 } from '@mui/material';
 import { 
-  Search as SearchIcon, Person, AccountCircle, Email, CalendarToday,
-  TrendingUp, MenuBook, Favorite, School, Settings, Edit, ExitToApp
+  AccountCircle, Settings, ExitToApp, Edit, MenuBook, Favorite
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,31 +13,29 @@ import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
 import SearchDropdown from '../components/SearchDropdown';
+import PageContainer from '../components/PageContainer';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
 const Profile = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, signOut, isAuthenticated, isModalOpen, setIsModalOpen } = useAuth();
   const [navTab, setNavTab] = useState(4); // Profile 탭 활성화
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleLogout = () => {
     signOut();
     navigate('/');
   };
 
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-
-  const formatJoinDate = (dateString) => {
-    if (!dateString) return 'Recently';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long'
-      });
-    } catch {
-      return 'Recently';
-    }
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
   };
 
   // 로컬 스토리지에서 사용자 활동 데이터 가져오기
@@ -64,38 +60,233 @@ const Profile = () => {
 
   // 비로그인 상태에서는 빈 화면 표시
   if (!isAuthenticated) {
-    console.log('Profile: 비로그인 상태 감지, 빈 화면 표시');
     return (
       <AuthGuard feature="your profile">
         <MobileNavigation />
         <MobileContentWrapper>
-          {/* 상단바 */}
+          {/* 상단바 - 데스크톱만 */}
+          {!isMobile && (
+            <AppBar position="static" color="default" elevation={1}>
+              <Toolbar>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    flexGrow: 1, 
+                    fontWeight: 'bold', 
+                    color: '#23408e',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      color: '#1976d2'
+                    }
+                  }}
+                  onClick={() => navigate('/')}
+                >
+                  MarLang Eng News
+                </Typography>
+                <SearchDropdown placeholder="Search articles..." />
+                <IconButton
+                  size="large"
+                  onClick={() => setIsModalOpen && setIsModalOpen(true)}
+                  color="inherit"
+                  sx={{ 
+                    border: '1px solid #1976d2', 
+                    borderRadius: 2,
+                    padding: '6px 12px',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <AccountCircle sx={{ mr: 0.5 }} />
+                  Login
+                </IconButton>
+              </Toolbar>
+            </AppBar>
+          )}
+          
+          {/* 네비게이션 바 - 데스크톱만 */}
+          {!isMobile && (
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+              <Tabs 
+                value={navTab} 
+                onChange={(_, v) => setNavTab(v)}
+                sx={{
+                  '& .MuiTab-root': {
+                    minWidth: 'auto',
+                    padding: '12px 16px'
+                  }
+                }}
+              >
+                {navigationTabs.map((nav, idx) => (
+                  <Tab 
+                    key={nav} 
+                    label={nav} 
+                    onClick={() => {
+                      setNavTab(idx);
+                      switch(nav) {
+                        case 'Home':
+                          navigate('/');
+                          break;
+                        case 'Date':
+                          navigate('/date');
+                          break;
+                        case 'Wordbook':
+                          navigate('/wordbook');
+                          break;
+                        case 'Like':
+                          navigate('/like');
+                          break;
+                        case 'Profile':
+                          // 현재 페이지이므로 아무것도 하지 않음
+                          break;
+                        default:
+                          break;
+                      }
+                    }}
+                  />
+                ))}
+              </Tabs>
+            </Box>
+          )}
+
+          {/* 빈 컨테이너 - 로그인 필요 메시지 */}
+          <PageContainer>
+            <EmptyAuthState>
+              <EmptyIcon>👤</EmptyIcon>
+              <EmptyText>Please sign in to view your profile</EmptyText>
+              <EmptySubtext>Track your learning progress and manage your account!</EmptySubtext>
+            </EmptyAuthState>
+          </PageContainer>
+
+          {/* 인증 모달 */}
+          <AuthModal 
+            open={isModalOpen || false} 
+            onClose={() => setIsModalOpen && setIsModalOpen(false)} 
+          />
+        </MobileContentWrapper>
+      </AuthGuard>
+    );
+  }
+
+  return (
+    <AuthGuard feature="your profile">
+      <MobileNavigation />
+      <MobileContentWrapper>
+        {/* 상단바 - 데스크톱만 */}
+        {!isMobile && (
           <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  flexGrow: 1, 
+                  fontWeight: 'bold', 
+                  color: '#23408e',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1976d2'
+                  }
+                }}
+                onClick={() => navigate('/')}
+              >
                 MarLang Eng News
               </Typography>
               <SearchDropdown placeholder="Search articles..." />
+              
+              {/* 사용자 프로필 메뉴 */}
               <IconButton
                 size="large"
-                onClick={() => setIsModalOpen && setIsModalOpen(true)}
+                onClick={handleUserMenuOpen}
                 color="inherit"
-                sx={{ 
-                  border: '1px solid #1976d2', 
-                  borderRadius: 2,
-                  padding: '6px 12px',
-                  fontSize: '0.875rem'
-                }}
               >
-                <AccountCircleIcon sx={{ mr: 0.5 }} />
-                Login
+                <Avatar 
+                  src={user?.picture} 
+                  alt={user?.name}
+                  sx={{ width: 32, height: 32 }}
+                >
+                  {!user?.picture && <AccountCircle />}
+                </Avatar>
               </IconButton>
+              
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleUserMenuClose}
+                onClick={handleUserMenuClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                    mt: 1.5,
+                    '& .MuiAvatar-root': {
+                      width: 32,
+                      height: 32,
+                      ml: -0.5,
+                      mr: 1,
+                    },
+                    '&:before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: 0,
+                      right: 14,
+                      width: 10,
+                      height: 10,
+                      bgcolor: 'background.paper',
+                      transform: 'translateY(-50%) rotate(45deg)',
+                      zIndex: 0,
+                    },
+                  },
+                }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <MenuItem onClick={() => navigate('/profile')}>
+                  <ListItemIcon>
+                    <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
+                      <AccountCircle fontSize="small" />
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {user?.name || 'Guest User'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {user?.email || 'guest@marlang.com'}
+                    </Typography>
+                  </ListItemText>
+                </MenuItem>
+                
+                <MenuItem onClick={() => navigate('/settings')}>
+                  <ListItemIcon>
+                    <Settings fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Settings</ListItemText>
+                </MenuItem>
+                
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <ExitToApp fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
             </Toolbar>
           </AppBar>
-          
-          {/* 네비게이션 바 */}
+        )}
+        
+        {/* 네비게이션 바 - 데스크톱만 */}
+        {!isMobile && (
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-            <Tabs value={navTab} onChange={(_, v) => setNavTab(v)}>
+            <Tabs 
+              value={navTab} 
+              onChange={(_, v) => setNavTab(v)}
+              sx={{
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  padding: '12px 16px'
+                }
+              }}
+            >
               {navigationTabs.map((nav, idx) => (
                 <Tab 
                   key={nav} 
@@ -116,7 +307,7 @@ const Profile = () => {
                         navigate('/like');
                         break;
                       case 'Profile':
-                        navigate('/profile');
+                        // 현재 페이지이므로 아무것도 하지 않음
                         break;
                       default:
                         break;
@@ -126,120 +317,42 @@ const Profile = () => {
               ))}
             </Tabs>
           </Box>
-
-          {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
-          </Box>
-
-          {/* 빈 컨테이너 - 로그인 필요 메시지 */}
-          <Container>
-            <EmptyAuthState>
-              <EmptyIcon>👤</EmptyIcon>
-              <EmptyText>Please sign in to view your profile</EmptyText>
-              <EmptySubtext>Track your learning progress and manage your account!</EmptySubtext>
-            </EmptyAuthState>
-          </Container>
-
-          {/* 인증 모달 */}
-          <AuthModal 
-            open={isModalOpen || false} 
-            onClose={() => setIsModalOpen && setIsModalOpen(false)} 
-          />
-        </MobileContentWrapper>
-      </AuthGuard>
-    );
-  }
-
-  return (
-    <AuthGuard feature="your profile">
-      <MobileNavigation />
-      <MobileContentWrapper>
-        {/* 상단바 */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
-              MarLang Eng News
-            </Typography>
-            <InputBase
-              placeholder="Search articles..."
-              onClick={() => navigate('/search')}
-              startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-              sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
-            />
-          </Toolbar>
-        </AppBar>
-        
-        {/* 네비게이션 바 */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-          <Tabs value={navTab} onChange={(_, v) => setNavTab(v)}>
-            {navigationTabs.map((nav, idx) => (
-              <Tab 
-                key={nav} 
-                label={nav} 
-                onClick={() => {
-                  setNavTab(idx);
-                  switch(nav) {
-                    case 'Home':
-                      navigate('/');
-                      break;
-                    case 'Date':
-                      navigate('/date');
-                      break;
-                    case 'Wordbook':
-                      navigate('/wordbook');
-                      break;
-                    case 'Like':
-                      navigate('/like');
-                      break;
-                    case 'Profile':
-                      navigate('/profile');
-                      break;
-                    default:
-                      break;
-                  }
-                }}
-              />
-            ))}
-          </Tabs>
-        </Box>
-
-        {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
-        </Box>
+        )}
 
         {/* 프로필 내용 */}
-        <Container>
-          {/* 프로필 헤더 */}
-          <ProfileCard>
-            <CardContent sx={{ p: 3 }}>
-              <ProfileHeader>
-                <UserInfo>
-                  <Avatar 
-                    src={user?.picture}
-                    sx={{ width: 80, height: 80, mr: 3, bgcolor: '#1976d2' }}
-                  >
-                    {user?.name?.charAt(0) || 'U'}
-                  </Avatar>
-                  <UserDetails>
-                    <UserName>{user?.name || 'User'}</UserName>
-                    <UserEmail>{user?.email || 'user@example.com'}</UserEmail>
-                    <UserMeta>
-                      <MetaItem>
-                        <CalendarToday sx={{ fontSize: 16, mr: 0.5 }} />
-                        Joined {formatJoinDate(user?.createdAt)}
-                      </MetaItem>
-                      <MetaItem>
-                        <AccountCircle sx={{ fontSize: 16, mr: 0.5 }} />
-                        {user?.provider === 'google' ? 'Google Account' : 
-                         user?.provider === 'naver' ? 'Naver Account' : 
-                         'Email Account'}
-                      </MetaItem>
-                    </UserMeta>
-                  </UserDetails>
-                </UserInfo>
-              </ProfileHeader>
-            </CardContent>
-          </ProfileCard>
+        <PageContainer>
+          <ProfileHeader>
+            <ProfileImageSection>
+              <ProfileAvatar 
+                src={user?.picture} 
+                alt={user?.name}
+              >
+                {!user?.picture && <AccountCircle sx={{ fontSize: 60 }} />}
+              </ProfileAvatar>
+              <EditButton>
+                <Edit sx={{ fontSize: 18 }} />
+              </EditButton>
+            </ProfileImageSection>
+            
+            <ProfileInfo>
+              <UserName>{user?.name || 'Guest User'}</UserName>
+              <UserEmail>{user?.email || 'guest@marlang.com'}</UserEmail>
+              <UserStats>
+                <StatItem>
+                  <StatNumber>{stats.savedWordsCount}</StatNumber>
+                  <StatLabel>Saved Words</StatLabel>
+                </StatItem>
+                <StatItem>
+                  <StatNumber>{stats.likedArticlesCount}</StatNumber>
+                  <StatLabel>Liked Articles</StatLabel>
+                </StatItem>
+                <StatItem>
+                  <StatNumber>42</StatNumber>
+                  <StatLabel>Days Active</StatLabel>
+                </StatItem>
+              </UserStats>
+            </ProfileInfo>
+          </ProfileHeader>
 
           {/* 통계 카드들 */}
           <StatsGrid container spacing={2}>
@@ -333,7 +446,7 @@ const Profile = () => {
               </AccountActions>
             </CardContent>
           </AccountCard>
-        </Container>
+        </PageContainer>
 
         {/* 인증 모달 */}
         <AuthModal 
@@ -345,50 +458,64 @@ const Profile = () => {
   );
 };
 
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-  
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-const ProfileCard = styled(Card)`
-  margin-bottom: 2rem;
-  border-radius: 16px !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
-`;
-
+// 스타일 컴포넌트들
 const ProfileHeader = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-`;
-
-const UserInfo = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
+  text-align: center;
+  margin-bottom: 2rem;
   
-  @media (max-width: 600px) {
-    flex-direction: column;
-    text-align: center;
-    
-    & > div:first-child {
-      margin-right: 0 !important;
-      margin-bottom: 1rem;
-    }
+  @media (min-width: 768px) {
+    flex-direction: row;
+    text-align: left;
   }
 `;
 
-const UserDetails = styled.div`
+const ProfileImageSection = styled.div`
+  position: relative;
+  margin-bottom: 1rem;
+  
+  @media (min-width: 768px) {
+    margin-bottom: 0;
+    margin-right: 2rem;
+  }
+`;
+
+const ProfileAvatar = styled(Avatar)`
+  width: 120px !important;
+  height: 120px !important;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+`;
+
+const EditButton = styled.button`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  
+  &:hover {
+    background: #1565c0;
+  }
+`;
+
+const ProfileInfo = styled.div`
   flex: 1;
 `;
 
-const UserName = styled.h2`
-  font-size: 1.5rem;
+const UserName = styled.h1`
+  font-size: 2rem;
   font-weight: bold;
   margin: 0 0 0.5rem 0;
   color: #333;
@@ -396,29 +523,37 @@ const UserName = styled.h2`
 
 const UserEmail = styled.p`
   color: #666;
-  margin: 0 0 1rem 0;
-  font-size: 0.95rem;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
 `;
 
-const UserMeta = styled.div`
+const UserStats = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 2rem;
+  justify-content: center;
   
-  @media (max-width: 600px) {
-    align-items: center;
+  @media (min-width: 768px) {
+    justify-content: flex-start;
   }
 `;
 
-const MetaItem = styled.div`
-  display: flex;
-  align-items: center;
-  color: #888;
-  font-size: 0.85rem;
+const StatItem = styled.div`
+  text-align: center;
+`;
+
+const StatNumber = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1976d2;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: #666;
 `;
 
 const StatsGrid = styled(Grid)`
-  margin-bottom: 2rem;
+  margin-bottom: 2rem !important;
 `;
 
 const StatCard = styled(Card)`
@@ -434,18 +569,6 @@ const StatCard = styled(Card)`
 const StatIcon = styled.div`
   font-size: 2rem;
   margin-bottom: 0.5rem;
-`;
-
-const StatNumber = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1976d2;
-  margin-bottom: 0.25rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.85rem;
-  color: #666;
 `;
 
 const ActionsCard = styled(Card)`
@@ -507,23 +630,20 @@ const AccountCard = styled(Card)`
 const AccountActions = styled.div`
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
 `;
 
 const AccountButton = styled(Button)`
   flex: 1;
-  min-width: 140px;
-  padding: 12px 24px !important;
-  border-radius: 8px !important;
-  text-transform: none !important;
-  font-weight: 500 !important;
 `;
 
 const EmptyAuthState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 const EmptyIcon = styled.div`

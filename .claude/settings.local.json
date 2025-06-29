@@ -14,7 +14,8 @@
       "Bash(python3:*)",
       "Bash(npm start)",
       "Bash(find:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npx playwright:*)"
     ],
     "deny": []
   }

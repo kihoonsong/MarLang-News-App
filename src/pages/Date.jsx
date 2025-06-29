@@ -20,6 +20,7 @@ import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
+import PageContainer from '../components/PageContainer';
 
 const categories = ['All', 'Technology', 'Science', 'Business', 'Health', 'Culture'];
 const monthNames = [
@@ -125,12 +126,7 @@ const DatePage = () => {
     return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
   };
   
-  const isToday = (year, month, day) => {
-    const today = new Date();
-    return today.getFullYear() === year && 
-           today.getMonth() === month && 
-           today.getDate() === day;
-  };
+
 
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
@@ -155,7 +151,6 @@ const DatePage = () => {
       const dayOfWeek = new Date(year, month, day).getDay();
       const hasData = hasArticles(dateKey);
       const isSelected = dateKey === selectedDate;
-      const isCurrentDay = isToday(year, month, day);
       const weekend = isWeekend(dayOfWeek);
       
       calendarDays.push(
@@ -165,10 +160,12 @@ const DatePage = () => {
           $isSelected={isSelected}
           $isClickable={hasData}
           $isWeekend={weekend}
-          $isToday={isCurrentDay}
           onClick={() => handleDateClick(dateKey)}
         >
-          <DayNumber $isWeekend={weekend} $isToday={isCurrentDay}>
+          <DayNumber 
+            $isWeekend={weekend}
+            $isSunday={dayOfWeek === 0}
+          >
             {day}
           </DayNumber>
           {hasData && (
@@ -228,126 +225,140 @@ const DatePage = () => {
     <>
       <MobileNavigation />
       <MobileContentWrapper>
-        {/* 상단바 - 항상 표시 */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
-              MarLang Eng News
-            </Typography>
-            <InputBase
-              placeholder="Search articles..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                }
-              }}
-              onClick={() => navigate('/search')}
-              startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-              sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
-            />
-            
-            {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
-            {isAuthenticated ? (
-              <IconButton
-                size="large"
-                onClick={handleUserMenuOpen}
-                color="inherit"
-              >
-                <Avatar 
-                  src={user?.picture} 
-                  alt={user?.name}
-                  sx={{ width: 32, height: 32 }}
-                >
-                  {!user?.picture && <AccountCircleIcon />}
-                </Avatar>
-              </IconButton>
-            ) : (
-              <IconButton
-                size="large"
-                onClick={handleLoginClick}
-                color="inherit"
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
+            <Toolbar>
+              <Typography 
+                variant="h6" 
                 sx={{ 
-                  border: '1px solid #1976d2', 
-                  borderRadius: 2,
-                  padding: '6px 12px',
-                  fontSize: '0.875rem'
+                  flexGrow: 1, 
+                  fontWeight: 'bold', 
+                  color: '#23408e',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1976d2'
+                  }
                 }}
+                onClick={() => navigate('/')}
               >
-                <AccountCircleIcon sx={{ mr: 0.5 }} />
-                Login
-              </IconButton>
-            )}
-            
-            {isAuthenticated && (
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleUserMenuClose}
-                onClick={handleUserMenuClose}
-                PaperProps={{
-                  elevation: 0,
-                  sx: {
-                    overflow: 'visible',
-                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                    mt: 1.5,
-                    '& .MuiAvatar-root': {
-                      width: 32,
-                      height: 32,
-                      ml: -0.5,
-                      mr: 1,
-                    },
-                    '&:before': {
-                      content: '""',
-                      display: 'block',
-                      position: 'absolute',
-                      top: 0,
-                      right: 14,
-                      width: 10,
-                      height: 10,
-                      bgcolor: 'background.paper',
-                      transform: 'translateY(-50%) rotate(45deg)',
-                      zIndex: 0,
-                    },
-                  },
+                MarLang Eng News
+              </Typography>
+              <InputBase
+                placeholder="Search articles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                  }
                 }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                <MenuItem onClick={() => navigate('/profile')}>
-                  <ListItemIcon>
-                    <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
-                      <AccountCircleIcon fontSize="small" />
-                    </Avatar>
-                  </ListItemIcon>
-                  <ListItemText>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {user?.name || 'Guest User'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {user?.email || 'guest@marlang.com'}
-                    </Typography>
-                  </ListItemText>
-                </MenuItem>
-                
-                <MenuItem onClick={() => navigate('/settings')}>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Settings</ListItemText>
-                </MenuItem>
-                
-                <MenuItem onClick={handleLogout}>
-                  <ListItemIcon>
-                    <LogoutIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Logout</ListItemText>
-                </MenuItem>
-              </Menu>
-            )}
-          </Toolbar>
-        </AppBar>
+                onClick={() => navigate('/search')}
+                startAdornment={<SearchIcon sx={{ mr: 1 }} />}
+                sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
+              />
+              
+              {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
+              {isAuthenticated ? (
+                <IconButton
+                  size="large"
+                  onClick={handleUserMenuOpen}
+                  color="inherit"
+                >
+                  <Avatar 
+                    src={user?.picture} 
+                    alt={user?.name}
+                    sx={{ width: 32, height: 32 }}
+                  >
+                    {!user?.picture && <AccountCircleIcon />}
+                  </Avatar>
+                </IconButton>
+              ) : (
+                <IconButton
+                  size="large"
+                  onClick={handleLoginClick}
+                  color="inherit"
+                  sx={{ 
+                    border: '1px solid #1976d2', 
+                    borderRadius: 2,
+                    padding: '6px 12px',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <AccountCircleIcon sx={{ mr: 0.5 }} />
+                  Login
+                </IconButton>
+              )}
+              
+              {isAuthenticated && (
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleUserMenuClose}
+                  onClick={handleUserMenuClose}
+                  PaperProps={{
+                    elevation: 0,
+                    sx: {
+                      overflow: 'visible',
+                      filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                      mt: 1.5,
+                      '& .MuiAvatar-root': {
+                        width: 32,
+                        height: 32,
+                        ml: -0.5,
+                        mr: 1,
+                      },
+                      '&:before': {
+                        content: '""',
+                        display: 'block',
+                        position: 'absolute',
+                        top: 0,
+                        right: 14,
+                        width: 10,
+                        height: 10,
+                        bgcolor: 'background.paper',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        zIndex: 0,
+                      },
+                    },
+                  }}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  <MenuItem onClick={() => navigate('/profile')}>
+                    <ListItemIcon>
+                      <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
+                        <AccountCircleIcon fontSize="small" />
+                      </Avatar>
+                    </ListItemIcon>
+                    <ListItemText>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        {user?.name || 'Guest User'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {user?.email || 'guest@marlang.com'}
+                      </Typography>
+                    </ListItemText>
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => navigate('/settings')}>
+                    <ListItemIcon>
+                      <SettingsIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Settings</ListItemText>
+                  </MenuItem>
+                  
+                  <MenuItem onClick={handleLogout}>
+                    <ListItemIcon>
+                      <LogoutIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Logout</ListItemText>
+                  </MenuItem>
+                </Menu>
+              )}
+            </Toolbar>
+          </AppBar>
+        )}
         
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
@@ -398,7 +409,7 @@ const DatePage = () => {
         )}
         
 
-        <Container>
+        <PageContainer>
           {/* 헤더 */}
           <Header>
             <HeaderContent>
@@ -435,7 +446,11 @@ const DatePage = () => {
             
             <DayLabels>
               {dayNames.map((day, index) => (
-                <DayLabel key={day} $isWeekend={isWeekend(index)}>
+                <DayLabel 
+                  key={day} 
+                  $isWeekend={isWeekend(index)}
+                  $isSunday={index === 0}
+                >
                   {day}
                 </DayLabel>
               ))}
@@ -550,7 +565,7 @@ const DatePage = () => {
               )}
             </ArticlesSection>
           )}
-        </Container>
+        </PageContainer>
       </MobileContentWrapper>
 
       {/* 인증 모달 */}
@@ -561,17 +576,6 @@ const DatePage = () => {
     </>
   );
 };
-
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-  
-  max-width: 1200px;
-  margin: 0 auto;
-`;
 
 const Header = styled.div`
   display: flex;
@@ -623,7 +627,11 @@ const DayLabel = styled.div`
   font-weight: 600;
   padding: 0.75rem 0.5rem;
   font-size: 0.875rem;
-  color: ${props => props.$isWeekend ? '#1976d2' : '#666'};
+  color: ${props => {
+    if (props.$isSunday) return '#d32f2f'; // 일요일은 빨간색
+    if (props.$isWeekend) return '#1976d2';
+    return '#666';
+  }};
   
   @media (min-width: 768px) {
     padding: 1rem;
@@ -653,21 +661,20 @@ const CalendarDay = styled.div`
   
   background: ${props => {
     if (props.$isEmpty) return 'transparent';
-    if (props.$isSelected) return '#1976d2';
-    if (props.$isToday) return '#e8f5e9';
+    if (props.$isSelected) return '#ffeb3b'; // 노란 형광색
     if (props.$hasArticles) return '#f3f4f6';
     return 'transparent';
   }};
   
   border: ${props => {
-    if (props.$isToday) return '2px solid #4caf50';
+    if (props.$isSelected) return '2px solid #fbc02d'; // 노란색 테두리
     if (props.$hasArticles) return '2px solid #e0e7ff';
     return '2px solid transparent';
   }};
   
   &:hover {
     ${props => props.$isClickable && `
-      background: ${props.$isSelected ? '#1565c0' : '#e3f2fd'};
+      background: ${props.$isSelected ? '#fff176' : '#e3f2fd'};
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `}
@@ -679,10 +686,10 @@ const CalendarDay = styled.div`
 `;
 
 const DayNumber = styled.div`
-  font-weight: ${props => props.$isToday ? 'bold' : '500'};
+  font-weight: 500;
   font-size: 1rem;
   color: ${props => {
-    if (props.$isToday) return '#4caf50';
+    if (props.$isSunday) return '#d32f2f'; // 일요일은 빨간색
     if (props.$isWeekend) return '#1976d2';
     return '#333';
   }};
@@ -696,7 +703,7 @@ const ArticleDot = styled.div`
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: ${props => props.$isSelected ? 'white' : '#1976d2'};
+  background: ${props => props.$isSelected ? '#f57c00' : '#1976d2'}; // 선택된 날짜에서는 주황색
 `;
 
 const ArticlesSection = styled.div`

@@ -19,6 +19,7 @@ import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
 import SearchDropdown from '../components/SearchDropdown';
+import PageContainer from '../components/PageContainer';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -138,10 +139,23 @@ const Wordbook = () => {
       <AuthGuard feature="your wordbook">
         <MobileNavigation />
         <MobileContentWrapper>
-          {/* 상단바 - 항상 표시 */}
-          <AppBar position="static" color="default" elevation={1}>
+          {/* 상단바 - 데스크톱만 표시 */}
+          {!isMobile && (
+            <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  flexGrow: 1, 
+                  fontWeight: 'bold', 
+                  color: '#23408e',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1976d2'
+                  }
+                }}
+                onClick={() => navigate('/')}
+              >
                 MarLang Eng News
               </Typography>
                              <SearchDropdown placeholder="Search articles..." />
@@ -162,6 +176,7 @@ const Wordbook = () => {
               </IconButton>
             </Toolbar>
           </AppBar>
+          )}
           
           {/* 네비게이션 바 - 데스크톱만 */}
           {!isMobile && (
@@ -212,13 +227,13 @@ const Wordbook = () => {
           )}
 
           {/* 빈 컨테이너 - 로그인 필요 메시지 */}
-          <Container>
+          <PageContainer>
             <EmptyAuthState>
               <EmptyIcon>📚</EmptyIcon>
               <EmptyText>Please sign in to access your wordbook</EmptyText>
               <EmptySubtext>Save words from articles and build your vocabulary!</EmptySubtext>
             </EmptyAuthState>
-          </Container>
+          </PageContainer>
 
           {/* 인증 모달 */}
           <AuthModal 
@@ -231,13 +246,26 @@ const Wordbook = () => {
   }
 
   return (
-    <AuthGuard feature="your wordbook">
+    <>
       <MobileNavigation />
       <MobileContentWrapper>
-        {/* 상단바 - 항상 표시 */}
-        <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                flexGrow: 1, 
+                fontWeight: 'bold', 
+                color: '#23408e',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: '#1976d2'
+                }
+              }}
+              onClick={() => navigate('/')}
+            >
               MarLang Eng News
             </Typography>
             <SearchDropdown placeholder="Search articles..." />
@@ -342,6 +370,7 @@ const Wordbook = () => {
             )}
           </Toolbar>
         </AppBar>
+        )}
         
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
@@ -393,7 +422,7 @@ const Wordbook = () => {
 
 
         {/* 단어장 내용 */}
-        <Container>
+        <PageContainer>
           <Header>
             <Title>📚 My Wordbook</Title>
             <SortContainer>
@@ -445,7 +474,7 @@ const Wordbook = () => {
               <EmptySubtext>Start reading articles and save words to build your vocabulary!</EmptySubtext>
             </EmptyState>
           )}
-        </Container>
+        </PageContainer>
 
         {/* 인증 모달 */}
         <AuthModal 
@@ -453,29 +482,15 @@ const Wordbook = () => {
           onClose={() => setIsModalOpen && setIsModalOpen(false)} 
         />
       </MobileContentWrapper>
-    </AuthGuard>
+    </>
   );
 };
-
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-  
-  max-width: 1200px;
-  margin: 0 auto;
-`;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
 `;
 
 const Title = styled.h1`
@@ -494,8 +509,6 @@ const WordGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
-  max-width: 1200px;
-  margin: 0 auto;
   
   @media (min-width: 768px) {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -620,8 +633,6 @@ const EmptySubtext = styled.p`
 const EmptyAuthState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 export default Wordbook; 

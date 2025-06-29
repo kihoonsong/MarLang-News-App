@@ -160,7 +160,7 @@ const AuthModal = ({ open, onClose }) => {
     
     try {
       await signInWithNaver();
-      handleClose();
+      // handleClose()는 AuthContext에서 자동으로 처리됨
     } catch (error) {
       setError(error.message || '네이버 로그인에 실패했습니다.');
     } finally {

@@ -18,6 +18,7 @@ import { ArticleListSkeleton, LoadingSpinner } from '../components/LoadingCompon
 import ErrorBoundary, { NewsListErrorFallback } from '../components/ErrorBoundary';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
+import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
@@ -158,10 +159,23 @@ const Home = () => {
       <MobileNavigation />
       
       <MobileContentWrapper>
-        {/* 상단바 - 항상 표시 */}
-        <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  flexGrow: 1, 
+                  fontWeight: 'bold', 
+                  color: '#23408e',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1976d2'
+                  }
+                }}
+                onClick={() => navigate('/')}
+              >
                 MarLang Eng News
               </Typography>
               <SearchDropdown placeholder="Search articles..." />
@@ -266,6 +280,7 @@ const Home = () => {
               )}
             </Toolbar>
           </AppBar>
+        )}
         
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
@@ -368,7 +383,7 @@ const Home = () => {
           <ArticleListSkeleton count={6} />
         ) : (
           /* 카테고리별 기사 섹션들 */
-          <ContentContainer>
+          <PageContainer>
             {categories.map((category) => (
               <CategorySection key={category.id} id={`category-${category.id}`}>
                 <CategoryHeader>
@@ -400,7 +415,7 @@ const Home = () => {
                 </HorizontalScrollContainer>
               </CategorySection>
             ))}
-          </ContentContainer>
+          </PageContainer>
         )}
         
       </MobileContentWrapper>
@@ -414,20 +429,9 @@ const Home = () => {
   );
 };
 
-const ContentContainer = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-`;
-
 const CategorySection = styled.div`
   margin-bottom: 3rem;
   scroll-margin-top: 80px; /* 탭 바 높이 고려 */
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
 `;
 
 const CategoryHeader = styled.div`

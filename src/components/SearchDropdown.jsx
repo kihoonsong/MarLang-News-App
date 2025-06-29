@@ -65,7 +65,7 @@ const sampleArticles = [
   }
 ];
 
-const SearchDropdown = ({ placeholder = "Search articles..." }) => {
+const SearchDropdown = ({ placeholder = "Search articles...", className, style, compact = false }) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState([]);
@@ -173,13 +173,14 @@ const SearchDropdown = ({ placeholder = "Search articles..." }) => {
   };
 
   return (
-    <SearchContainer ref={searchRef}>
+    <SearchContainer ref={searchRef} className={className} style={style}>
       <SearchInput
         placeholder={placeholder}
         value={query}
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         startAdornment={<SearchIcon sx={{ mr: 1, color: '#666' }} />}
+        $compact={compact}
       />
       
       {isOpen && (query.trim() || isLoading) && (
@@ -269,8 +270,8 @@ const SearchContainer = styled.div`
 const SearchInput = styled(InputBase)`
   width: 100%;
   background: #f5f5f5;
-  border-radius: 25px;
-  padding: 0.5rem 1rem;
+  border-radius: ${props => props.$compact ? '8px' : '25px'};
+  padding: ${props => props.$compact ? '0.25rem 0.75rem' : '0.5rem 1rem'};
   transition: all 0.2s;
   
   &:focus-within {
@@ -279,7 +280,8 @@ const SearchInput = styled(InputBase)`
   }
   
   .MuiInputBase-input {
-    padding: 0.5rem 0;
+    padding: ${props => props.$compact ? '0.25rem 0' : '0.5rem 0'};
+    font-size: ${props => props.$compact ? '0.875rem' : '1rem'};
   }
 `;
 

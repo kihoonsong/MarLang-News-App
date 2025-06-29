@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, InputBase, Box, Card, CardMedia, 
   CardContent, Chip, Grid, FormControl, Select, MenuItem, InputLabel,
-  Tabs, Tab, Paper, List, ListItem, ListItemText, ListItemIcon, Divider
+  Tabs, Tab, Paper, List, ListItem, ListItemText, ListItemIcon, Divider,
+  useMediaQuery, useTheme
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -13,6 +14,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import PageContainer from '../components/PageContainer';
 
 // 샘플 기사 데이터 (검색용)
 const sampleArticles = [
@@ -81,6 +83,8 @@ const sampleArticles = [
 const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { userSettings, updateSettings } = useData();
   
   // URL에서 초기 검색어 가져오기
@@ -235,7 +239,9 @@ const Search = () => {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
+      {/* 상단바 - 데스크톱만 표시 */}
+      {!isMobile && (
+        <AppBar position="static" color="default" elevation={1}>
         <Toolbar>
           <IconButton color="inherit" onClick={() => navigate('/')}>
             <ArrowBackIcon />
@@ -262,12 +268,13 @@ const Search = () => {
           </SearchContainer>
         </Toolbar>
       </AppBar>
+      )}
 
       {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
       </Box>
 
-      <Container>
+      <PageContainer>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
             <Tab 
@@ -513,7 +520,7 @@ const Search = () => {
             </Paper>
           </HistorySection>
         )}
-      </Container>
+      </PageContainer>
     </>
   );
 };
@@ -521,12 +528,22 @@ const Search = () => {
 const Container = styled.div`
   padding: 0 1rem 2rem 1rem;
   
+  
   @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
+    padding: 0 4rem 2rem 4rem;
   }
   
-  max-width: 1200px;
-  margin: 0 auto;
+  @media (min-width: 1200px) {
+    padding: 0 8rem 2rem 8rem;
+  }
+  
+  @media (min-width: 1600px) {
+    padding: 0 12rem 2rem 12rem;
+  }
+  
+  @media (min-width: 2000px) {
+    padding: 0 16rem 2rem 16rem;
+  }
 `;
 
 const SearchContainer = styled.div`

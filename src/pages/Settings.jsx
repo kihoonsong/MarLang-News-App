@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
   AppBar, Toolbar, Typography, IconButton, Box, Card, CardContent,
@@ -19,12 +19,13 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LockIcon from '@mui/icons-material/Lock';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../components/ToastProvider';
 import { getSupportedLanguages } from '../utils/dictionaryApi';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import PageContainer from '../components/PageContainer';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -174,8 +175,9 @@ const Settings = () => {
     <>
       {/* <MobileNavigation /> */}
       <MobileContentWrapper>
-        {/* 상단바 */}
-        <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
             <IconButton color="inherit" onClick={() => navigate(-1)}>
               <ArrowBackIcon />
@@ -186,12 +188,13 @@ const Settings = () => {
             </Typography>
           </Toolbar>
         </AppBar>
+        )}
 
         {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
         </Box>
 
-        <Container>
+        <PageContainer>
           <Header>
             <Title>⚙️ Settings</Title>
             <HeaderActions>
@@ -523,7 +526,7 @@ const Settings = () => {
               </CardContent>
             </SettingsCard>
           </SettingsSection>
-        </Container>
+        </PageContainer>
 
         {/* 비밀번호 변경 모달 */}
         <Dialog
@@ -630,12 +633,22 @@ const Settings = () => {
 const Container = styled.div`
   padding: 0 1rem 2rem 1rem;
   
+  
   @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
+    padding: 0 4rem 2rem 4rem;
   }
   
-  max-width: 1200px;
-  margin: 0 auto;
+  @media (min-width: 1200px) {
+    padding: 0 8rem 2rem 8rem;
+  }
+  
+  @media (min-width: 1600px) {
+    padding: 0 12rem 2rem 12rem;
+  }
+  
+  @media (min-width: 2000px) {
+    padding: 0 16rem 2rem 16rem;
+  }
 `;
 
 const Header = styled.div`

@@ -25,6 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
 import SearchDropdown from '../components/SearchDropdown';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import PageContainer from '../components/PageContainer';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
@@ -626,13 +627,26 @@ const ArticleDetail = () => {
       <MobileNavigation />
       
       <MobileContentWrapper>
-        {/* 상단바 - 항상 표시 */}
-        <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
             <IconButton color="inherit" onClick={() => navigate('/')}>
               <ArrowBackIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                flexGrow: 1, 
+                fontWeight: 'bold', 
+                color: '#23408e',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: '#1976d2'
+                }
+              }}
+              onClick={() => navigate('/')}
+            >
               MarLang Eng News
             </Typography>
             <SearchDropdown placeholder="Search articles..." />
@@ -737,6 +751,7 @@ const ArticleDetail = () => {
             )}
           </Toolbar>
         </AppBar>
+        )}
         
         {/* 네비게이션 바 - 데스크톱만 */}
         {!isMobile && (
@@ -788,7 +803,7 @@ const ArticleDetail = () => {
         </Box>
 
       {/* 기사 상세 내용 */}
-      <Container>
+      <PageContainer>
         {/* 썸네일 이미지 */}
         <ThumbnailImage src={articleData.image} alt={articleData.title} />
         
@@ -889,7 +904,7 @@ const ArticleDetail = () => {
             })()}
           </ContentText>
         </ContentCard>
-      </Container>
+      </PageContainer>
 
       {/* 단어 팝업 */}
       <Popover
@@ -1071,17 +1086,6 @@ const ArticleDetail = () => {
     </>
   );
 };
-
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-  
-  max-width: 1200px;
-  margin: 0 auto;
-`;
 
 const ThumbnailImage = styled.img`
   width: 100%;

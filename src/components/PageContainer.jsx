@@ -1,0 +1,19 @@
+import styled from 'styled-components';
+
+const PageContainer = styled.div`
+  padding: 0 1rem 2rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  
+  @media (min-width: 768px) {
+    padding: 0 2rem 2rem 2rem;
+  }
+  
+  @media (min-width: 1200px) {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem 2rem 2rem;
+  }
+`;
+
+export default PageContainer; 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, InputBase, Tabs, Tab, Box, 
@@ -10,13 +10,14 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import AuthModal from '../components/AuthModal';
 import SearchDropdown from '../components/SearchDropdown';
+import PageContainer from '../components/PageContainer';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
@@ -91,13 +92,26 @@ const Like = () => {
       <AuthGuard feature="your liked articles">
         <MobileNavigation />
         <MobileContentWrapper>
-          {/* 상단바 - 항상 표시 */}
-          <AppBar position="static" color="default" elevation={1}>
+          {/* 상단바 - 데스크톱만 표시 */}
+          {!isMobile && (
+            <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  flexGrow: 1, 
+                  fontWeight: 'bold', 
+                  color: '#23408e',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: '#1976d2'
+                  }
+                }}
+                onClick={() => navigate('/')}
+              >
                 MarLang Eng News
               </Typography>
-                             <SearchDropdown placeholder="Search articles..." />
+              <SearchDropdown placeholder="Search articles..." />
               
               <IconButton size="large" onClick={handleLoginClick} color="inherit" 
                 sx={{ border: '1px solid #1976d2', borderRadius: 2, padding: '6px 12px', fontSize: '0.875rem' }}>
@@ -106,6 +120,7 @@ const Like = () => {
               </IconButton>
             </Toolbar>
           </AppBar>
+          )}
           
           {!isMobile && (
             <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
@@ -142,13 +157,13 @@ const Like = () => {
           )}
 
           {/* 빈 컨테이너 - 로그인 필요 메시지 */}
-          <Container>
+          <PageContainer>
             <EmptyAuthState>
               <EmptyIcon>❤️</EmptyIcon>
               <EmptyText>Please sign in to access your liked articles</EmptyText>
-              <EmptySubtext>Like articles to save them for later reading!</EmptySubtext>
+              <EmptySubtext>Like articles while reading and find them here!</EmptySubtext>
             </EmptyAuthState>
-          </Container>
+          </PageContainer>
 
           {/* 인증 모달 */}
           <AuthModal 
@@ -161,13 +176,26 @@ const Like = () => {
   }
 
   return (
-    <AuthGuard feature="your liked articles">
+    <>
       <MobileNavigation />
       <MobileContentWrapper>
-        {/* 상단바 - 항상 표시 */}
-        <AppBar position="static" color="default" elevation={1}>
+        {/* 상단바 - 데스크톱만 표시 */}
+        {!isMobile && (
+          <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#23408e' }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                flexGrow: 1, 
+                fontWeight: 'bold', 
+                color: '#23408e',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: '#1976d2'
+                }
+              }}
+              onClick={() => navigate('/')}
+            >
               MarLang Eng News
             </Typography>
             <SearchDropdown placeholder="Search articles..." />
@@ -207,6 +235,7 @@ const Like = () => {
             )}
           </Toolbar>
         </AppBar>
+        )}
         
         {!isMobile && (
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
@@ -243,7 +272,7 @@ const Like = () => {
         )}
 
 
-        <Container>
+        <PageContainer>
           <Header>
             <Title>❤️ Liked Articles</Title>
             <SortContainer>
@@ -298,36 +327,22 @@ const Like = () => {
               <EmptySubtext>Start reading and liking articles to see them here!</EmptySubtext>
             </EmptyState>
           )}
-        </Container>
+        </PageContainer>
       </MobileContentWrapper>
       {/* 인증 모달 */}
       <AuthModal 
         open={isModalOpen || false} 
         onClose={() => setIsModalOpen && setIsModalOpen(false)} 
       />
-    </AuthGuard>
+    </>
   );
 };
-
-const Container = styled.div`
-  padding: 0 1rem 2rem 1rem;
-  
-  @media (min-width: 768px) {
-    padding: 0 2rem 2rem 2rem;
-  }
-  
-  max-width: 1200px;
-  margin: 0 auto;
-`;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
 `;
 
 const Title = styled.h1`
@@ -346,8 +361,6 @@ const ArticleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 const ArticleCard = styled.div`
@@ -439,8 +452,6 @@ const LikedDate = styled.span`
 const EmptyState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 const EmptyIcon = styled.div`
@@ -463,8 +474,6 @@ const EmptySubtext = styled.p`
 const EmptyAuthState = styled.div`
   text-align: center;
   padding: 4rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
 `;
 
 export default Like; 
