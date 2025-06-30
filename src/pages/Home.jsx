@@ -39,6 +39,12 @@ const Home = () => {
   const [allNewsData, setAllNewsData] = React.useState({});
   const [authModalOpen, setAuthModalOpen] = React.useState(false);
   
+  // 공지사항 상태
+  const [notices, setNotices] = React.useState(() => {
+    const saved = localStorage.getItem('marlang_notices');
+    return saved ? JSON.parse(saved).filter(notice => notice.active) : [];
+  });
+  
   // 동적 카테고리 관리
   const [categories, setCategories] = React.useState(() => {
     const saved = localStorage.getItem('marlang_categories');
@@ -94,6 +100,13 @@ const Home = () => {
       }
     };
 
+    // 공지사항 변경 감지 및 업데이트
+    const handleNoticesUpdate = (event) => {
+      const updatedNotices = event.detail || [];
+      const activeNotices = updatedNotices.filter(notice => notice.active);
+      setNotices(activeNotices);
+    };
+
     // 대시보드에서 기사 변경 이벤트 처리
     const handleArticleUpdate = (event) => {
       const { type, article } = event.detail;
@@ -113,10 +126,12 @@ const Home = () => {
     // 커스텀 이벤트 리스너 등록
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     window.addEventListener('articleUpdated', handleArticleUpdate);
+    window.addEventListener('noticesUpdated', handleNoticesUpdate);
     
     return () => {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
       window.removeEventListener('articleUpdated', handleArticleUpdate);
+      window.removeEventListener('noticesUpdated', handleNoticesUpdate);
     };
   }, [refreshArticles, toast]);
 
@@ -379,6 +394,37 @@ const Home = () => {
             ))}
           </Tabs>
         </Box>
+
+        {/* 공지사항 영역 */}
+        {notices.length > 0 && (
+          <Box sx={{ px: 2, py: 1 }}>
+            {notices.slice(0, 3).map((notice) => (
+              <Alert 
+                key={notice.id}
+                severity={notice.type}
+                sx={{ 
+                  mb: 1,
+                  '& .MuiAlert-message': {
+                    width: '100%'
+                  }
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    📢 {notice.title}
+                  </Typography>
+                  <Typography variant="body2">
+                    {notice.content}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {new Date(notice.createdAt).toLocaleDateString()} 
+                    {notices.length > 1 && ' • 관리자'}
+                  </Typography>
+                </Box>
+              </Alert>
+            ))}
+          </Box>
+        )}
         
         {/* 에러 상태 처리 */}
         {error && (

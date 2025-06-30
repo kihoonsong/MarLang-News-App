@@ -436,6 +436,26 @@ export const AuthProvider = ({ children }) => {
     // 게스트 로그인은 더 이상 지원하지 않음
   };
 
+  // 사용자 활동 시간 업데이트
+  const updateLastActivity = () => {
+    if (!user) return;
+
+    const currentTime = new Date().toISOString();
+    const updatedUser = { ...user, lastActivity: currentTime };
+    setUser(updatedUser);
+    localStorage.setItem('marlang_user', JSON.stringify(updatedUser));
+    
+    // 사용자별 데이터에도 저장
+    const userKey = `marlang_user_${user.id}`;
+    try {
+      const userData = JSON.parse(localStorage.getItem(userKey) || '{}');
+      userData.lastActivity = currentTime;
+      localStorage.setItem(userKey, JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error updating user activity:', error);
+    }
+  };
+
   // 사용자 프로필 업데이트
   const updateUserProfile = (updates) => {
     if (!user) return;
@@ -466,6 +486,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     signInAsGuest, // deprecated
     updateUserProfile,
+    updateLastActivity,
     isAuthenticated: !!user,
     isGuest: user?.isGuest || false,
     isModalOpen,

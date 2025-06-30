@@ -73,7 +73,7 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const { addWord, toggleLike, isArticleLiked, userSettings, updateSettings, removeWord, savedWords: contextSavedWords } = useData();
   const { allArticles, loading: articlesLoading } = useArticles();
-  const { user, isAuthenticated, signOut } = useAuth() || {};
+  const { user, isAuthenticated, signOut, updateLastActivity } = useAuth() || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -115,6 +115,25 @@ const ArticleDetail = () => {
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
   const [isRestarting, setIsRestarting] = useState(false);
 
+  // 기사 조회 기록 추가 함수
+  const addViewRecord = (articleId) => {
+    if (!user?.id) return; // 로그인하지 않은 사용자는 조회 기록 추가하지 않음
+    
+    try {
+      const viewHistoryKey = `marlang_view_history_${user.id}`;
+      const existingHistory = JSON.parse(localStorage.getItem(viewHistoryKey) || '[]');
+      
+      // 이미 조회한 기사가 아닌 경우에만 추가 (중복 방지)
+      if (!existingHistory.includes(articleId)) {
+        const updatedHistory = [...existingHistory, articleId];
+        localStorage.setItem(viewHistoryKey, JSON.stringify(updatedHistory));
+        console.log('📊 기사 조회 기록 추가:', articleId);
+      }
+    } catch (error) {
+      console.error('Error adding view record:', error);
+    }
+  };
+
   // 기사 데이터 로드
   useEffect(() => {
     if (!articlesLoading && allArticles && id) {
@@ -135,9 +154,15 @@ const ArticleDetail = () => {
           levels: generateLevelsFromContent(foundArticle)
         };
         setArticleData(transformedArticle);
+        
+        // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+        if (user?.id) {
+          addViewRecord(foundArticle.id);
+          updateLastActivity && updateLastActivity();
+        }
       }
     }
-  }, [articlesLoading, allArticles, id]);
+  }, [articlesLoading, allArticles, id, user]);
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
@@ -420,6 +445,9 @@ const ArticleDetail = () => {
       const newLikeStatus = toggleLike(articleData);
       setIsLiked(newLikeStatus);
       
+      // 활동 시간 업데이트
+      updateLastActivity && updateLastActivity();
+      
       // 좋아요 상태 변경을 다른 컴포넌트에 알림
       window.dispatchEvent(new CustomEvent('likeUpdated', {
         detail: { articleId: articleData.id, isLiked: newLikeStatus }
@@ -529,6 +557,9 @@ const ArticleDetail = () => {
     );
     
     if (success) {
+      // 활동 시간 업데이트
+      updateLastActivity && updateLastActivity();
+      
       // 단어 하이라이트 추가
       setSavedWords(prev => new Set([...prev, wordPopup.word]));
       

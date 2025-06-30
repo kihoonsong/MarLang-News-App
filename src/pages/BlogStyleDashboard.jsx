@@ -7,17 +7,20 @@ import {
   Snackbar, Alert, Avatar, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, Switch, FormControlLabel, Divider, Badge,
   List, ListItem, ListItemText, ListItemIcon, Accordion, AccordionSummary,
-  AccordionDetails, Tooltip, Fab, RadioGroup, Radio, FormLabel
+  AccordionDetails, Tooltip, Fab, RadioGroup, Radio, FormLabel, LinearProgress,
+  CircularProgress
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon, Article, Add, Edit, Delete, Save, Cancel,
   Preview, Publish, Visibility, ThumbUp, TrendingUp, People, Settings,
   Refresh, Star, CheckCircle, Warning, Schedule, CloudUpload, Image,
-  ExpandMore, Category, DragIndicator, ArrowUpward, ArrowDownward
+  ExpandMore, Category, DragIndicator, ArrowUpward, ArrowDownward,
+  Analytics, School, PersonAdd, Announcement, EmojiEvents, AccessTime
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useArticles } from '../contexts/ArticlesContext';
+import { useData } from '../contexts/DataContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 
 // 홈페이지와 동일한 카테고리 구조
@@ -34,7 +37,7 @@ const homeCategories = [
 const BlogStyleDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-    const {
+  const {
     allArticles,
     setAllArticles,
     loading,
@@ -45,9 +48,11 @@ const BlogStyleDashboard = () => {
     deleteArticle,
     updateArticles
   } = useArticles();
+  const { likedArticles, savedWords } = useData();
   
   const [activeTab, setActiveTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // 기사 편집 상태
   const [articleDialog, setArticleDialog] = useState(false);
@@ -63,35 +68,184 @@ const BlogStyleDashboard = () => {
     category: 'Technology',
     image: '',
     imageFile: null,
-    publishType: 'immediate', // 'immediate' | 'scheduled'
+    publishType: 'immediate',
     publishedAt: new Date().toISOString().slice(0, 16),
-    status: 'published' // 'draft' | 'published' | 'scheduled'
+    status: 'published'
   });
 
   // 카테고리 관리 상태
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [editableCategories, setEditableCategories] = useState(() => {
-    // 로컬스토리지에서 카테고리 로드
     const saved = localStorage.getItem('marlang_categories');
     if (saved) {
       try {
         const categories = JSON.parse(saved);
         return categories.filter(cat => cat.type === 'category').map(cat => cat.name);
       } catch {
-        // 파싱 실패 시 기본 카테고리 사용
         return homeCategories.filter(cat => cat.type === 'category').map(cat => cat.name);
       }
     }
-    // 로컬스토리지가 없으면 기본 카테고리 사용
     return homeCategories.filter(cat => cat.type === 'category').map(cat => cat.name);
   });
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // 회원 관리 상태
+  const [memberDialog, setMemberDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [memberForm, setMemberForm] = useState({
+    name: '',
+    email: '',
+    role: 'User',
+    status: 'active'
+  });
+
+  // 공지사항 관리 상태
+  const [noticeDialog, setNoticeDialog] = useState(false);
+  const [editingNotice, setEditingNotice] = useState(null);
+  const [noticeForm, setNoticeForm] = useState({
+    title: '',
+    content: '',
+    type: 'info',
+    active: true
+  });
+  const [notices, setNotices] = useState(() => {
+    const saved = localStorage.getItem('marlang_notices');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 실시간 통계 업데이트 (30초마다)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastUpdate(new Date());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 회원 데이터 가져오기 (실제 localStorage 사용자들)
+  const getMembers = () => {
+    const users = [];
+    
+    // localStorage에서 실제 사용자들 찾기
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('marlang_user_')) {
+        try {
+          const userData = JSON.parse(localStorage.getItem(key));
+          if (userData && userData.email) {
+            const userId = key.replace('marlang_user_', '');
+            const userLikedArticles = JSON.parse(localStorage.getItem(`marlang_liked_articles_${userId}`) || '[]');
+            const userSavedWords = JSON.parse(localStorage.getItem(`marlang_saved_words_${userId}`) || '[]');
+            
+            // 실제 읽은 기사 수 계산 (좋아요한 기사 + 조회 기록)
+            const viewHistory = JSON.parse(localStorage.getItem(`marlang_view_history_${userId}`) || '[]');
+            const uniqueReadArticles = new Set([
+              ...userLikedArticles.map(a => a.id),
+              ...viewHistory
+            ]).size;
+            
+            users.push({
+              ...userData,
+              id: userId,
+              likedArticles: userLikedArticles,
+              savedWords: userSavedWords,
+              readArticles: uniqueReadArticles, // 실제 읽은 기사 수
+              joinDate: userData.createdAt || new Date().toISOString(),
+              lastActive: userData.lastLogin || userData.lastActivity || new Date().toISOString(),
+              status: 'active'
+            });
+          }
+        } catch (e) {
+          console.error('Failed to parse user data:', e);
+        }
+      }
+    }
+    
+    return users;
+  };
+
+  // 현재 접속자 수 계산 (실제 기준: 최근 1시간 내 활동 + 현재 세션)
+  const getCurrentUsers = () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const members = getMembers();
+    
+    // 최근 1시간 내 활동한 사용자 수
+    const activeUsers = members.filter(member => 
+      new Date(member.lastActive) > oneHourAgo
+    ).length;
+    
+    // 현재 세션 사용자들 추가 확인 (sessionStorage 기반)
+    let currentSessionUsers = 0;
+    try {
+      // 현재 브라우저 세션이 활성화되어 있으면 +1
+      if (sessionStorage.getItem('marlang_session')) {
+        currentSessionUsers = 1;
+      }
+    } catch (e) {
+      console.error('Error checking session:', e);
+    }
+    
+    // 실제 활성 사용자 수 (최소 현재 로그인한 사용자가 있으면 1명)
+    const totalActive = Math.max(activeUsers, isAuthenticated ? 1 : 0, currentSessionUsers);
+    
+    // 최대 사용자 수 제한 (현실적인 범위)
+    return Math.min(totalActive, members.length);
+  };
+
+  // 세션 추적 시작
+  useEffect(() => {
+    // 페이지 방문 시 세션 기록
+    sessionStorage.setItem('marlang_session', 'active');
+    
+    // 페이지 떠날 때 세션 정리
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('marlang_session');
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // 실제 총 좋아요 수 계산 (모든 사용자의 좋아요 합계)
+  const getTotalActualLikes = () => {
+    let totalLikes = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('marlang_liked_articles_')) {
+        try {
+          const likedArticles = JSON.parse(localStorage.getItem(key) || '[]');
+          totalLikes += likedArticles.length;
+        } catch (e) {
+          console.error('Failed to parse liked articles:', e);
+        }
+      }
+    }
+    return totalLikes;
+  };
+
+  // 실제 총 조회수 계산 (모든 사용자의 조회 기록 합계)
+  const getTotalActualViews = () => {
+    let totalViews = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('marlang_view_history_')) {
+        try {
+          const viewHistory = JSON.parse(localStorage.getItem(key) || '[]');
+          totalViews += viewHistory.length;
+        } catch (e) {
+          console.error('Failed to parse view history:', e);
+        }
+      }
+    }
+    return totalViews;
+  };
 
   // 카테고리 변경사항을 로컬스토리지에 저장하고 홈페이지에 알림
   const updateCategoriesAndNotify = (newCategories) => {
     setEditableCategories(newCategories);
     
-    // 전체 카테고리 구조 생성 (Recent, Popular는 고정)
     const fullCategories = [
       { id: 'recent', name: 'Recent', type: 'recent' },
       ...newCategories.map((name, index) => ({
@@ -102,11 +256,16 @@ const BlogStyleDashboard = () => {
       { id: 'popular', name: 'Popular', type: 'popular' }
     ];
     
-    // 로컬스토리지에 저장
     localStorage.setItem('marlang_categories', JSON.stringify(fullCategories));
-    
-    // 홈페이지에 알림 이벤트 발송
     window.dispatchEvent(new CustomEvent('categoriesUpdated'));
+  };
+
+  // 공지사항 저장
+  const saveNotices = (newNotices) => {
+    setNotices(newNotices);
+    localStorage.setItem('marlang_notices', JSON.stringify(newNotices));
+    // 홈페이지에 공지사항 업데이트 알림
+    window.dispatchEvent(new CustomEvent('noticesUpdated', { detail: newNotices }));
   };
 
   // 인증 확인
@@ -131,9 +290,7 @@ const BlogStyleDashboard = () => {
       }
     };
 
-    // 커스텀 이벤트 리스너 등록
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
-    
     return () => {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
     };
@@ -146,19 +303,16 @@ const BlogStyleDashboard = () => {
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // 파일 크기 체크 (5MB 제한)
       if (file.size > 5 * 1024 * 1024) {
         setSnackbar({ open: true, message: '이미지 파일은 5MB 이하로 업로드해주세요.', severity: 'error' });
         return;
       }
 
-      // 이미지 파일 타입 체크
       if (!file.type.startsWith('image/')) {
         setSnackbar({ open: true, message: '이미지 파일만 업로드 가능합니다.', severity: 'error' });
         return;
       }
 
-      // FileReader로 이미지 미리보기 생성
       const reader = new FileReader();
       reader.onload = (e) => {
         setArticleForm(prev => ({
@@ -171,30 +325,49 @@ const BlogStyleDashboard = () => {
     }
   };
 
-  // 통계 계산
-  const getStats = () => {
-    const totalViews = allArticles.reduce((sum, article) => sum + (article.views || 0), 0);
-    const totalLikes = allArticles.reduce((sum, article) => sum + (article.likes || 0), 0);
+  // 고급 통계 계산 (실제 데이터 기반)
+  const getAdvancedStats = () => {
+    const members = getMembers();
+    
+    // 실제 좋아요와 조회수 계산
+    const totalActualLikes = getTotalActualLikes();
+    const totalActualViews = getTotalActualViews();
+    
+    // ArticlesContext의 데이터도 함께 고려 (기본 조회수/좋아요)
+    const articleViews = allArticles.reduce((sum, article) => sum + (article.views || 0), 0);
+    const articleLikes = allArticles.reduce((sum, article) => sum + (article.likes || 0), 0);
+    
     const todayArticles = allArticles.filter(article => {
       const today = new Date().toDateString();
       const articleDate = new Date(article.publishedAt).toDateString();
       return today === articleDate;
     }).length;
 
+    const todayMembers = members.filter(member => {
+      const today = new Date().toDateString();
+      const joinDate = new Date(member.joinDate).toDateString();
+      return today === joinDate;
+    }).length;
+
     return {
       totalArticles: allArticles.length,
-      totalViews,
-      totalLikes,
+      totalViews: Math.max(totalActualViews, articleViews), // 실제 조회수와 기본 조회수 중 큰 값
+      totalLikes: Math.max(totalActualLikes, articleLikes), // 실제 좋아요와 기본 좋아요 중 큰 값
       todayArticles,
-      categories: editableCategories.length
+      totalMembers: members.length,
+      todayMembers,
+      currentUsers: getCurrentUsers(),
+      categories: editableCategories.length,
+      totalWords: members.reduce((sum, member) => sum + member.savedWords.length, 0),
+      avgReadArticles: members.length > 0 ? Math.round(members.reduce((sum, member) => sum + member.readArticles, 0) / members.length) : 0,
+      avgSavedWords: members.length > 0 ? Math.round(members.reduce((sum, member) => sum + member.savedWords.length, 0) / members.length) : 0
     };
   };
 
-  const stats = getStats();
+  const stats = getAdvancedStats();
 
   // 카테고리별 기사 수 계산
   const getCategoryStats = () => {
-    // 현재 로컬스토리지의 카테고리 구조 사용
     const saved = localStorage.getItem('marlang_categories');
     let currentCategories = homeCategories;
     
@@ -220,9 +393,43 @@ const BlogStyleDashboard = () => {
         ...category,
         count: articles.length,
         totalViews: articles.reduce((sum, a) => sum + (a.views || 0), 0),
-        totalLikes: articles.reduce((sum, a) => sum + (a.likes || 0), 0)
+        totalLikes: articles.reduce((sum, a) => sum + (a.likes || 0), 0),
+        avgEngagement: articles.length > 0 ? 
+          Math.round((articles.reduce((sum, a) => sum + (a.likes || 0), 0) / articles.reduce((sum, a) => sum + Math.max(a.views || 1, 1), 0)) * 100) : 0
       };
     });
+  };
+
+  // 사용자 행동 분석
+  const getUserAnalytics = () => {
+    const members = getMembers();
+    
+    const usersByReadingFrequency = {
+      high: members.filter(m => m.readArticles >= 15).length,
+      medium: members.filter(m => m.readArticles >= 5 && m.readArticles < 15).length,
+      low: members.filter(m => m.readArticles < 5).length
+    };
+
+    const usersByLearningActivity = {
+      active: members.filter(m => m.savedWords.length >= 20).length,
+      moderate: members.filter(m => m.savedWords.length >= 5 && m.savedWords.length < 20).length,
+      passive: members.filter(m => m.savedWords.length < 5).length
+    };
+
+    const topLearners = members
+      .map(member => ({
+        ...member,
+        learningScore: (member.readArticles * 2) + (member.savedWords.length * 3) + (member.likedArticles.length * 1)
+      }))
+      .sort((a, b) => b.learningScore - a.learningScore)
+      .slice(0, 10);
+
+    return {
+      usersByReadingFrequency,
+      usersByLearningActivity,
+      topLearners,
+      totalLearningActivities: members.reduce((sum, m) => sum + m.readArticles + m.savedWords.length + m.likedArticles.length, 0)
+    };
   };
 
   // 기사 폼 초기화
@@ -246,6 +453,28 @@ const BlogStyleDashboard = () => {
     setActiveContentTab(0);
   };
 
+  // 회원 폼 초기화
+  const resetMemberForm = () => {
+    setMemberForm({
+      name: '',
+      email: '',
+      role: 'User',
+      status: 'active'
+    });
+    setEditingMember(null);
+  };
+
+  // 공지사항 폼 초기화
+  const resetNoticeForm = () => {
+    setNoticeForm({
+      title: '',
+      content: '',
+      type: 'info',
+      active: true
+    });
+    setEditingNotice(null);
+  };
+
   // 새 기사 추가
   const handleAddArticle = () => {
     if (!articleForm.title.trim()) {
@@ -258,12 +487,10 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    // 발행 날짜 처리
     const publishDate = articleForm.publishType === 'immediate' 
       ? new Date() 
       : new Date(articleForm.publishedAt);
     
-    // 상태 결정
     let status = articleForm.status;
     if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
       status = 'scheduled';
@@ -287,14 +514,13 @@ const BlogStyleDashboard = () => {
       status: status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      likes: 0, // 좋아요 자동 생성 제거
-      views: 0  // 조회수 자동 생성 제거
+      likes: 0,
+      views: 0
     };
 
     const updatedArticles = [newArticle, ...allArticles];
     updateArticles(updatedArticles);
     
-    // 홈페이지에 실시간 알림 (실제 연동)
     window.dispatchEvent(new CustomEvent('articleUpdated', {
       detail: { type: 'add', article: newArticle }
     }));
@@ -342,12 +568,10 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-        // 발행 날짜 처리
     const publishDate = articleForm.publishType === 'immediate' 
       ? new Date() 
       : new Date(articleForm.publishedAt);
     
-    // 상태 결정
     let status = articleForm.status;
     if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
       status = 'scheduled';
@@ -406,7 +630,6 @@ const BlogStyleDashboard = () => {
 
   // 카테고리 삭제
   const handleDeleteCategory = (categoryName) => {
-    // 해당 카테고리의 기사들을 "Technology"로 변경
     const updatedArticles = allArticles.map(article =>
       article.category === categoryName ? { ...article, category: 'Technology' } : article
     );
@@ -440,6 +663,93 @@ const BlogStyleDashboard = () => {
     }
   };
 
+  // 회원 추가
+  const handleAddMember = () => {
+    if (!memberForm.name.trim() || !memberForm.email.trim()) {
+      setSnackbar({ open: true, message: '이름과 이메일을 입력해주세요.', severity: 'error' });
+      return;
+    }
+
+    const newMember = {
+      id: `user-${Date.now()}`,
+      name: memberForm.name.trim(),
+      email: memberForm.email.trim(),
+      role: memberForm.role,
+      status: memberForm.status,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      isEmailVerified: true
+    };
+
+    localStorage.setItem(`marlang_user_${newMember.id}`, JSON.stringify(newMember));
+    setSnackbar({ open: true, message: '새 회원이 추가되었습니다!', severity: 'success' });
+    resetMemberForm();
+    setMemberDialog(false);
+  };
+
+  // 회원 삭제
+  const handleDeleteMember = (memberId) => {
+    localStorage.removeItem(`marlang_user_${memberId}`);
+    localStorage.removeItem(`marlang_liked_articles_${memberId}`);
+    localStorage.removeItem(`marlang_saved_words_${memberId}`);
+    setSnackbar({ open: true, message: '회원이 삭제되었습니다.', severity: 'info' });
+  };
+
+  // 공지사항 추가
+  const handleAddNotice = () => {
+    if (!noticeForm.title.trim() || !noticeForm.content.trim()) {
+      setSnackbar({ open: true, message: '제목과 내용을 입력해주세요.', severity: 'error' });
+      return;
+    }
+
+    const newNotice = {
+      id: `notice-${Date.now()}`,
+      title: noticeForm.title.trim(),
+      content: noticeForm.content.trim(),
+      type: noticeForm.type,
+      active: noticeForm.active,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedNotices = editingNotice 
+      ? notices.map(notice => notice.id === editingNotice.id ? newNotice : notice)
+      : [newNotice, ...notices];
+
+    saveNotices(updatedNotices);
+    setSnackbar({ open: true, message: editingNotice ? '공지사항이 수정되었습니다!' : '새 공지사항이 추가되었습니다!', severity: 'success' });
+    resetNoticeForm();
+    setNoticeDialog(false);
+  };
+
+  // 공지사항 수정
+  const handleEditNotice = (notice) => {
+    setEditingNotice(notice);
+    setNoticeForm({
+      title: notice.title,
+      content: notice.content,
+      type: notice.type,
+      active: notice.active
+    });
+    setNoticeDialog(true);
+  };
+
+  // 공지사항 삭제
+  const handleDeleteNotice = (noticeId) => {
+    const updatedNotices = notices.filter(notice => notice.id !== noticeId);
+    saveNotices(updatedNotices);
+    setSnackbar({ open: true, message: '공지사항이 삭제되었습니다.', severity: 'info' });
+  };
+
+  // 공지사항 활성화/비활성화
+  const toggleNoticeActive = (noticeId) => {
+    const updatedNotices = notices.map(notice => 
+      notice.id === noticeId ? { ...notice, active: !notice.active } : notice
+    );
+    saveNotices(updatedNotices);
+    setSnackbar({ open: true, message: '공지사항 상태가 변경되었습니다.', severity: 'success' });
+  };
+
   // 대시보드 메인 화면
   const renderDashboard = () => (
     <DashboardContainer>
@@ -453,12 +763,15 @@ const BlogStyleDashboard = () => {
             <Typography variant="body1" color="text.secondary">
               안녕하세요, {user?.name || 'Admin'}님! 현재 {stats.totalArticles}개의 기사가 발행되었습니다.
             </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              🕒 마지막 업데이트: {lastUpdate.toLocaleTimeString()} (30초마다 자동 갱신)
+            </Typography>
           </Box>
           <Avatar src={user?.picture} sx={{ width: 60, height: 60 }} />
         </Box>
       </WelcomeCard>
 
-      {/* 통계 카드 */}
+      {/* 실시간 통계 카드 */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard>
@@ -466,6 +779,15 @@ const BlogStyleDashboard = () => {
             <StatInfo>
               <StatNumber>{stats.totalArticles}</StatNumber>
               <StatLabel>총 기사</StatLabel>
+            </StatInfo>
+          </StatCard>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard>
+            <StatIcon>👥</StatIcon>
+            <StatInfo>
+              <StatNumber>{stats.totalMembers}</StatNumber>
+              <StatLabel>총 회원</StatLabel>
             </StatInfo>
           </StatCard>
         </Grid>
@@ -487,24 +809,64 @@ const BlogStyleDashboard = () => {
             </StatInfo>
           </StatCard>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard>
-            <StatIcon>📈</StatIcon>
-            <StatInfo>
-              <StatNumber>{stats.todayArticles}</StatNumber>
-              <StatLabel>오늘 발행</StatLabel>
-            </StatInfo>
-          </StatCard>
-        </Grid>
       </Grid>
+
+      {/* 오늘 통계 */}
+      <Card sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+          📅 오늘의 통계
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                {stats.todayArticles}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                오늘 발행 기사
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e8f5e8', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                {stats.todayMembers}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                오늘 가입 회원
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#fff3e0', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00' }}>
+                {stats.currentUsers}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                현재 접속자
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#fce4ec', borderRadius: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c2185b' }}>
+                {stats.totalWords}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                총 저장된 단어
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Card>
 
       {/* 빠른 액션 */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
           ⚡ 빠른 작업
         </Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <ActionButton onClick={() => {
               resetArticleForm();
               setArticleDialog(true);
@@ -513,19 +875,31 @@ const BlogStyleDashboard = () => {
               <Typography variant="body2" fontWeight="bold">새 기사 작성</Typography>
             </ActionButton>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <ActionButton onClick={() => setActiveTab(1)}>
               <Article sx={{ fontSize: 30, mb: 1 }} />
               <Typography variant="body2" fontWeight="bold">기사 관리</Typography>
             </ActionButton>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
             <ActionButton onClick={() => setActiveTab(2)}>
               <Category sx={{ fontSize: 30, mb: 1 }} />
               <Typography variant="body2" fontWeight="bold">카테고리 관리</Typography>
             </ActionButton>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2}>
+            <ActionButton onClick={() => setActiveTab(3)}>
+              <People sx={{ fontSize: 30, mb: 1 }} />
+              <Typography variant="body2" fontWeight="bold">회원 관리</Typography>
+            </ActionButton>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2}>
+            <ActionButton onClick={() => setActiveTab(4)}>
+              <Analytics sx={{ fontSize: 30, mb: 1 }} />
+              <Typography variant="body2" fontWeight="bold">고급 분석</Typography>
+            </ActionButton>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2}>
             <ActionButton onClick={() => navigate('/')}>
               <Preview sx={{ fontSize: 30, mb: 1 }} />
               <Typography variant="body2" fontWeight="bold">홈페이지 보기</Typography>
@@ -536,9 +910,16 @@ const BlogStyleDashboard = () => {
 
       {/* 카테고리별 현황 */}
       <Card sx={{ p: 3, borderRadius: 3 }}>
-        <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
-          📊 카테고리별 현황 (홈페이지와 동일)
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            📊 카테고리별 현황 (홈페이지와 동일)
+          </Typography>
+          <Chip 
+            label={`총 ${getCategoryStats().length}개 카테고리`} 
+            color="primary" 
+            size="small"
+          />
+        </Box>
         <Grid container spacing={2}>
           {getCategoryStats().map((category) => (
             <Grid item xs={12} sm={6} md={4} key={category.id}>
@@ -557,8 +938,11 @@ const BlogStyleDashboard = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     📚 {category.count}개 기사
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     👀 {category.totalViews.toLocaleString()} 조회 • ❤️ {category.totalLikes} 좋아요
+                  </Typography>
+                  <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
+                    📈 참여율: {category.avgEngagement}%
                   </Typography>
                 </Box>
               </CategoryCard>
@@ -739,6 +1123,494 @@ const BlogStyleDashboard = () => {
     </Box>
   );
 
+  // 회원 관리 화면
+  const renderMemberManagement = () => {
+    const members = getMembers();
+    
+    return (
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h5" fontWeight="bold">
+            👥 회원 관리
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<PersonAdd />}
+            onClick={() => {
+              resetMemberForm();
+              setMemberDialog(true);
+            }}
+          >
+            새 회원 추가
+          </Button>
+        </Box>
+
+        {/* 회원 통계 요약 */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#e3f2fd' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                {members.length}
+              </Typography>
+              <Typography variant="body2">총 회원</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#e8f5e8' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                {stats.avgReadArticles}
+              </Typography>
+              <Typography variant="body2">평균 읽은 기사</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#fff3e0' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00' }}>
+                {stats.avgSavedWords}
+              </Typography>
+              <Typography variant="body2">평균 저장 단어</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#fce4ec' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c2185b' }}>
+                {stats.currentUsers}
+              </Typography>
+              <Typography variant="body2">현재 접속자</Typography>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* 회원 목록 테이블 */}
+        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>회원 정보</TableCell>
+                <TableCell>등급</TableCell>
+                <TableCell>학습 현황</TableCell>
+                <TableCell>활동 정보</TableCell>
+                <TableCell>상태</TableCell>
+                <TableCell>작업</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {members.map((member) => (
+                <TableRow key={member.id} hover>
+                  <TableCell>
+                    <Box display="flex" alignItems="center">
+                      <Avatar sx={{ mr: 2 }}>
+                        {member.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {member.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {member.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={member.role || 'User'} 
+                      size="small"
+                      color={member.role === 'Admin' ? 'error' : member.role === 'Premium' ? 'warning' : 'default'}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        📚 {member.readArticles}개 기사 읽음
+                      </Typography>
+                      <Typography variant="body2">
+                        📝 {member.savedWords.length}개 단어 저장
+                      </Typography>
+                      <Typography variant="body2">
+                        ❤️ {member.likedArticles.length}개 좋아요
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2">
+                        📅 가입: {new Date(member.joinDate).toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="body2">
+                        🕒 최근 활동: {new Date(member.lastActive).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={member.status === 'active' ? '활성' : '비활성'} 
+                      color={member.status === 'active' ? 'success' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteMember(member.id)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
+  // 고급 분석 화면
+  const renderAnalytics = () => {
+    const analytics = getUserAnalytics();
+    const categoryStats = getCategoryStats();
+    
+    return (
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h5" fontWeight="bold">
+            📈 고급 분석
+          </Typography>
+          <Chip 
+            label={`마지막 업데이트: ${lastUpdate.toLocaleTimeString()}`} 
+            color="primary" 
+            size="small"
+          />
+        </Box>
+
+        {/* 카테고리 성과 분석 */}
+        <Card sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+            🏆 TOP 카테고리 성과 분석
+          </Typography>
+          <Grid container spacing={3}>
+            {categoryStats
+              .sort((a, b) => b.totalViews - a.totalViews)
+              .slice(0, 3)
+              .map((category, index) => (
+                <Grid item xs={12} md={4} key={category.id}>
+                  <Card sx={{ p: 2, bgcolor: index === 0 ? '#fff3e0' : index === 1 ? '#f3e5f5' : '#e8f5e8' }}>
+                    <Box display="flex" alignItems="center" sx={{ mb: 2 }}>
+                      <Typography variant="h4" sx={{ mr: 2 }}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                      </Typography>
+                      <Box>
+                        <Typography variant="h6" fontWeight="bold">
+                          {category.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          #{index + 1} 인기 카테고리
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      📚 기사 수: {category.count}개
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      👀 총 조회수: {category.totalViews.toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      ❤️ 총 좋아요: {category.totalLikes}
+                    </Typography>
+                    <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold' }}>
+                      📈 참여율: {category.avgEngagement}%
+                    </Typography>
+                  </Card>
+                </Grid>
+              ))}
+          </Grid>
+        </Card>
+
+        {/* 사용자 행동 분석 */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 3, borderRadius: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+                📖 독서 패턴 분석
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">🔥 고빈도 독자 (15+ 기사)</Typography>
+                  <Chip label={analytics.usersByReadingFrequency.high} color="error" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByReadingFrequency.high / stats.totalMembers) * 100} 
+                  sx={{ height: 8, borderRadius: 4, bgcolor: '#ffcdd2' }}
+                />
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">📚 중빈도 독자 (5-14 기사)</Typography>
+                  <Chip label={analytics.usersByReadingFrequency.medium} color="warning" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByReadingFrequency.medium / stats.totalMembers) * 100} 
+                  sx={{ height: 8, borderRadius: 4, bgcolor: '#fff3e0' }}
+                />
+              </Box>
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">📖 저빈도 독자 (5미만 기사)</Typography>
+                  <Chip label={analytics.usersByReadingFrequency.low} color="default" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByReadingFrequency.low / stats.totalMembers) * 100} 
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 3, borderRadius: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+                🎓 학습 활동 분석
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">🚀 적극적 학습자 (20+ 단어)</Typography>
+                  <Chip label={analytics.usersByLearningActivity.active} color="success" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByLearningActivity.active / stats.totalMembers) * 100} 
+                  color="success"
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">📚 보통 학습자 (5-19 단어)</Typography>
+                  <Chip label={analytics.usersByLearningActivity.moderate} color="info" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByLearningActivity.moderate / stats.totalMembers) * 100} 
+                  color="info"
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2">😴 소극적 학습자 (5미만 단어)</Typography>
+                  <Chip label={analytics.usersByLearningActivity.passive} color="default" size="small" />
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(analytics.usersByLearningActivity.passive / stats.totalMembers) * 100} 
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* 참여도 지표 */}
+        <Card sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+            📊 전체 참여도 지표
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                  {stats.avgReadArticles}
+                </Typography>
+                <Typography variant="body2">평균 읽은 기사 수</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e8f5e8', borderRadius: 2 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                  {stats.avgSavedWords}
+                </Typography>
+                <Typography variant="body2">평균 저장 단어 수</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#fff3e0', borderRadius: 2 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00' }}>
+                  {analytics.totalLearningActivities}
+                </Typography>
+                <Typography variant="body2">총 학습 활동</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#fce4ec', borderRadius: 2 }}>
+                <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c2185b' }}>
+                  {Math.round((stats.totalLikes / Math.max(stats.totalViews, 1)) * 100)}%
+                </Typography>
+                <Typography variant="body2">전체 좋아요율</Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Card>
+
+        {/* 우수 학습자 랭킹 */}
+        <Card sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+            🏆 우수 학습자 TOP 10
+          </Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>순위</TableCell>
+                  <TableCell>학습자</TableCell>
+                  <TableCell>학습 점수</TableCell>
+                  <TableCell>상세 활동</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {analytics.topLearners.map((learner, index) => (
+                  <TableRow key={learner.id}>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Typography variant="h6" sx={{ mr: 1 }}>
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Avatar sx={{ mr: 2, bgcolor: index < 3 ? '#ffd700' : '#e0e0e0' }}>
+                          {learner.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {learner.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {learner.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={`${learner.learningScore}점`}
+                        color={index < 3 ? 'warning' : 'default'}
+                        sx={{ fontWeight: 'bold' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        📚 {learner.readArticles}개 읽음 • 📝 {learner.savedWords.length}개 저장 • ❤️ {learner.likedArticles.length}개 좋아요
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      </Box>
+    );
+  };
+
+  // 공지사항 관리 화면
+  const renderNoticeManagement = () => (
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
+          📢 공지사항 관리
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<Announcement />}
+          onClick={() => {
+            resetNoticeForm();
+            setNoticeDialog(true);
+          }}
+        >
+          새 공지사항 추가
+        </Button>
+      </Box>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        💡 활성화된 공지사항은 홈페이지 상단에 자동으로 표시됩니다. 변경사항은 즉시 반영됩니다.
+      </Alert>
+
+      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>제목</TableCell>
+              <TableCell>타입</TableCell>
+              <TableCell>상태</TableCell>
+              <TableCell>생성일</TableCell>
+              <TableCell>작업</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {notices.map((notice) => (
+              <TableRow key={notice.id} hover>
+                <TableCell>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {notice.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {notice.content.length > 50 ? `${notice.content.substring(0, 50)}...` : notice.content}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={notice.type}
+                    color={notice.type === 'error' ? 'error' : notice.type === 'warning' ? 'warning' : notice.type === 'success' ? 'success' : 'info'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notice.active}
+                        onChange={() => toggleNoticeActive(notice.id)}
+                        color="primary"
+                      />
+                    }
+                    label={notice.active ? '활성' : '비활성'}
+                  />
+                </TableCell>
+                <TableCell>
+                  {new Date(notice.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleEditNotice(notice)}
+                    color="primary"
+                  >
+                    <Edit />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteNotice(notice.id)}
+                    color="error"
+                  >
+                    <Delete />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
+
   return (
     <>
       <MobileNavigation />
@@ -759,10 +1631,18 @@ const BlogStyleDashboard = () => {
         <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
           {/* 탭 네비게이션 */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+            <Tabs 
+              value={activeTab} 
+              onChange={(_, newValue) => setActiveTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+            >
               <Tab label="📊 대시보드" />
               <Tab label="📝 기사 관리" />
               <Tab label="🏷️ 카테고리 관리" />
+              <Tab label="👥 회원 관리" />
+              <Tab label="📈 고급 분석" />
+              <Tab label="📢 공지사항 관리" />
             </Tabs>
           </Box>
 
@@ -770,6 +1650,9 @@ const BlogStyleDashboard = () => {
           {activeTab === 0 && renderDashboard()}
           {activeTab === 1 && renderArticleManagement()}
           {activeTab === 2 && renderCategoryManagement()}
+          {activeTab === 3 && renderMemberManagement()}
+          {activeTab === 4 && renderAnalytics()}
+          {activeTab === 5 && renderNoticeManagement()}
         </Container>
 
         {/* 기사 추가/편집 다이얼로그 - 모든 필드를 한 페이지에 */}
@@ -1160,6 +2043,164 @@ const BlogStyleDashboard = () => {
           <DialogActions>
             <Button onClick={() => setCategoryDialog(false)}>취소</Button>
             <Button onClick={handleAddCategory} variant="contained">추가</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 회원 추가 다이얼로그 */}
+        <Dialog open={memberDialog} onClose={() => setMemberDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Typography variant="h5" fontWeight="bold">
+              {editingMember ? '✏️ 회원 정보 수정' : '👥 새 회원 추가'}
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="이름 *"
+                    value={memberForm.name}
+                    onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                    placeholder="회원 이름을 입력하세요"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="이메일 *"
+                    type="email"
+                    value={memberForm.email}
+                    onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+                    placeholder="이메일 주소를 입력하세요"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>등급</InputLabel>
+                    <Select
+                      value={memberForm.role}
+                      label="등급"
+                      onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
+                    >
+                      <MenuItem value="User">👤 User</MenuItem>
+                      <MenuItem value="Premium">⭐ Premium</MenuItem>
+                      <MenuItem value="Admin">👑 Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>상태</InputLabel>
+                    <Select
+                      value={memberForm.status}
+                      label="상태"
+                      onChange={(e) => setMemberForm({ ...memberForm, status: e.target.value })}
+                    >
+                      <MenuItem value="active">✅ 활성</MenuItem>
+                      <MenuItem value="inactive">⚠️ 비활성</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setMemberDialog(false)} startIcon={<Cancel />}>
+              취소
+            </Button>
+            <Button 
+              onClick={handleAddMember} 
+              variant="contained" 
+              startIcon={<Save />}
+              size="large"
+            >
+              {editingMember ? '수정 완료' : '회원 추가'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 공지사항 추가/편집 다이얼로그 */}
+        <Dialog open={noticeDialog} onClose={() => setNoticeDialog(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <Typography variant="h5" fontWeight="bold">
+              {editingNotice ? '✏️ 공지사항 수정' : '📢 새 공지사항 추가'}
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="제목 *"
+                    value={noticeForm.title}
+                    onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
+                    placeholder="공지사항 제목을 입력하세요"
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="내용 *"
+                    value={noticeForm.content}
+                    onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
+                    multiline
+                    rows={4}
+                    placeholder="공지사항 내용을 상세히 작성해주세요"
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>공지 타입</InputLabel>
+                    <Select
+                      value={noticeForm.type}
+                      label="공지 타입"
+                      onChange={(e) => setNoticeForm({ ...noticeForm, type: e.target.value })}
+                    >
+                      <MenuItem value="info">ℹ️ 정보</MenuItem>
+                      <MenuItem value="success">✅ 성공</MenuItem>
+                      <MenuItem value="warning">⚠️ 경고</MenuItem>
+                      <MenuItem value="error">❌ 오류</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={noticeForm.active}
+                        onChange={(e) => setNoticeForm({ ...noticeForm, active: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label="즉시 활성화"
+                    sx={{ mt: 2 }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    💡 활성화된 공지사항은 홈페이지 상단에 즉시 표시됩니다. 
+                    여러 공지사항이 활성화되어 있으면 최신 것부터 순서대로 표시됩니다.
+                  </Alert>
+                </Grid>
+              </Grid>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setNoticeDialog(false)} startIcon={<Cancel />}>
+              취소
+            </Button>
+            <Button 
+              onClick={handleAddNotice} 
+              variant="contained" 
+              startIcon={editingNotice ? <Save /> : <Announcement />}
+              size="large"
+            >
+              {editingNotice ? '수정 완료' : '공지사항 발행'}
+            </Button>
           </DialogActions>
         </Dialog>
 
