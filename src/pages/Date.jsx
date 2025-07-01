@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {
   Typography, Box, Chip, IconButton, Card, CardContent, 
   CardMedia, Select, MenuItem, FormControl, InputLabel,
-  useMediaQuery, useTheme, Grid, Badge
+  useMediaQuery, useTheme, Grid
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -153,22 +153,21 @@ const DatePage = () => {
             {day}
           </DayNumber>
           {hasData && (
-            <Badge 
-              badgeContent={articlesByDate[dateKey]?.length || 0} 
-              color="primary" 
-              sx={{ 
-                position: 'absolute', 
-                bottom: 4, 
-                right: 4,
-                '& .MuiBadge-badge': {
+            <Box sx={{ position: 'absolute', bottom: 2, left: 0, right: 0, textAlign: 'center' }}>
+              <Chip 
+                label={articlesByDate[dateKey]?.length || 0}
+                size="small"
+                color={isSelected ? "warning" : "primary"}
+                sx={{ 
+                  height: '16px',
                   fontSize: '0.6rem',
-                  height: '14px',
-                  minWidth: '14px'
-                }
-              }}
-            >
-              <ArticleDot $isSelected={isSelected} />
-            </Badge>
+                  fontWeight: 'bold',
+                  '& .MuiChip-label': {
+                    padding: '0 4px'
+                  }
+                }}
+              />
+            </Box>
           )}
         </CalendarDay>
       );

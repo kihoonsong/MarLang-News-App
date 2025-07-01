@@ -434,6 +434,12 @@ const BlogStyleDashboard = () => {
 
   // 기사 폼 초기화
   const resetArticleForm = () => {
+    // 현재 시간을 기본값으로 설정 (분 단위는 5분 단위로 반올림)
+    const now = new Date();
+    const roundedMinutes = Math.round(now.getMinutes() / 5) * 5;
+    now.setMinutes(roundedMinutes);
+    now.setSeconds(0);
+    
     setArticleForm({
       title: '',
       summary: '',
@@ -446,7 +452,7 @@ const BlogStyleDashboard = () => {
       image: '',
       imageFile: null,
       publishType: 'immediate',
-      publishedAt: new Date().toISOString().slice(0, 16),
+      publishedAt: now.toISOString().slice(0, 16),
       status: 'published'
     });
     setEditingArticle(null);
@@ -487,12 +493,22 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    const publishDate = articleForm.publishType === 'immediate' 
-      ? new Date() 
-      : new Date(articleForm.publishedAt);
+    // 발행 날짜 결정
+    let publishDate;
+    if (articleForm.publishType === 'immediate') {
+      // 즉시 발행: 사용자가 날짜를 선택했으면 그 날짜, 아니면 현재 시간
+      publishDate = articleForm.publishedAt ? new Date(articleForm.publishedAt) : new Date();
+    } else {
+      // 예약 발행: 선택한 날짜
+      publishDate = new Date(articleForm.publishedAt);
+    }
     
+    // 상태 결정
     let status = articleForm.status;
     if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
+      status = 'scheduled';
+    } else if (publishDate > new Date()) {
+      // 즉시 발행이지만 미래 날짜를 선택한 경우
       status = 'scheduled';
     }
 
@@ -568,12 +584,22 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    const publishDate = articleForm.publishType === 'immediate' 
-      ? new Date() 
-      : new Date(articleForm.publishedAt);
+        // 발행 날짜 결정
+    let publishDate;
+    if (articleForm.publishType === 'immediate') {
+      // 즉시 발행: 사용자가 날짜를 선택했으면 그 날짜, 아니면 현재 시간
+      publishDate = articleForm.publishedAt ? new Date(articleForm.publishedAt) : new Date();
+    } else {
+      // 예약 발행: 선택한 날짜
+      publishDate = new Date(articleForm.publishedAt);
+    }
     
+    // 상태 결정
     let status = articleForm.status;
     if (articleForm.publishType === 'scheduled' && publishDate > new Date()) {
+      status = 'scheduled';
+    } else if (publishDate > new Date()) {
+      // 즉시 발행이지만 미래 날짜를 선택한 경우
       status = 'scheduled';
     }
 
@@ -980,8 +1006,8 @@ const BlogStyleDashboard = () => {
               <TableCell>카테고리</TableCell>
               <TableCell>조회수</TableCell>
               <TableCell>좋아요</TableCell>
-              <TableCell>상태</TableCell>
-              <TableCell>발행일</TableCell>
+                                    <TableCell>상태</TableCell>
+                      <TableCell>발행 날짜</TableCell>
               <TableCell>작업</TableCell>
             </TableRow>
           </TableHead>
@@ -1007,13 +1033,32 @@ const BlogStyleDashboard = () => {
                 <TableCell>{article.likes || 0}</TableCell>
                 <TableCell>
                   <Chip 
+                    icon={
+                      article.status === 'published' ? <CheckCircle sx={{ fontSize: 16 }} /> :
+                      article.status === 'draft' ? <Edit sx={{ fontSize: 16 }} /> :
+                      <Schedule sx={{ fontSize: 16 }} />
+                    }
                     label={article.status === 'published' ? '발행됨' : article.status === 'draft' ? '초안' : '예약됨'} 
                     color={article.status === 'published' ? 'success' : article.status === 'draft' ? 'default' : 'warning'}
                     size="small"
                   />
                 </TableCell>
                 <TableCell>
-                  {new Date(article.publishedAt).toLocaleDateString()}
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {new Date(article.publishedAt).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(article.publishedAt).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Typography>
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <IconButton
@@ -1741,20 +1786,27 @@ const BlogStyleDashboard = () => {
                       </FormControl>
                     </Grid>
 
-                    {/* 예약 발행 시 날짜/시간 선택 */}
-                    {articleForm.publishType === 'scheduled' && (
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="발행 날짜 및 시간"
-                          type="datetime-local"
-                          value={articleForm.publishedAt}
-                          onChange={(e) => setArticleForm({ ...articleForm, publishedAt: e.target.value })}
-                          InputLabelProps={{ shrink: true }}
-                          helperText="미래 날짜와 시간을 선택하세요"
-                        />
-                      </Grid>
-                    )}
+                    {/* 발행 날짜/시간 선택 */}
+                    <Grid item xs={12} sm={articleForm.publishType === 'immediate' ? 12 : 6}>
+                      <TextField
+                        fullWidth
+                        label={articleForm.publishType === 'immediate' ? "발행 날짜 및 시간 (선택사항)" : "발행 날짜 및 시간"}
+                        type="datetime-local"
+                        value={articleForm.publishedAt}
+                        onChange={(e) => setArticleForm({ ...articleForm, publishedAt: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                        helperText={
+                          articleForm.publishType === 'immediate' 
+                            ? "비워두면 현재 시간으로 발행됩니다" 
+                            : "미래 날짜와 시간을 선택하세요"
+                        }
+                        sx={{ 
+                          '& .MuiInputBase-input': {
+                            fontSize: '0.95rem'
+                          }
+                        }}
+                      />
+                    </Grid>
 
                     {/* 기사 상태 */}
                     <Grid item xs={12} sm={6}>
