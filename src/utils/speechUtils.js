@@ -56,6 +56,13 @@ export const speakText = async (text, options = {}) => {
     return false;
   }
 
+  // 오프라인 상태 체크 (App.jsx TTSManager에서 제공)
+  if (typeof window.checkTTSAvailability === 'function') {
+    if (!window.checkTTSAvailability()) {
+      return false; // 오프라인 시 TTS 사용 중단
+    }
+  }
+
   // 기존 음성 중단
   speechSynthesis.cancel();
 
@@ -163,6 +170,11 @@ export const stopCurrentSpeech = () => {
     isPlaying = false;
   }
 };
+
+// 전역 함수로 노출 (App.jsx TTSManager에서 사용)
+if (typeof window !== 'undefined') {
+  window.stopCurrentSpeech = stopCurrentSpeech;
+}
 
 // 향상된 발음 함수 (상태 관리 포함)
 export const speakWithStatus = async (text, options = {}) => {

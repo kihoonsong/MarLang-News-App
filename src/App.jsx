@@ -51,9 +51,9 @@ const TTSManager = () => {
           window.speechSynthesis.cancel();
         }
 
-        // 기존 전역 TTS 중지 함수가 있으면 호출
-        if (typeof window.stopCurrentTTS === 'function') {
-          window.stopCurrentTTS();
+        // speechUtils의 중지 함수 호출
+        if (typeof window.stopCurrentSpeech === 'function') {
+          window.stopCurrentSpeech();
         }
 
         console.log('🔇 전역 TTS 강제 중지됨');
@@ -101,14 +101,30 @@ const TTSManager = () => {
     };
   }, [location]); // location이 바뀔 때마다 실행
 
-  // 오프라인 상태에서 TTS 사용 시 경고
+  // TTS 기능 향상: 실제 사용 시에만 오프라인 경고 표시
   useEffect(() => {
-    if (!isOnline) {
-      warning('TTS may not work properly while offline', {
-        group: 'tts-offline',
-        duration: 5000
-      });
-    }
+    // 전역 TTS 함수에 오프라인 체크 기능 추가
+    window.checkTTSAvailability = () => {
+      if (!isOnline) {
+        warning('TTS may not work properly while offline', {
+          group: 'tts-offline',
+          duration: 4000
+        });
+        return false;
+      }
+      return true;
+    };
+
+    // TTS 시작 시 호출할 함수
+    window.startTTSWithCheck = (text, options = {}) => {
+      if (window.checkTTSAvailability() && window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        Object.assign(utterance, options);
+        window.speechSynthesis.speak(utterance);
+        return true;
+      }
+      return false;
+    };
   }, [isOnline, warning]);
 
   return null; // 렌더링하지 않음
