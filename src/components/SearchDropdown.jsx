@@ -109,6 +109,34 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
     setIsOpen(true);
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && query.trim()) {
+      // 엔터키를 누르면 검색 페이지로 이동
+      setIsOpen(false);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  const handleSearchIconClick = () => {
+    if (query.trim()) {
+      // 검색 아이콘 클릭 시 검색 페이지로 이동
+      setIsOpen(false);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      // 검색어가 없으면 검색 페이지로 이동
+      navigate('/search');
+    }
+  };
+
+  const handleViewAllResults = () => {
+    setIsOpen(false);
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      navigate('/search');
+    }
+  };
+
   const highlightText = (text, searchQuery) => {
     if (!searchQuery.trim()) return text;
     
@@ -136,7 +164,13 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
         value={query}
         onChange={handleInputChange}
         onFocus={handleInputFocus}
-        startAdornment={<SearchIcon sx={{ mr: 1, color: '#666' }} />}
+        onKeyPress={handleKeyPress}
+        startAdornment={
+          <SearchIcon 
+            sx={{ mr: 1, color: '#666', cursor: 'pointer' }} 
+            onClick={handleSearchIconClick}
+          />
+        }
         $compact={compact}
       />
       
@@ -209,6 +243,14 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                     </div>
                   ))}
                 </ResultsList>
+                
+                {/* View All Results 버튼 */}
+                <ViewAllButton onClick={handleViewAllResults}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    View all results for "{query}"
+                  </Typography>
+                  <SearchIcon sx={{ ml: 1, fontSize: '1rem' }} />
+                </ViewAllButton>
               </>
             ) : query.trim() ? (
               <NoResultsContainer>
@@ -396,6 +438,27 @@ const HighlightedText = styled.span`
 const NoResultsContainer = styled.div`
   padding: 2rem 1rem;
   text-align: center;
+`;
+
+const ViewAllButton = styled.div`
+  cursor: pointer;
+  padding: 1rem;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  border-radius: 0 0 12px 12px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #f0f0f0;
+    color: #1565c0;
+  }
+  
+  &:active {
+    background: #e3e3e3;
+  }
 `;
 
 export default SearchDropdown; 
