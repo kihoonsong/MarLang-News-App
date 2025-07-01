@@ -34,6 +34,40 @@ const homeCategories = [
   { id: 'popular', name: 'Popular', type: 'popular' }
 ];
 
+// 구독 플랜 정의
+const SUBSCRIPTION_PLANS = {
+  Free: {
+    name: 'Free',
+    price: 0,
+    monthlyArticleLimit: 10,
+    monthlyWordLimit: 50,
+    hasAITranslation: false,
+    hasOfflineAccess: false,
+    hasPrioritySupport: false,
+    color: 'default'
+  },
+  Premium: {
+    name: 'Premium',
+    price: 9900,
+    monthlyArticleLimit: 100,
+    monthlyWordLimit: 500,
+    hasAITranslation: true,
+    hasOfflineAccess: false,
+    hasPrioritySupport: false,
+    color: 'warning'
+  },
+  Pro: {
+    name: 'Pro',
+    price: 19900,
+    monthlyArticleLimit: -1, // 무제한
+    monthlyWordLimit: -1, // 무제한
+    hasAITranslation: true,
+    hasOfflineAccess: true,
+    hasPrioritySupport: true,
+    color: 'success'
+  }
+};
+
 const BlogStyleDashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
@@ -99,11 +133,21 @@ const BlogStyleDashboard = () => {
   // 회원 관리 상태
   const [memberDialog, setMemberDialog] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [roleChangeDialog, setRoleChangeDialog] = useState({ open: false, member: null, newRole: '' });
   const [memberForm, setMemberForm] = useState({
     name: '',
     email: '',
     role: 'User',
-    status: 'active'
+    status: 'active',
+    // 유료 서비스 관련 필드
+    subscriptionPlan: 'Free',
+    subscriptionStatus: 'active',
+    subscriptionExpiry: '',
+    monthlyArticleLimit: 10,
+    monthlyWordLimit: 50,
+    hasAITranslation: false,
+    hasOfflineAccess: false,
+    hasPrioritySupport: false
   });
 
   // 공지사항 관리 상태
@@ -456,11 +500,20 @@ const BlogStyleDashboard = () => {
 
   // 회원 폼 초기화
   const resetMemberForm = () => {
+    const defaultPlan = SUBSCRIPTION_PLANS.Free;
     setMemberForm({
       name: '',
       email: '',
       role: 'User',
-      status: 'active'
+      status: 'active',
+      subscriptionPlan: 'Free',
+      subscriptionStatus: 'active',
+      subscriptionExpiry: '',
+      monthlyArticleLimit: defaultPlan.monthlyArticleLimit,
+      monthlyWordLimit: defaultPlan.monthlyWordLimit,
+      hasAITranslation: defaultPlan.hasAITranslation,
+      hasOfflineAccess: defaultPlan.hasOfflineAccess,
+      hasPrioritySupport: defaultPlan.hasPrioritySupport
     });
     setEditingMember(null);
   };
@@ -772,6 +825,117 @@ const BlogStyleDashboard = () => {
 
     localStorage.setItem(`marlang_user_${newMember.id}`, JSON.stringify(newMember));
     setSnackbar({ open: true, message: '새 회원이 추가되었습니다!', severity: 'success' });
+    resetMemberForm();
+    setMemberDialog(false);
+  };
+
+  // 회원 편집
+  const handleEditMember = (member) => {
+    const plan = SUBSCRIPTION_PLANS[member.subscriptionPlan || 'Free'];
+    setEditingMember(member);
+    setMemberForm({
+      name: member.name || '',
+      email: member.email || '',
+      role: member.role || 'User',
+      status: member.status || 'active',
+      subscriptionPlan: member.subscriptionPlan || 'Free',
+      subscriptionStatus: member.subscriptionStatus || 'active',
+      subscriptionExpiry: member.subscriptionExpiry || '',
+      monthlyArticleLimit: member.monthlyArticleLimit || plan.monthlyArticleLimit,
+      monthlyWordLimit: member.monthlyWordLimit || plan.monthlyWordLimit,
+      hasAITranslation: member.hasAITranslation || plan.hasAITranslation,
+      hasOfflineAccess: member.hasOfflineAccess || plan.hasOfflineAccess,
+      hasPrioritySupport: member.hasPrioritySupport || plan.hasPrioritySupport
+    });
+    setMemberDialog(true);
+  };
+
+  // 구독 플랜 변경 시 자동 설정
+  const handleSubscriptionPlanChange = (planName) => {
+    const plan = SUBSCRIPTION_PLANS[planName];
+    if (plan) {
+      setMemberForm(prev => ({
+        ...prev,
+        subscriptionPlan: planName,
+        monthlyArticleLimit: plan.monthlyArticleLimit,
+        monthlyWordLimit: plan.monthlyWordLimit,
+        hasAITranslation: plan.hasAITranslation,
+        hasOfflineAccess: plan.hasOfflineAccess,
+        hasPrioritySupport: plan.hasPrioritySupport,
+        subscriptionExpiry: planName !== 'Free' && !prev.subscriptionExpiry 
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) // 30일 후
+          : prev.subscriptionExpiry
+      }));
+    }
+  };
+
+  // 권한 변경 확인
+  const handleRoleChangeRequest = (member, newRole) => {
+    if (newRole === member.role) return;
+    
+    setRoleChangeDialog({
+      open: true,
+      member,
+      newRole
+    });
+  };
+
+  // 권한 변경 확정
+  const confirmRoleChange = () => {
+    const { member, newRole } = roleChangeDialog;
+    
+    // 기존 사용자 데이터 업데이트
+    const updatedMember = {
+      ...member,
+      role: newRole,
+      updatedAt: new Date().toISOString(),
+      roleChangedBy: user?.name || 'Admin',
+      roleChangedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(`marlang_user_${member.id}`, JSON.stringify(updatedMember));
+    
+    // 권한 변경 로그 저장
+    const roleChangeLog = {
+      id: `role_change_${Date.now()}`,
+      userId: member.id,
+      userName: member.name,
+      userEmail: member.email,
+      oldRole: member.role,
+      newRole: newRole,
+      changedBy: user?.name || 'Admin',
+      changedAt: new Date().toISOString(),
+      reason: `관리자 대시보드에서 권한 변경`
+    };
+    
+    const existingLogs = JSON.parse(localStorage.getItem('marlang_role_change_logs') || '[]');
+    existingLogs.unshift(roleChangeLog);
+    localStorage.setItem('marlang_role_change_logs', JSON.stringify(existingLogs.slice(0, 100))); // 최근 100개만 보관
+
+    setRoleChangeDialog({ open: false, member: null, newRole: '' });
+    setSnackbar({ 
+      open: true, 
+      message: `${member.name}님의 권한이 ${member.role}에서 ${newRole}로 변경되었습니다!`, 
+      severity: 'success' 
+    });
+  };
+
+  // 회원 정보 업데이트
+  const handleUpdateMember = () => {
+    if (!memberForm.name.trim() || !memberForm.email.trim()) {
+      setSnackbar({ open: true, message: '이름과 이메일을 입력해주세요.', severity: 'error' });
+      return;
+    }
+
+    const updatedMember = {
+      ...editingMember,
+      ...memberForm,
+      updatedAt: new Date().toISOString(),
+      updatedBy: user?.name || 'Admin'
+    };
+
+    localStorage.setItem(`marlang_user_${editingMember.id}`, JSON.stringify(updatedMember));
+    setSnackbar({ open: true, message: '회원 정보가 업데이트되었습니다!', severity: 'success' });
     resetMemberForm();
     setMemberDialog(false);
   };
@@ -1344,7 +1508,7 @@ const BlogStyleDashboard = () => {
 
         {/* 회원 통계 요약 */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2.4}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#e3f2fd' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
                 {members.length}
@@ -1352,28 +1516,38 @@ const BlogStyleDashboard = () => {
               <Typography variant="body2">총 회원</Typography>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2.4}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#e8f5e8' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
-                {stats.avgReadArticles}
+                {members.filter(m => (m.subscriptionPlan || 'Free') !== 'Free').length}
               </Typography>
-              <Typography variant="body2">평균 읽은 기사</Typography>
+              <Typography variant="body2">유료 회원</Typography>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2.4}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#fff3e0' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f57c00' }}>
-                {stats.avgSavedWords}
+                {members.filter(m => m.role === 'admin' || m.role === 'super_admin').length}
               </Typography>
-              <Typography variant="body2">평균 저장 단어</Typography>
+              <Typography variant="body2">관리자</Typography>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={2.4}>
             <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#fce4ec' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#c2185b' }}>
                 {stats.currentUsers}
               </Typography>
               <Typography variant="body2">현재 접속자</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card sx={{ p: 2, textAlign: 'center', bgcolor: '#f3e5f5' }}>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#7b1fa2' }}>
+                ₩{members.filter(m => (m.subscriptionPlan || 'Free') !== 'Free')
+                  .reduce((sum, m) => sum + (SUBSCRIPTION_PLANS[m.subscriptionPlan || 'Free']?.price || 0), 0)
+                  .toLocaleString()}
+              </Typography>
+              <Typography variant="body2">월 예상 수익</Typography>
             </Card>
           </Grid>
         </Grid>
@@ -1384,79 +1558,150 @@ const BlogStyleDashboard = () => {
             <TableHead>
               <TableRow>
                 <TableCell>회원 정보</TableCell>
-                <TableCell>등급</TableCell>
+                <TableCell>권한 & 구독</TableCell>
                 <TableCell>학습 현황</TableCell>
-                <TableCell>활동 정보</TableCell>
+                <TableCell>구독 상세</TableCell>
                 <TableCell>상태</TableCell>
                 <TableCell>작업</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id} hover>
-                  <TableCell>
-                    <Box display="flex" alignItems="center">
-                      <Avatar sx={{ mr: 2 }}>
-                        {member.name.charAt(0).toUpperCase()}
-                      </Avatar>
+              {members.map((member) => {
+                const subscriptionPlan = member.subscriptionPlan || 'Free';
+                const planInfo = SUBSCRIPTION_PLANS[subscriptionPlan];
+                const isExpired = member.subscriptionExpiry && new Date(member.subscriptionExpiry) < new Date();
+                
+                return (
+                  <TableRow key={member.id} hover>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Avatar sx={{ mr: 2 }}>
+                          {member.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {member.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {member.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" flexDirection="column" gap={1}>
+                        <Box display="flex" gap={1} alignItems="center">
+                          <Chip 
+                            label={member.role || 'User'} 
+                            size="small"
+                            color={
+                              member.role === 'super_admin' ? 'error' : 
+                              member.role === 'admin' ? 'warning' : 
+                              'default'
+                            }
+                            onClick={() => handleRoleChangeRequest(member, 
+                              member.role === 'User' ? 'admin' : 
+                              member.role === 'admin' ? 'super_admin' : 'User'
+                            )}
+                            sx={{ cursor: 'pointer' }}
+                          />
+                          {(member.role === 'super_admin' || member.role === 'admin') && (
+                            <Typography variant="caption" sx={{ color: 'warning.main' }}>
+                              👑
+                            </Typography>
+                          )}
+                        </Box>
+                        <Chip 
+                          label={subscriptionPlan}
+                          size="small"
+                          color={planInfo?.color || 'default'}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
                       <Box>
-                        <Typography variant="subtitle2" fontWeight="bold">
-                          {member.name}
+                        <Typography variant="body2">
+                          📚 {member.readArticles}개 기사 읽음
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {member.email}
+                        <Typography variant="body2">
+                          📝 {member.savedWords.length}개 단어 저장
+                        </Typography>
+                        <Typography variant="body2">
+                          ❤️ {member.likedArticles.length}개 좋아요
                         </Typography>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={member.role || 'User'} 
-                      size="small"
-                      color={member.role === 'Admin' ? 'error' : member.role === 'Premium' ? 'warning' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="body2">
-                        📚 {member.readArticles}개 기사 읽음
-                      </Typography>
-                      <Typography variant="body2">
-                        📝 {member.savedWords.length}개 단어 저장
-                      </Typography>
-                      <Typography variant="body2">
-                        ❤️ {member.likedArticles.length}개 좋아요
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="body2">
-                        📅 가입: {new Date(member.joinDate).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="body2">
-                        🕒 최근 활동: {new Date(member.lastActive).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={member.status === 'active' ? '활성' : '비활성'} 
-                      color={member.status === 'active' ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteMember(member.id)}
-                      color="error"
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        {subscriptionPlan !== 'Free' && (
+                          <>
+                            <Typography variant="body2">
+                              💰 ₩{planInfo?.price?.toLocaleString()}/월
+                            </Typography>
+                            {member.subscriptionExpiry && (
+                              <Typography 
+                                variant="body2" 
+                                sx={{ color: isExpired ? 'error.main' : 'success.main' }}
+                              >
+                                📅 {isExpired ? '만료됨' : '만료일'}: {new Date(member.subscriptionExpiry).toLocaleDateString()}
+                              </Typography>
+                            )}
+                          </>
+                        )}
+                        <Box display="flex" gap={0.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                          {(member.hasAITranslation || planInfo?.hasAITranslation) && (
+                            <Chip label="🤖 AI번역" size="small" color="info" />
+                          )}
+                          {(member.hasOfflineAccess || planInfo?.hasOfflineAccess) && (
+                            <Chip label="📱 오프라인" size="small" color="success" />
+                          )}
+                          {(member.hasPrioritySupport || planInfo?.hasPrioritySupport) && (
+                            <Chip label="🎧 우선지원" size="small" color="warning" />
+                          )}
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" flexDirection="column" gap={0.5}>
+                        <Chip 
+                          label={member.status === 'active' ? '활성' : '비활성'} 
+                          color={member.status === 'active' ? 'success' : 'default'}
+                          size="small"
+                        />
+                        {subscriptionPlan !== 'Free' && (
+                          <Chip 
+                            label={member.subscriptionStatus === 'active' ? '구독중' : '중지됨'} 
+                            color={member.subscriptionStatus === 'active' ? 'success' : 'error'}
+                            size="small"
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" flexDirection="column" gap={0.5}>
+                        <Tooltip title="회원 정보 편집">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditMember(member)}
+                            color="primary"
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="회원 삭제">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteMember(member.id)}
+                            color="error"
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -2250,8 +2495,8 @@ const BlogStyleDashboard = () => {
           </DialogActions>
         </Dialog>
 
-        {/* 회원 추가 다이얼로그 */}
-        <Dialog open={memberDialog} onClose={() => setMemberDialog(false)} maxWidth="sm" fullWidth>
+        {/* 회원 추가/편집 다이얼로그 */}
+        <Dialog open={memberDialog} onClose={() => setMemberDialog(false)} maxWidth="md" fullWidth>
           <DialogTitle>
             <Typography variant="h5" fontWeight="bold">
               {editingMember ? '✏️ 회원 정보 수정' : '👥 새 회원 추가'}
@@ -2260,7 +2505,13 @@ const BlogStyleDashboard = () => {
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Grid container spacing={2}>
+                {/* 기본 정보 */}
                 <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                    👤 기본 정보
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="이름 *"
@@ -2269,7 +2520,7 @@ const BlogStyleDashboard = () => {
                     placeholder="회원 이름을 입력하세요"
                   />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="이메일 *"
@@ -2281,15 +2532,15 @@ const BlogStyleDashboard = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
-                    <InputLabel>등급</InputLabel>
+                    <InputLabel>권한</InputLabel>
                     <Select
                       value={memberForm.role}
-                      label="등급"
+                      label="권한"
                       onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
                     >
                       <MenuItem value="User">👤 User</MenuItem>
-                      <MenuItem value="Premium">⭐ Premium</MenuItem>
-                      <MenuItem value="Admin">👑 Admin</MenuItem>
+                      <MenuItem value="admin">👑 Admin</MenuItem>
+                      <MenuItem value="super_admin">🔥 Super Admin</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -2306,6 +2557,126 @@ const BlogStyleDashboard = () => {
                     </Select>
                   </FormControl>
                 </Grid>
+
+                {/* 구독 정보 */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 2, color: 'primary.main' }}>
+                    💳 구독 정보
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>구독 플랜</InputLabel>
+                    <Select
+                      value={memberForm.subscriptionPlan}
+                      label="구독 플랜"
+                      onChange={(e) => handleSubscriptionPlanChange(e.target.value)}
+                    >
+                      {Object.entries(SUBSCRIPTION_PLANS).map(([key, plan]) => (
+                        <MenuItem key={key} value={key}>
+                          {plan.name} {plan.price > 0 && `(₩${plan.price.toLocaleString()}/월)`}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>구독 상태</InputLabel>
+                    <Select
+                      value={memberForm.subscriptionStatus}
+                      label="구독 상태"
+                      onChange={(e) => setMemberForm({ ...memberForm, subscriptionStatus: e.target.value })}
+                    >
+                      <MenuItem value="active">✅ 활성</MenuItem>
+                      <MenuItem value="paused">⏸️ 일시정지</MenuItem>
+                      <MenuItem value="cancelled">❌ 취소됨</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                {memberForm.subscriptionPlan !== 'Free' && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="구독 만료일"
+                      type="date"
+                      value={memberForm.subscriptionExpiry}
+                      onChange={(e) => setMemberForm({ ...memberForm, subscriptionExpiry: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                )}
+
+                {/* 사용 제한 */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 2, color: 'primary.main' }}>
+                    ⚙️ 사용 제한 (커스텀 설정)
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="월간 기사 제한"
+                    type="number"
+                    value={memberForm.monthlyArticleLimit}
+                    onChange={(e) => setMemberForm({ ...memberForm, monthlyArticleLimit: parseInt(e.target.value) || 0 })}
+                    helperText="-1은 무제한"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="월간 단어 저장 제한"
+                    type="number"
+                    value={memberForm.monthlyWordLimit}
+                    onChange={(e) => setMemberForm({ ...memberForm, monthlyWordLimit: parseInt(e.target.value) || 0 })}
+                    helperText="-1은 무제한"
+                  />
+                </Grid>
+
+                {/* 기능 권한 */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 2, color: 'primary.main' }}>
+                    🎯 기능 권한
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={memberForm.hasAITranslation}
+                        onChange={(e) => setMemberForm({ ...memberForm, hasAITranslation: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label="🤖 AI 번역"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={memberForm.hasOfflineAccess}
+                        onChange={(e) => setMemberForm({ ...memberForm, hasOfflineAccess: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label="📱 오프라인 접근"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={memberForm.hasPrioritySupport}
+                        onChange={(e) => setMemberForm({ ...memberForm, hasPrioritySupport: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label="🎧 우선 지원"
+                  />
+                </Grid>
               </Grid>
             </Box>
           </DialogContent>
@@ -2314,12 +2685,107 @@ const BlogStyleDashboard = () => {
               취소
             </Button>
             <Button 
-              onClick={handleAddMember} 
+              onClick={editingMember ? handleUpdateMember : handleAddMember} 
               variant="contained" 
               startIcon={<Save />}
               size="large"
             >
               {editingMember ? '수정 완료' : '회원 추가'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 권한 변경 확인 다이얼로그 */}
+        <Dialog 
+          open={roleChangeDialog.open} 
+          onClose={() => setRoleChangeDialog({ open: false, member: null, newRole: '' })}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Warning color="warning" />
+              <Typography variant="h6" fontWeight="bold">
+                권한 변경 확인
+              </Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              회원의 권한을 변경하면 접근 가능한 기능이 달라집니다.
+            </Alert>
+            
+            {roleChangeDialog.member && (
+              <Box>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  <strong>{roleChangeDialog.member.name}</strong>님의 권한을 변경하시겠습니까?
+                </Typography>
+                
+                <Box display="flex" alignItems="center" gap={2} sx={{ mb: 2 }}>
+                  <Box textAlign="center">
+                    <Typography variant="caption" color="text.secondary">현재 권한</Typography>
+                    <Chip 
+                      label={roleChangeDialog.member.role || 'User'}
+                      color={
+                        roleChangeDialog.member.role === 'super_admin' ? 'error' : 
+                        roleChangeDialog.member.role === 'admin' ? 'warning' : 
+                        'default'
+                      }
+                      sx={{ display: 'block', mt: 0.5 }}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ fontSize: '1.5rem' }}>→</Box>
+                  
+                  <Box textAlign="center">
+                    <Typography variant="caption" color="text.secondary">새 권한</Typography>
+                    <Chip 
+                      label={roleChangeDialog.newRole}
+                      color={
+                        roleChangeDialog.newRole === 'super_admin' ? 'error' : 
+                        roleChangeDialog.newRole === 'admin' ? 'warning' : 
+                        'default'
+                      }
+                      sx={{ display: 'block', mt: 0.5 }}
+                    />
+                  </Box>
+                </Box>
+
+                <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    {roleChangeDialog.newRole === 'super_admin' && '🔥 슈퍼 관리자 권한:'}
+                    {roleChangeDialog.newRole === 'admin' && '👑 관리자 권한:'}
+                    {roleChangeDialog.newRole === 'User' && '👤 일반 사용자 권한:'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {roleChangeDialog.newRole === 'super_admin' && 
+                      '• 모든 관리 기능 접근\n• 다른 관리자 권한 관리\n• 시스템 설정 변경\n• 모든 데이터 접근'
+                    }
+                    {roleChangeDialog.newRole === 'admin' && 
+                      '• 기사 및 카테고리 관리\n• 회원 관리 (제한적)\n• 통계 및 분석 접근\n• 공지사항 관리'
+                    }
+                    {roleChangeDialog.newRole === 'User' && 
+                      '• 기사 읽기 및 좋아요\n• 단어 저장 및 학습\n• 기본 사용자 기능만 접근'
+                    }
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button 
+              onClick={() => setRoleChangeDialog({ open: false, member: null, newRole: '' })}
+              startIcon={<Cancel />}
+            >
+              취소
+            </Button>
+            <Button 
+              onClick={confirmRoleChange}
+              variant="contained"
+              color="warning"
+              startIcon={<CheckCircle />}
+            >
+              권한 변경 확정
             </Button>
           </DialogActions>
         </Dialog>
