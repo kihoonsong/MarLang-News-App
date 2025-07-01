@@ -13,7 +13,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useArticles } from '../contexts/ArticlesContext';
-import { useToast } from '../components/ToastProvider';
+import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import { ArticleListSkeleton, LoadingSpinner } from '../components/LoadingComponents';
 import ErrorBoundary, { NewsListErrorFallback } from '../components/ErrorBoundary';
 import MainNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
@@ -29,7 +29,7 @@ const Home = () => {
   const { user, isAuthenticated, signOut } = useAuth() || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const toast = useToast();
+  const toast = useEnhancedToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsData, setAllNewsData] = useState({});

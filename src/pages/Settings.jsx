@@ -22,7 +22,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { useToast } from '../components/ToastProvider';
+import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import { getSupportedLanguages } from '../utils/dictionaryApi';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
@@ -31,7 +31,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, changePassword } = useAuth() || {};
   const { userSettings, updateSettings } = useData();
-  const toast = useToast();
+  const toast = useEnhancedToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 

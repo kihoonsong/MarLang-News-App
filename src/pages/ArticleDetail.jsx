@@ -25,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
-import { useToast } from '../components/ToastProvider';
+import { useEnhancedToast } from '../components/EnhancedToastProvider';
 
 
 
@@ -88,7 +88,7 @@ const ArticleDetail = () => {
     updateSettings,
     userSettings
   } = useData();
-  const toast = useToast();
+  const toast = useEnhancedToast();
   
   // Remove unused navigation state
   const [articleData, setArticleData] = useState(null);
