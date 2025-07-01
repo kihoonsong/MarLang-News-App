@@ -190,10 +190,10 @@ const Profile = () => {
     }
   };
 
-  return (
+    return (
     <AuthGuard>
-      <MobileNavigation />
-      <MobileContentWrapper>
+        <MobileNavigation />
+        <MobileContentWrapper>
         <div style={styles.container}>
           <PageContainer>
             
@@ -218,7 +218,7 @@ const Profile = () => {
                   justifyContent: 'center',
                   margin: '0 auto 1rem',
                   fontSize: '2rem',
-                  fontWeight: 'bold',
+                  fontWeight: 'bold', 
                   color: '#ffffff'
                 }}>
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -461,7 +461,7 @@ const Profile = () => {
                   }}>
                     ⚡ TTS 속도: {userSettings.ttsSpeed}x (음성 재생 속도)
                   </label>
-                  <input 
+                  <input
                     type="range"
                     min="0.5"
                     max="2.0"
