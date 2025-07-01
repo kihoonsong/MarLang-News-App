@@ -20,15 +20,17 @@ import {
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 import AuthGuard from './components/AuthGuard';
-import Home from './pages/Home';
-import ArticleDetail from './pages/ArticleDetail';
-import Search from './pages/Search';
-import Wordbook from './pages/Wordbook';
-import Like from './pages/Like';
-import DatePage from './pages/Date';
-import Profile from './pages/Profile';
-import BlogStyleDashboard from './pages/BlogStyleDashboard';
-import Settings from './pages/Settings';
+
+// 페이지 컴포넌트들을 동적 import로 변경 (코드 스플리팅)
+const Home = React.lazy(() => import('./pages/Home'));
+const ArticleDetail = React.lazy(() => import('./pages/ArticleDetail'));
+const Search = React.lazy(() => import('./pages/Search'));
+const Wordbook = React.lazy(() => import('./pages/Wordbook'));
+const Like = React.lazy(() => import('./pages/Like'));
+const DatePage = React.lazy(() => import('./pages/Date'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
+const Settings = React.lazy(() => import('./pages/Settings'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -166,7 +168,40 @@ const theme = createTheme({
   },
 });
 
-// 향상된 페이지 래퍼 컴포넌트
+// Suspense 로딩 컴포넌트
+const PageLoadingFallback = ({ pageName }) => (
+  <div style={{ 
+    padding: '2rem', 
+    textAlign: 'center',
+    minHeight: '50vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }}>
+    <div style={{ marginBottom: '1rem' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '4px solid #f3f3f3',
+        borderTop: '4px solid #1976d2',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+    </div>
+    <p>Loading {pageName}...</p>
+    <style>
+      {`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}
+    </style>
+  </div>
+);
+
+// 향상된 페이지 래퍼 컴포넌트 (Suspense + ErrorBoundary)
 const PageWrapper = ({ children, pageName }) => {
   return (
     <ErrorBoundary 
@@ -214,7 +249,9 @@ const PageWrapper = ({ children, pageName }) => {
         </div>
       )}
     >
-      {children}
+      <React.Suspense fallback={<PageLoadingFallback pageName={pageName} />}>
+        {children}
+      </React.Suspense>
     </ErrorBoundary>
   );
 };
