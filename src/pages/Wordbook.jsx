@@ -7,6 +7,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,52 +102,29 @@ const Wordbook = () => {
   return (
     <>
       <MobileNavigation />
-      <MobileContentWrapper>
-        <PageContainer>
-          <ContentHeader>
-            <PageTitle>My Wordbook</PageTitle>
-            <WordCount>{sortedWords.length} word{sortedWords.length !== 1 ? 's' : ''}</WordCount>
-          </ContentHeader>
-            
-          {/* 정렬 옵션 */}
-          <SortSection>
-              <Button
-                variant="outlined"
-              sx={{
-                borderColor: '#1976d2',
-                color: '#1976d2',
-                minWidth: '160px',
-                height: '40px',
-                fontSize: '0.875rem',
-                fontWeight: 'medium',
-                textTransform: 'none',
-                '&:hover': {
-                  borderColor: '#1565c0',
-                  backgroundColor: 'rgba(25, 118, 210, 0.04)'
-                }
-              }}
-            >
-              <FormControl size="small" sx={{ minWidth: 140, border: 'none' }}>
-                <Select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  variant="standard"
-                  disableUnderline
-                  sx={{
-                    fontSize: '0.875rem',
-                    color: '#1976d2',
-                    '& .MuiSelect-icon': {
-                      color: '#1976d2'
-                    }
-                  }}
-                >
-                  <MenuItem value="alphabetical">Alphabetical</MenuItem>
-                  <MenuItem value="recent">Recently Added</MenuItem>
-                  <MenuItem value="article">By Article</MenuItem>
-                </Select>
-              </FormControl>
-            </Button>
-          </SortSection>
+              <MobileContentWrapper>
+          <PageContainer>
+            {/* 헤더 - 정렬 기능을 우측 상단에 배치 */}
+            <Header>
+              <HeaderContent>
+                {/* 빈 공간 */}
+              </HeaderContent>
+              <SortContainer>
+                <FilterListIcon sx={{ mr: 1, color: '#666' }} />
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Sort by</InputLabel>
+                  <Select
+                    value={sortBy}
+                    label="Sort by"
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <MenuItem value="alphabetical">Alphabetical</MenuItem>
+                    <MenuItem value="recent">Recently Added</MenuItem>
+                    <MenuItem value="article">By Article</MenuItem>
+                  </Select>
+                </FormControl>
+              </SortContainer>
+            </Header>
 
           {/* 단어 목록 */}
           <WordList>
@@ -214,36 +192,67 @@ const Wordbook = () => {
   );
 };
 
-const ContentHeader = styled.div`
+const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+  min-height: 56px;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+    min-height: 48px;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+    padding: 0 0.25rem;
+    min-height: 44px;
+  }
 `;
 
-const PageTitle = styled.h1`
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-  color: #333;
-`;
-
-const WordCount = styled.span`
-  font-size: 0.9rem;
-  color: #666;
-  background: #f8f9fa;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 500;
-`;
-
-const SortSection = styled.div`
+const HeaderContent = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+`;
+
+const SortContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-width: 180px;
+  
+  @media (max-width: 768px) {
+    gap: 0.25rem;
+    min-width: 160px;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+    min-width: 140px;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .MuiFormControl-root {
+    min-width: 120px !important;
+    
+    @media (max-width: 480px) {
+      min-width: 100px !important;
+      flex: 1;
+    }
+  }
+  
+  .MuiSvgIcon-root {
+    @media (max-width: 480px) {
+      font-size: 1rem;
+    }
+  }
 `;
 
 const WordList = styled.div`

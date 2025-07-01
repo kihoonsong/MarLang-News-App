@@ -513,7 +513,7 @@ const Profile = () => {
                   {/* 관리자만 볼 수 있는 대시보드 버튼 */}
                   {isAdmin && (
                     <button 
-                      onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/dashboard')}
                       style={{
                         ...styles.button,
                         background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -597,7 +597,7 @@ const Profile = () => {
                     marginBottom: '0.5rem'
                   }}>
                     {t.translationLanguage}
-                  </label>
+                    </label>
                   <div style={{fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem'}}>
                     {t.translationLanguageDesc}
                   </div>

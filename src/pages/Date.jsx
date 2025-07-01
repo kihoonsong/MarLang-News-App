@@ -153,18 +153,14 @@ const DatePage = () => {
             {day}
           </DayNumber>
           {hasData && (
-            <Box sx={{ position: 'absolute', bottom: 2, left: 0, right: 0, textAlign: 'center' }}>
-              <Chip 
-                label={articlesByDate[dateKey]?.length || 0}
-                size="small"
-                color={isSelected ? "warning" : "primary"}
-                sx={{ 
-                  height: '16px',
-                  fontSize: '0.6rem',
-                  fontWeight: 'bold',
-                  '& .MuiChip-label': {
-                    padding: '0 4px'
-                  }
+            <Box sx={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center' }}>
+              <Box
+                sx={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: isSelected ? '#f57c00' : '#1976d2',
+                  display: 'inline-block'
                 }}
               />
             </Box>
@@ -427,12 +423,7 @@ const DayNumber = styled.div`
   }
 `;
 
-const ArticleDot = styled.div`
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: ${props => props.$isSelected ? '#f57c00' : '#1976d2'}; // 선택된 날짜에서는 주황색
-`;
+
 
 const ArticlesSection = styled.div`
   background: white;

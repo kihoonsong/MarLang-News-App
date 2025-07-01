@@ -234,7 +234,7 @@ export const DataProvider = ({ children }) => {
     }
 
     console.log('🔄 좋아요 토글:', article.id, article.title);
-    
+
     const isLiked = likedArticles.some(a => a.id === article.id);
     let updatedLikes;
     

@@ -290,8 +290,8 @@ const ArticleDetail = () => {
     // 컴포넌트별 TTS 중지 함수
     const stopArticleTTS = () => {
       try {
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
         }
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
@@ -402,15 +402,15 @@ const ArticleDetail = () => {
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
-        setIsTTSPlaying(false);
-        setCurrentSentence(-1);
-        setCurrentUtterance(null);
+          setIsTTSPlaying(false);
+          setCurrentSentence(-1);
+          setCurrentUtterance(null);
         console.log('🔇 TTS 재생 중지됨');
       } catch (error) {
         console.error('TTS 중지 중 오류:', error);
-      }
-    };
-
+        }
+      };
+      
     // 전역 및 컴포넌트별 중지 함수 모두 등록
     window.stopCurrentTTS = stopTTS;
     if (typeof window.globalStopTTS === 'function') {
@@ -418,7 +418,7 @@ const ArticleDetail = () => {
         stopTTS();
         // 전역 중지도 함께 호출하여 다른 TTS도 중지
         window.globalStopTTS();
-      };
+    };
     }
     setIsTTSPlaying(true);
     playNextSentence();
@@ -797,22 +797,22 @@ const ArticleDetail = () => {
           window.tempUser = { id: 'guest_' + Date.now(), name: 'Guest User' };
         }
       } else {
-        alert('단어 저장 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
-        setWordPopup({
-          open: false,
-          anchorEl: null,
-          word: '',
-          englishDefinition: '',
-          translatedDefinition: '',
-          phonetic: '',
-          partOfSpeech: '',
-          example: '',
-          audio: '',
-          isLoading: false,
-          error: null,
-          selectedWord: null
-        });
-        return;
+      alert('단어 저장 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
+      setWordPopup({
+        open: false,
+        anchorEl: null,
+        word: '',
+        englishDefinition: '',
+        translatedDefinition: '',
+        phonetic: '',
+        partOfSpeech: '',
+        example: '',
+        audio: '',
+        isLoading: false,
+        error: null,
+        selectedWord: null
+      });
+      return;
       }
     }
 
@@ -1038,8 +1038,8 @@ const ArticleDetail = () => {
     // 기존 재생 중지
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(wordPopup.word);
-    utterance.lang = 'en-US';
+        const utterance = new SpeechSynthesisUtterance(wordPopup.word);
+        utterance.lang = 'en-US';
     utterance.rate = 0.8; // 단어는 천천히
     utterance.volume = 1.0;
     utterance.pitch = 1.0;
@@ -1131,7 +1131,7 @@ const ArticleDetail = () => {
               </SpeedButton>
             </SpeedControlGroup>
           </PlaybackControls>
-
+            
           <ActionButtons>
             <ActionButton onClick={handleLike} $isLiked={isLiked} title="좋아요">
               {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
@@ -1180,47 +1180,47 @@ const ArticleDetail = () => {
                 <ContentTitle>
                   Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
                 </ContentTitle>
-                <ContentText>
-                  {(() => {
+          <ContentText>
+            {(() => {
                     const content = articleData.levels[level].content;
-                    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-                    
-                    return sentences.map((sentence, sentenceIdx) => {
+              const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+              
+              return sentences.map((sentence, sentenceIdx) => {
                       const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive;
+                
+                return (
+                  <SentenceSpan 
+                    key={sentenceIdx}
+                    $isActive={isCurrentSentence}
+                  >
+                    {sentence.trim().split(' ').map((word, wordIdx) => {
+                      const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
+                                                          const isHighlighted = (userSettings?.highlightSavedWords !== false) && highlightedWords.has(cleanWord);
                       
                       return (
-                        <SentenceSpan 
-                          key={sentenceIdx}
-                          $isActive={isCurrentSentence}
-                        >
-                          {sentence.trim().split(' ').map((word, wordIdx) => {
-                            const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
-                                                          const isHighlighted = (userSettings?.highlightSavedWords !== false) && highlightedWords.has(cleanWord);
-                            
-                            return (
-                              <WordSpan 
-                                key={`${sentenceIdx}-${wordIdx}`}
-                                $isHighlighted={isHighlighted}
-                                onClick={(e) => {
+                        <WordSpan 
+                          key={`${sentenceIdx}-${wordIdx}`}
+                          $isHighlighted={isHighlighted}
+                          onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isHighlighted) {
-                                    handleRemoveWord(e, word);
-                                  } else {
-                                    handleWordClick(e, word);
-                                  }
-                                }}
-                                className={isHighlighted ? 'highlighted-word' : ''}
-                              >
-                                {word}{' '}
-                              </WordSpan>
-                            );
-                          })}
-                          {sentenceIdx < sentences.length - 1 && '. '}
-                        </SentenceSpan>
+                            if (isHighlighted) {
+                              handleRemoveWord(e, word);
+                            } else {
+                              handleWordClick(e, word);
+                            }
+                          }}
+                          className={isHighlighted ? 'highlighted-word' : ''}
+                        >
+                          {word}{' '}
+                        </WordSpan>
                       );
-                    });
-                  })()}
-                </ContentText>
+                    })}
+                    {sentenceIdx < sentences.length - 1 && '. '}
+                  </SentenceSpan>
+                );
+              });
+            })()}
+          </ContentText>
               </SwipeCard>
             );
           })}
@@ -1356,12 +1356,12 @@ const ArticleDetail = () => {
               {selectedLanguage === 'en' ? (
                 // 영어인 경우: 영영사전 정의만 표시
                 <>
-                  <DefinitionHeader>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
+              <DefinitionHeader>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
                       Definition
-                    </Typography>
-                  </DefinitionHeader>
-                  <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
+                </Typography>
+              </DefinitionHeader>
+              <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
                     {wordPopup.englishDefinition}
                   </Typography>
                 </>
@@ -1375,7 +1375,7 @@ const ArticleDetail = () => {
                   </DefinitionHeader>
                   <Typography variant="h6" sx={{ lineHeight: 1.6, mb: 2, fontSize: '1.2rem', fontWeight: 'bold', color: '#1976d2' }}>
                     {wordPopup.translatedDefinition}
-                  </Typography>
+              </Typography>
                   
                   {/* 영어 정의 (보조 정보) */}
                   <DefinitionHeader>

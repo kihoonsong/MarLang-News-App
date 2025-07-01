@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  useMediaQuery, useTheme, Button, Select, FormControl, MenuItem, Chip, Typography, Alert
+  useMediaQuery, useTheme, Button, Select, FormControl, MenuItem, Chip, Typography, Alert,
+  InputLabel
 } from '@mui/material';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -155,49 +157,28 @@ const Like = () => {
         <ContentContainer>
           <CategorySection>
             <CategoryHeader>
-              <CategoryTitle>
-                My Liked Articles
-                <Chip 
-                  label={`${sortedArticles.length} articles`} 
-                  size="small" 
-                  sx={{ ml: 2 }} 
-                />
-              </CategoryTitle>
+              <div>
+                {/* 빈 공간 */}
+              </div>
               
               <SortControls>
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: '#1976d2',
-                    color: '#1976d2',
-                    minWidth: '140px',
-                    height: '36px',
-                    fontSize: '0.8rem',
-                    fontWeight: 'medium',
-                    textTransform: 'none'
-                  }}
-                >
-                  <FormControl size="small" sx={{ minWidth: 120, border: 'none' }}>
-                    <Select
-                      value={sortBy} // 초기값 확실히 설정
-                      onChange={(e) => {
-                        console.log('정렬 옵션 변경:', e.target.value);
-                        setSortBy(e.target.value);
-                      }}
-                      variant="standard"
-                      disableUnderline
-                      sx={{
-                        fontSize: '0.8rem',
-                        color: '#1976d2'
-                      }}
-                    >
-                      <MenuItem value="dateLiked">Date Liked</MenuItem>
-                      <MenuItem value="publishedDate">Published</MenuItem>
-                      <MenuItem value="title">Title A-Z</MenuItem>
-                      <MenuItem value="category">Category</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Button>
+                <FilterListIcon sx={{ mr: 1, color: '#666' }} />
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Sort by</InputLabel>
+                  <Select
+                    value={sortBy}
+                    label="Sort by"
+                    onChange={(e) => {
+                      console.log('정렬 옵션 변경:', e.target.value);
+                      setSortBy(e.target.value);
+                    }}
+                  >
+                    <MenuItem value="dateLiked">Date Liked</MenuItem>
+                    <MenuItem value="publishedDate">Published</MenuItem>
+                    <MenuItem value="title">Title A-Z</MenuItem>
+                    <MenuItem value="category">Category</MenuItem>
+                  </Select>
+                </FormControl>
               </SortControls>
             </CategoryHeader>
             
@@ -249,19 +230,12 @@ const CategoryHeader = styled.div`
   margin-bottom: 1.5rem;
 `;
 
-const CategoryTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #1976d2;
-  margin: 0;
-`;
+
 
 const SortControls = styled.div`
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 `;
 
 const ArticleGrid = styled.div`
