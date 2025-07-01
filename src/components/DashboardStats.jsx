@@ -1,0 +1,344 @@
+import React from 'react';
+import { 
+  Typography, Grid, Box, Chip, Card, CardContent, LinearProgress
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon, Article, People, ThumbUp, TrendingUp,
+  Visibility, School, AccessTime, Analytics, EmojiEvents
+} from '@mui/icons-material';
+import { 
+  WelcomeCard, StatCard, StatIcon, StatInfo, StatNumber, StatLabel 
+} from './DashboardStyles';
+
+const DashboardStats = ({ 
+  user, 
+  stats, 
+  categoryStats,
+  userAnalytics,
+  lastUpdate 
+}) => {
+  const formatTime = (date) => {
+    return new Intl.DateTimeFormat('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).format(date);
+  };
+
+  return (
+    <Box>
+      {/* 환영 메시지 */}
+      <WelcomeCard>
+        <Grid container alignItems="center" spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Typography variant="h3" fontWeight="bold" gutterBottom>
+              👋 안녕하세요, {user?.name || '관리자'}님!
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+              MarLang News 관리자 대시보드에 오신 것을 환영합니다.
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              📊 실시간 통계와 관리 도구를 통해 효율적으로 콘텐츠를 관리하세요.
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box textAlign="center">
+              <Typography variant="caption" color="text.secondary">
+                마지막 업데이트
+              </Typography>
+              <Typography variant="h6" fontWeight="bold" color="primary">
+                {formatTime(lastUpdate)}
+              </Typography>
+              <Chip 
+                label="실시간" 
+                color="success" 
+                size="small" 
+                sx={{ mt: 1 }}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+      </WelcomeCard>
+
+      {/* 주요 통계 카드들 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard>
+            <StatIcon>📰</StatIcon>
+            <StatInfo>
+              <StatNumber>{stats.totalArticles}</StatNumber>
+              <StatLabel>총 기사 수</StatLabel>
+            </StatInfo>
+          </StatCard>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard>
+            <StatIcon>👀</StatIcon>
+            <StatInfo>
+              <StatNumber>{stats.totalViews.toLocaleString()}</StatNumber>
+              <StatLabel>총 조회수</StatLabel>
+            </StatInfo>
+          </StatCard>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard>
+            <StatIcon>❤️</StatIcon>
+            <StatInfo>
+              <StatNumber>{stats.totalLikes.toLocaleString()}</StatNumber>
+              <StatLabel>총 좋아요</StatLabel>
+            </StatInfo>
+          </StatCard>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard>
+            <StatIcon>👥</StatIcon>
+            <StatInfo>
+              <StatNumber>{stats.totalMembers}</StatNumber>
+              <StatLabel>총 회원 수</StatLabel>
+            </StatInfo>
+          </StatCard>
+        </Grid>
+      </Grid>
+
+      {/* 오늘의 통계 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              📅 오늘의 활동
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="primary">
+                    {stats.todayArticles}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    새 기사
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="success.main">
+                    {stats.todayMembers}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    신규 회원
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              🌐 실시간 현황
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                    {stats.currentUsers}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    접속자
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="info.main">
+                    {stats.categories}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    카테고리
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* 학습 통계 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              📚 학습 통계
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                총 저장된 단어
+              </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Typography variant="h4" fontWeight="bold" color="primary">
+                  {stats.totalWords}
+                </Typography>
+                <Chip label="words" size="small" color="primary" />
+              </Box>
+            </Box>
+            
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                평균 읽은 기사 수
+              </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Typography variant="h4" fontWeight="bold" color="success.main">
+                  {stats.avgReadArticles}
+                </Typography>
+                <Chip label="articles" size="small" color="success" />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                평균 저장 단어 수
+              </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Typography variant="h4" fontWeight="bold" color="warning.main">
+                  {stats.avgSavedWords}
+                </Typography>
+                <Chip label="words/user" size="small" color="warning" />
+              </Box>
+            </Box>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              📊 사용자 활동 분석
+            </Typography>
+            
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                읽기 활동 수준
+              </Typography>
+              <Box sx={{ mb: 1 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2">높음 (15+ 기사)</Typography>
+                  <Typography variant="body2" fontWeight="bold" color="success.main">
+                    {userAnalytics.usersByReadingFrequency.high}명
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(userAnalytics.usersByReadingFrequency.high / stats.totalMembers) * 100}
+                  color="success"
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+              
+              <Box sx={{ mb: 1 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2">보통 (5-14 기사)</Typography>
+                  <Typography variant="body2" fontWeight="bold" color="warning.main">
+                    {userAnalytics.usersByReadingFrequency.medium}명
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(userAnalytics.usersByReadingFrequency.medium / stats.totalMembers) * 100}
+                  color="warning"
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+              
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2">낮음 (5개 미만)</Typography>
+                  <Typography variant="body2" fontWeight="bold" color="error.main">
+                    {userAnalytics.usersByReadingFrequency.low}명
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(userAnalytics.usersByReadingFrequency.low / stats.totalMembers) * 100}
+                  color="error"
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                학습 활동 수준
+              </Typography>
+              <Box display="flex" gap={1} flexWrap="wrap">
+                <Chip 
+                  label={`활발: ${userAnalytics.usersByLearningActivity.active}명`}
+                  color="success" 
+                  size="small"
+                />
+                <Chip 
+                  label={`보통: ${userAnalytics.usersByLearningActivity.moderate}명`}
+                  color="warning" 
+                  size="small"
+                />
+                <Chip 
+                  label={`소극적: ${userAnalytics.usersByLearningActivity.passive}명`}
+                  color="default" 
+                  size="small"
+                />
+              </Box>
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* 카테고리별 통계 */}
+      <Card sx={{ p: 3, borderRadius: '16px', mb: 4 }}>
+        <Typography variant="h6" fontWeight="bold" gutterBottom>
+          📂 카테고리별 성과
+        </Typography>
+        <Grid container spacing={2}>
+          {categoryStats.map((category, index) => (
+            <Grid item xs={12} sm={6} md={4} key={category.id}>
+              <Card 
+                sx={{ 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: index % 2 === 0 ? '#f8f9fa' : '#fff',
+                  border: '1px solid #e0e0e0'
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  {category.name}
+                </Typography>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">기사 수</Typography>
+                  <Typography variant="body2" fontWeight="bold">{category.count}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">조회수</Typography>
+                  <Typography variant="body2" fontWeight="bold">{category.totalViews.toLocaleString()}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">좋아요</Typography>
+                  <Typography variant="body2" fontWeight="bold">{category.totalLikes.toLocaleString()}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2" color="text.secondary">참여율</Typography>
+                  <Chip 
+                    label={`${category.avgEngagement}%`}
+                    size="small"
+                    color={category.avgEngagement > 5 ? 'success' : category.avgEngagement > 2 ? 'warning' : 'default'}
+                  />
+                </Box>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Card>
+    </Box>
+  );
+};
+
+export default DashboardStats; 
