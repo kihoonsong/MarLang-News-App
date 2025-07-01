@@ -208,20 +208,18 @@ const Like = () => {
                 <EmptySubtext>Like articles while reading to save them here!</EmptySubtext>
               </EmptyState>
             ) : (
-              <HorizontalScrollContainer>
-                <ArticleRow>
-                  {sortedArticles.map((article, index) => {
-                    console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
-                    console.log(`📝 summary 확인:`, article.summary);
-                    
-                    return (
-                      <ArticleCardWrapper key={article.id}>
-                        <ArticleCard {...article} navigate={navigate} />
-                      </ArticleCardWrapper>
-                    );
-                  })}
-                </ArticleRow>
-              </HorizontalScrollContainer>
+              <ArticleGrid>
+                {sortedArticles.map((article, index) => {
+                  console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
+                  console.log(`📝 summary 확인:`, article.summary);
+                  
+                  return (
+                    <ArticleGridItem key={article.id}>
+                      <ArticleCard {...article} navigate={navigate} />
+                    </ArticleGridItem>
+                  );
+                })}
+              </ArticleGrid>
             )}
           </CategorySection>
         </ContentContainer>
@@ -266,50 +264,28 @@ const SortControls = styled.div`
   align-items: center;
 `;
 
-const HorizontalScrollContainer = styled.div`
-  overflow-x: auto;
-  padding-bottom: 1rem;
-  cursor: grab;
+const ArticleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
   
-  &:active {
-    cursor: grabbing;
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
   
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #a8a8a8;
-    }
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
   }
 `;
 
-const ArticleRow = styled.div`
-  display: flex;
-  gap: 1.5rem;
-  min-width: max-content;
-  padding: 0.5rem 0;
-`;
-
-const ArticleCardWrapper = styled.div`
-  flex: 0 0 320px;
-  width: 320px;
+const ArticleGridItem = styled.div`
+  /* 그리드 아이템이므로 별도 스타일 없음 */
 `;
 
 const EmptyState = styled.div`
-  flex: 0 0 320px;
-  width: 320px;
-  height: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -318,7 +294,10 @@ const EmptyState = styled.div`
   border-radius: 16px;
   border: 2px dashed #ddd;
   text-align: center;
-  padding: 2rem;
+  padding: 4rem 2rem;
+  margin: 2rem 0;
+  min-height: 300px;
+  grid-column: 1 / -1; /* 그리드 전체 너비 차지 */
 `;
 
 const EmptyAuthState = styled.div`

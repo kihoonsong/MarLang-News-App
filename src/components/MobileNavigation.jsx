@@ -71,6 +71,11 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   };
 
   const handleNavChange = (event, newValue) => {
+    // 네비게이션 전 TTS 중지
+    if (typeof window.globalStopTTS === 'function') {
+      window.globalStopTTS();
+    }
+    
     const routes = ['/', '/date', '/wordbook', '/like', '/profile', '/dashboard'];
     const targetRoute = routes[newValue];
     
@@ -85,10 +90,15 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   };
 
   const handleTabChange = (event, newValue) => {
+    // 네비게이션 전 TTS 중지
+    if (typeof window.globalStopTTS === 'function') {
+      window.globalStopTTS();
+    }
+    
     const routes = ['/', '/date', '/wordbook', '/like', '/profile', '/dashboard'];
     const targetRoute = routes[newValue];
     
-    // 인증이 필요한 경로인데 로그인하지 않은 경우
+    // 인증이 필요한 경우인데 로그인하지 않은 경우
     if (requiresAuth(targetRoute) && !isAuthenticated) {
       setAuthModalOpen(true);
       return;
@@ -112,11 +122,34 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   };
 
   const handleAvatarClick = () => {
+    // 네비게이션 전 TTS 중지
+    if (typeof window.globalStopTTS === 'function') {
+      window.globalStopTTS();
+    }
+    
     if (!isAuthenticated) {
       setAuthModalOpen(true);
     } else {
       navigate('/profile');
     }
+  };
+
+  // 뒤로가기 버튼 핸들러
+  const handleBackClick = () => {
+    // 뒤로가기 전 TTS 중지
+    if (typeof window.globalStopTTS === 'function') {
+      window.globalStopTTS();
+    }
+    navigate(-1);
+  };
+
+  // 로고 클릭 핸들러
+  const handleLogoClick = () => {
+    // 홈으로 이동 전 TTS 중지
+    if (typeof window.globalStopTTS === 'function') {
+      window.globalStopTTS();
+    }
+    navigate('/');
   };
 
   return (
@@ -129,7 +162,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
             {showBackButton && (
               <IconButton 
                 color="inherit" 
-                onClick={() => navigate(-1)}
+                onClick={handleBackClick}
                 sx={{ mr: 1 }}
               >
                 <ArrowBackIcon />
@@ -148,7 +181,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
               color: '#1976d2'
             }
           }}
-          onClick={() => navigate('/')}
+          onClick={handleLogoClick}
         >
               {title || 'MarLang'}
         </Typography>
@@ -237,7 +270,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
           <AppBar position="static" color="default" elevation={1}>
             <Toolbar>
               {showBackButton && (
-                <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ mr: 1 }}>
+                <IconButton color="inherit" onClick={handleBackClick} sx={{ mr: 1 }}>
                   <ArrowBackIcon />
                 </IconButton>
               )}
@@ -251,7 +284,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                   cursor: 'pointer',
                   '&:hover': { color: '#1976d2' }
                 }}
-                onClick={() => navigate('/')}
+                onClick={handleLogoClick}
               >
                 {title || 'MarLang Eng News'}
               </Typography>
@@ -309,7 +342,12 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
-                <MenuItem onClick={() => navigate('/profile')}>
+                <MenuItem onClick={() => {
+                  if (typeof window.globalStopTTS === 'function') {
+                    window.globalStopTTS();
+                  }
+                  navigate('/profile');
+                }}>
                   <ListItemIcon>
                     <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
                       <AccountCircleIcon fontSize="small" />
@@ -325,7 +363,12 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                   </ListItemText>
                 </MenuItem>
                 
-                <MenuItem onClick={() => navigate('/settings')}>
+                <MenuItem onClick={() => {
+                  if (typeof window.globalStopTTS === 'function') {
+                    window.globalStopTTS();
+                  }
+                  navigate('/settings');
+                }}>
                   <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
                   <ListItemText>Settings</ListItemText>
                 </MenuItem>

@@ -277,51 +277,31 @@ const ArticleDetail = () => {
     }
   };
 
-  // 자연스러운 TTS 설정
+  // ArticleDetail 전용 TTS 설정
   useEffect(() => {
-
-    // 전역 TTS 중지 함수 등록
-    const stopAllTTS = () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+    // 컴포넌트별 TTS 중지 함수
+    const stopArticleTTS = () => {
+      try {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
         setCurrentUtterance(null);
-    };
-
-    // 전역에 등록하여 어디서든 접근 가능하게
-    window.stopCurrentTTS = stopAllTTS;
-
-    // 브라우저 탭 닫기/새로고침 시 TTS 중지 (간단하게)
-    const handleBeforeUnload = () => {
-      stopAllTTS();
-    };
-
-    // 페이지 visibility 변경 시 TTS 중지 (네비게이션 방해 없이)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopAllTTS();
+        console.log('🔇 ArticleDetail TTS 중지됨');
+      } catch (error) {
+        console.error('ArticleDetail TTS 중지 오류:', error);
       }
     };
 
-    // React Router 네비게이션 감지 (popstate 이벤트)
-    const handlePopState = () => {
-      stopAllTTS();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('popstate', handlePopState);
+    // 전역 TTS 중지 함수에 등록 (전역 관리자와 연동)
+    window.stopCurrentTTS = stopArticleTTS;
 
     // 컴포넌트 언마운트 시 즉시 TTS 중지
     return () => {
-      stopAllTTS();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('popstate', handlePopState);
-      // 전역 함수도 제거
-      if (window.stopCurrentTTS === stopAllTTS) {
+      stopArticleTTS();
+      // 전역 함수 정리
+      if (window.stopCurrentTTS === stopArticleTTS) {
         delete window.stopCurrentTTS;
       }
     };
@@ -431,18 +411,31 @@ const ArticleDetail = () => {
       window.speechSynthesis.speak(utterance);
     };
     
-    // TTS 중지 함수 등록
+    // TTS 중지 함수 등록 (개선된 버전)
     const stopTTS = () => {
-      isPlaying = false;
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      try {
+        isPlaying = false;
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        setIsTTSPlaying(false);
+        setCurrentSentence(-1);
+        setCurrentUtterance(null);
+        console.log('🔇 TTS 재생 중지됨');
+      } catch (error) {
+        console.error('TTS 중지 중 오류:', error);
       }
-      setIsTTSPlaying(false);
-      setCurrentSentence(-1);
-      setCurrentUtterance(null);
     };
 
+    // 전역 및 컴포넌트별 중지 함수 모두 등록
     window.stopCurrentTTS = stopTTS;
+    if (typeof window.globalStopTTS === 'function') {
+      window.stopCurrentTTS = () => {
+        stopTTS();
+        // 전역 중지도 함께 호출하여 다른 TTS도 중지
+        window.globalStopTTS();
+      };
+    }
     setIsTTSPlaying(true);
     playNextSentence();
   };
