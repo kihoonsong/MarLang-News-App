@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Button, Chip,
@@ -11,23 +11,22 @@ import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import CloseIcon from '@mui/icons-material/Close';
 import SpeedIcon from '@mui/icons-material/Speed';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
-import SearchDropdown from '../components/SearchDropdown';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import { useToast } from '../components/ToastProvider';
 
-const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
+
 
 // 기사 내용에서 3개 레벨 생성
 const generateLevelsFromContent = (article) => {
@@ -69,28 +68,29 @@ const generateLevelsFromContent = (article) => {
 
 
 const ArticleDetail = () => {
-  const navigate = useNavigate();
   const { id } = useParams();
-  const { addWord, toggleLike, isArticleLiked, userSettings, updateSettings, removeWord, savedWords: contextSavedWords } = useData();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth() || {};
   const { allArticles, loading: articlesLoading } = useArticles();
-  const { user, isAuthenticated, signOut, updateLastActivity } = useAuth() || {};
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // 실제 기사 데이터 찾기
+  const { 
+    savedWords, 
+    addWord, 
+    removeWord, 
+    isWordSaved, 
+    likedArticles, 
+    addLikedArticle, 
+    removeLikedArticle, 
+    isArticleLiked,
+    addViewRecord,
+    updateActivityTime
+  } = useData();
+  const toast = useToast();
+
+  // Remove unused navigation state
   const [articleData, setArticleData] = useState(null);
-  const [navTab, setNavTab] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState(1);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
-  const [currentSentence, setCurrentSentence] = useState(-1);
-  const [savedWords, setSavedWords] = useState(new Set());
   const [highlightedWords, setHighlightedWords] = useState(new Set());
-  
-  // 상단바 상태
-  const [anchorEl, setAnchorEl] = useState(null);
-  
-  // 단어 팝업 상태
+  const [isLiked, setIsLiked] = useState(false);
   const [wordPopup, setWordPopup] = useState({
     open: false,
     anchorEl: null,
@@ -105,34 +105,21 @@ const ArticleDetail = () => {
     error: null,
     selectedWord: null
   });
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   
-  // 언어 설정
-  const [selectedLanguage, setSelectedLanguage] = useState(userSettings.translationLanguage || 'ko');
-  
-  // 음성 합성 설정
-  const [speechSynthesis, setSpeechSynthesis] = useState(null);
+  // TTS 상태
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState(0);
   const [currentUtterance, setCurrentUtterance] = useState(null);
   const [ttsSpeed, setTtsSpeed] = useState(1.0);
-  const [isRestarting, setIsRestarting] = useState(false);
 
-  // 기사 조회 기록 추가 함수
-  const addViewRecord = (articleId) => {
-    if (!user?.id) return; // 로그인하지 않은 사용자는 조회 기록 추가하지 않음
-    
-    try {
-      const viewHistoryKey = `marlang_view_history_${user.id}`;
-      const existingHistory = JSON.parse(localStorage.getItem(viewHistoryKey) || '[]');
-      
-      // 이미 조회한 기사가 아닌 경우에만 추가 (중복 방지)
-      if (!existingHistory.includes(articleId)) {
-        const updatedHistory = [...existingHistory, articleId];
-        localStorage.setItem(viewHistoryKey, JSON.stringify(updatedHistory));
-        console.log('📊 기사 조회 기록 추가:', articleId);
-      }
-    } catch (error) {
-      console.error('Error adding view record:', error);
-    }
-  };
+  // 스와이프 상태 추가
+  const [swipeState, setSwipeState] = useState({
+    isDragging: false,
+    dragStart: 0,
+    dragOffset: 0,
+    isTransitioning: false
+  });
 
   // 기사 데이터 로드
   useEffect(() => {
@@ -158,11 +145,11 @@ const ArticleDetail = () => {
         // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
         if (user?.id) {
           addViewRecord(foundArticle.id);
-          updateLastActivity && updateLastActivity();
+          updateActivityTime && updateActivityTime();
         }
       }
     }
-  }, [articlesLoading, allArticles, id, user]);
+  }, [articlesLoading, allArticles, id, user?.id]);
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
@@ -170,7 +157,7 @@ const ArticleDetail = () => {
       const likedStatus = isArticleLiked(articleData.id);
       setIsLiked(likedStatus);
     }
-  }, [isArticleLiked, articleData]);
+  }, [isArticleLiked, articleData?.id]);
 
   // 하이라이트된 단어들을 로컬스토리지에서 로드
   useEffect(() => {
@@ -186,7 +173,7 @@ const ArticleDetail = () => {
         console.error('Error loading highlights:', error);
       }
     }
-  }, [articleData]);
+  }, [articleData?.id]);
 
   // localStorage 변경 감지 (다른 탭/창에서 단어장 변경 시)
   useEffect(() => {
@@ -218,7 +205,7 @@ const ArticleDetail = () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('highlightUpdated', handleHighlightUpdate);
     };
-  }, [articleData]);
+  }, [articleData?.id]);
 
   // 하이라이트된 단어들을 로컬스토리지에 저장
   const saveHighlights = (highlights) => {
@@ -234,200 +221,282 @@ const ArticleDetail = () => {
 
   // 자연스러운 TTS 설정
   useEffect(() => {
-    if ('speechSynthesis' in window) {
-      setSpeechSynthesis(window.speechSynthesis);
-    }
 
-    // 브라우저 탭 닫기/새로고침 시 TTS 중지
-    const handleBeforeUnload = () => {
+    // 전역 TTS 중지 함수 등록
+    const stopAllTTS = () => {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
-        console.log('🔇 브라우저 이벤트로 인한 TTS 중지');
+      }
+      setIsTTSPlaying(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
+    };
+
+    // 전역에 등록하여 어디서든 접근 가능하게
+    window.stopCurrentTTS = stopAllTTS;
+
+    // 브라우저 탭 닫기/새로고침 시 TTS 중지 (간단하게)
+    const handleBeforeUnload = () => {
+      stopAllTTS();
+    };
+
+    // 페이지 visibility 변경 시 TTS 중지 (네비게이션 방해 없이)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopAllTTS();
       }
     };
 
-    // 페이지 visibility 변경 시 TTS 중지 (다른 탭으로 이동)
-    const handleVisibilityChange = () => {
-      if (document.hidden && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        setIsTTSPlaying(false);
-        setCurrentSentence(-1);
-        setCurrentUtterance(null);
-        console.log('🔇 탭 전환으로 인한 TTS 중지');
-      }
+    // React Router 네비게이션 감지 (popstate 이벤트)
+    const handlePopState = () => {
+      stopAllTTS();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
 
-    // 컴포넌트 언마운트 시 TTS 중지
+    // 컴포넌트 언마운트 시 즉시 TTS 중지
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        console.log('🔇 페이지 이동으로 인한 TTS 중지');
-      }
-      // TTS 상태 초기화
-      setIsTTSPlaying(false);
-      setCurrentSentence(-1);
-      setCurrentUtterance(null);
-      setIsRestarting(false);
-
-      // 이벤트 리스너 제거
+      stopAllTTS();
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+      // 전역 함수도 제거
+      if (window.stopCurrentTTS === stopAllTTS) {
+        delete window.stopCurrentTTS;
+      }
     };
   }, []);
 
+  // TTS 시작 함수 (더 안전하게)
   const startTTS = () => {
-    const text = articleData.levels[selectedLevel].content;
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    if (!window.speechSynthesis || !articleData) {
+      console.error('❌ Speech synthesis 또는 기사 데이터 없음');
+      return;
+    }
+
+    // 기존 재생 즉시 중지
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
+    const sentences = currentContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
-    const speakSentence = (index) => {
-      if (index >= sentences.length) {
+    if (sentences.length === 0) {
+      console.warn('⚠️ 재생할 문장이 없습니다');
+      return;
+    }
+
+    let currentIndex = 0;
+    let isPlaying = true;
+
+    const playNextSentence = () => {
+      if (!isPlaying || currentIndex >= sentences.length) {
+        // 재생 완료
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
         setCurrentUtterance(null);
         return;
       }
-      
-      setCurrentSentence(index);
-      const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
-      
-      // 현재 속도 적용
-      utterance.rate = ttsSpeed;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      // 영어 음성 찾기
-      const voices = speechSynthesis.getVoices();
-      const englishVoice = voices.find(voice => 
-        voice.lang.includes('en-US') || voice.lang.includes('en-GB')
-      );
-      if (englishVoice) {
-        utterance.voice = englishVoice;
+
+      const sentence = sentences[currentIndex].trim();
+      if (!sentence) {
+        currentIndex++;
+        setTimeout(playNextSentence, 100);
+        return;
       }
-      
-      utterance.onend = () => {
-        speakSentence(index + 1);
-      };
-      
-      utterance.onerror = (event) => {
-        // Don't reset state if we're restarting (speed change)
-        if (!isRestarting) {
-          setIsTTSPlaying(false);
-          setCurrentSentence(-1);
-          setCurrentUtterance(null);
+
+      const utterance = new SpeechSynthesisUtterance(sentence);
+      utterance.lang = 'en-US';
+      utterance.rate = ttsSpeed;
+      utterance.volume = 1.0;
+      utterance.pitch = 1.0;
+
+      // 음성 선택
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                            voices.find(voice => voice.lang === 'en-GB') ||
+                            voices.find(voice => voice.lang.startsWith('en'));
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.onstart = () => {
+        if (isPlaying) {
+          setCurrentSentence(currentIndex);
         }
       };
-      
+
+      utterance.onend = () => {
+        if (isPlaying) {
+          currentIndex++;
+          setTimeout(playNextSentence, 200);
+        }
+      };
+
+      utterance.onerror = (event) => {
+        console.error('TTS Error:', event.error);
+        if (isPlaying) {
+          currentIndex++;
+          setTimeout(playNextSentence, 100);
+        }
+      };
+
       setCurrentUtterance(utterance);
-      speechSynthesis.speak(utterance);
+      window.speechSynthesis.speak(utterance);
     };
-    
+
+    // TTS 중지 함수 등록
+    const stopTTS = () => {
+      isPlaying = false;
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setIsTTSPlaying(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
+    };
+
+    window.stopCurrentTTS = stopTTS;
     setIsTTSPlaying(true);
-    speakSentence(0);
+    playNextSentence();
   };
 
   const handleTTS = () => {
     if (isTTSPlaying) {
-      // TTS 일시정지
-      if (speechSynthesis && currentUtterance) {
-        setIsRestarting(false); // 일시정지는 재시작 아님
-        speechSynthesis.cancel();
+      // TTS 중지
+      if (window.stopCurrentTTS) {
+        window.stopCurrentTTS();
+      } else {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
         setCurrentUtterance(null);
       }
     } else {
-      // TTS 재생
-      setIsRestarting(false); // 새로 시작할 때는 재시작 플래그 초기화
+      // TTS 시작
       startTTS();
     }
   };
 
-  // 속도 변경시 재생 중이면 재시작
   const handleSpeedChange = (newSpeed) => {
     setTtsSpeed(newSpeed);
     
-    if (isTTSPlaying && speechSynthesis) {
-      // 현재 재생 중인 문장 인덱스 저장
+    // 재생 중이면 현재 위치에서 새 속도로 재시작
+    if (isTTSPlaying) {
       const currentIndex = currentSentence;
-      
-      // 재시작 플래그 설정
-      setIsRestarting(true);
-      
-      // 현재 재생 중지
-      if (currentUtterance) {
-        speechSynthesis.cancel();
+      if (window.stopCurrentTTS) {
+        window.stopCurrentTTS();
       }
       
-      // 새로운 속도로 현재 문장부터 재시작
       setTimeout(() => {
-        if (currentIndex >= 0 && isTTSPlaying) {
-          const text = articleData.levels[selectedLevel].content;
-          const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-          
-          const speakFromIndex = (index) => {
-            if (index >= sentences.length || !isTTSPlaying) {
-              setIsTTSPlaying(false);
-              setCurrentSentence(-1);
-              setCurrentUtterance(null);
-              setIsRestarting(false);
-              return;
-            }
-            
-            setCurrentSentence(index);
-            const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
-            
-            utterance.rate = newSpeed;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-            
-            const voices = speechSynthesis.getVoices();
-            const englishVoice = voices.find(voice => 
-              voice.lang.includes('en-US') || voice.lang.includes('en-GB')
-            );
-            if (englishVoice) {
-              utterance.voice = englishVoice;
-            }
-            
-            utterance.onstart = () => {
-              setIsRestarting(false); // 재시작 완료
-            };
-            
-            utterance.onend = () => {
-              if (isTTSPlaying) {
-                speakFromIndex(index + 1);
-              }
-            };
-            
-            utterance.onerror = (event) => {
-              console.log('TTS error during speed change:', event);
-              setIsRestarting(false);
-            };
-            
-            setCurrentUtterance(utterance);
-            speechSynthesis.speak(utterance);
-          };
-          
-          speakFromIndex(currentIndex);
-        } else {
-          setIsRestarting(false);
+        if (currentIndex >= 0) {
+          // 현재 문장부터 다시 시작하는 간단한 로직
+          startTTS();
         }
-      }, 200);
+      }, 100);
     }
   };
 
   const handleLevelChange = (level) => {
     // TTS 중지
-    if (isTTSPlaying) {
-      setIsRestarting(false); // 레벨 변경시에는 재시작 아님
-      speechSynthesis.cancel();
-      setIsTTSPlaying(false);
-      setCurrentSentence(-1);
-      setCurrentUtterance(null);
+    if (window.stopCurrentTTS) {
+      window.stopCurrentTTS();
     }
     setSelectedLevel(level);
+  };
+
+  // 스와이프 핸들러 추가
+  const createSwipeHandlers = () => {
+    const handleStart = (clientX) => {
+      setSwipeState(prev => ({
+        ...prev,
+        isDragging: true,
+        dragStart: clientX,
+        dragOffset: 0,
+        isTransitioning: false
+      }));
+    };
+
+    const handleMove = (clientX) => {
+      if (swipeState.isDragging) {
+        const offset = clientX - swipeState.dragStart;
+        setSwipeState(prev => ({
+          ...prev,
+          dragOffset: Math.max(-200, Math.min(200, offset)) // 드래그 제한
+        }));
+      }
+    };
+
+    const handleEnd = () => {
+      if (swipeState.isDragging) {
+        const threshold = 80;
+        const direction = swipeState.dragOffset > threshold ? -1 : swipeState.dragOffset < -threshold ? 1 : 0;
+        
+        if (direction !== 0) {
+          let newLevel = selectedLevel + direction;
+          if (newLevel > 3) newLevel = 1;
+          if (newLevel < 1) newLevel = 3;
+          handleLevelChange(newLevel);
+        }
+
+        setSwipeState(prev => ({
+          ...prev,
+          isDragging: false,
+          dragOffset: 0,
+          isTransitioning: true
+        }));
+
+        setTimeout(() => {
+          setSwipeState(prev => ({ ...prev, isTransitioning: false }));
+        }, 300);
+      }
+    };
+
+    return {
+      // 터치 이벤트
+      onTouchStart: (e) => {
+        e.preventDefault();
+        handleStart(e.touches[0].clientX);
+      },
+      onTouchMove: (e) => {
+        e.preventDefault();
+        if (swipeState.isDragging) {
+          handleMove(e.touches[0].clientX);
+        }
+      },
+      onTouchEnd: (e) => {
+        e.preventDefault();
+        handleEnd();
+      },
+      
+      // 마우스 이벤트
+      onMouseDown: (e) => {
+        e.preventDefault();
+        handleStart(e.clientX);
+      },
+      onMouseMove: (e) => {
+        if (swipeState.isDragging) {
+          handleMove(e.clientX);
+        }
+      },
+      onMouseUp: handleEnd,
+      onMouseLeave: handleEnd
+    };
+  };
+
+  const swipeHandlers = createSwipeHandlers();
+
+  // 카드 클릭 핸들러
+  const handleCardClick = (e, level) => {
+    e.stopPropagation();
+    if (level !== selectedLevel) {
+      handleLevelChange(level);
+    }
   };
 
   const handleLike = () => {
@@ -446,7 +515,7 @@ const ArticleDetail = () => {
       setIsLiked(newLikeStatus);
       
       // 활동 시간 업데이트
-      updateLastActivity && updateLastActivity();
+      updateActivityTime && updateActivityTime();
       
       // 좋아요 상태 변경을 다른 컴포넌트에 알림
       window.dispatchEvent(new CustomEvent('likeUpdated', {
@@ -558,7 +627,7 @@ const ArticleDetail = () => {
     
     if (success) {
       // 활동 시간 업데이트
-      updateLastActivity && updateLastActivity();
+      updateActivityTime && updateActivityTime();
       
       // 단어 하이라이트 추가
       setSavedWords(prev => new Set([...prev, wordPopup.word]));
@@ -613,7 +682,7 @@ const ArticleDetail = () => {
     saveHighlights(newHighlights);
     
     // 단어장에서도 해당 단어 삭제
-    const wordToRemove = contextSavedWords.find(w => w.word === cleanWord && w.articleId === articleData.id);
+    const wordToRemove = savedWords.find(w => w.word === cleanWord && w.articleId === articleData.id);
     if (wordToRemove) {
       removeWord(wordToRemove.id);
     }
@@ -625,21 +694,6 @@ const ArticleDetail = () => {
     
     // DOM에서 하이라이트 클래스 제거
     event.target.classList.remove('highlighted-word');
-  };
-
-  // 상단바 관련 함수들
-  const handleUserMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    signOut();
-    handleUserMenuClose();
-    navigate('/');
   };
 
   // 단어 팝업에서 언어 변경 처리
@@ -745,184 +799,13 @@ const ArticleDetail = () => {
 
   return (
     <>
-      {/* 모바일 네비게이션 */}
-      <MobileNavigation />
+      {/* 통합 네비게이션 */}
+      <MobileNavigation 
+        showBackButton={true}
+        title="MarLang Eng News"
+      />
       
       <MobileContentWrapper>
-        {/* 상단바 - 데스크톱만 표시 */}
-        {!isMobile && (
-          <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <IconButton color="inherit" onClick={() => navigate('/')}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                flexGrow: 1, 
-                fontWeight: 'bold', 
-                color: '#23408e',
-                cursor: 'pointer',
-                '&:hover': {
-                  color: '#1976d2'
-                }
-              }}
-              onClick={() => navigate('/')}
-            >
-              MarLang Eng News
-            </Typography>
-            <SearchDropdown placeholder="Search articles..." />
-            
-            {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
-            {isAuthenticated ? (
-              <IconButton
-                size="large"
-                onClick={handleUserMenuOpen}
-                color="inherit"
-              >
-                <Avatar 
-                  src={user?.picture} 
-                  alt={user?.name}
-                  sx={{ width: 32, height: 32 }}
-                >
-                  {!user?.picture && <AccountCircleIcon />}
-                </Avatar>
-              </IconButton>
-            ) : (
-              <IconButton
-                size="large"
-                onClick={() => navigate('/')}
-                color="inherit"
-                sx={{ 
-                  border: '1px solid #1976d2', 
-                  borderRadius: 2,
-                  padding: '6px 12px',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <AccountCircleIcon sx={{ mr: 0.5 }} />
-                Login
-              </IconButton>
-            )}
-            
-            {isAuthenticated && (
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleUserMenuClose}
-                onClick={handleUserMenuClose}
-                PaperProps={{
-                  elevation: 0,
-                  sx: {
-                    overflow: 'visible',
-                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                    mt: 1.5,
-                    '& .MuiAvatar-root': {
-                      width: 32,
-                      height: 32,
-                      ml: -0.5,
-                      mr: 1,
-                    },
-                    '&:before': {
-                      content: '""',
-                      display: 'block',
-                      position: 'absolute',
-                      top: 0,
-                      right: 14,
-                      width: 10,
-                      height: 10,
-                      bgcolor: 'background.paper',
-                      transform: 'translateY(-50%) rotate(45deg)',
-                      zIndex: 0,
-                    },
-                  },
-                }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                <MenuItem onClick={() => navigate('/profile')}>
-                  <ListItemIcon>
-                    <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
-                      <AccountCircleIcon fontSize="small" />
-                    </Avatar>
-                  </ListItemIcon>
-                  <ListItemText>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {user?.name || 'Guest User'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {user?.email || 'guest@marlang.com'}
-                    </Typography>
-                  </ListItemText>
-                </MenuItem>
-                
-                <MenuItem onClick={() => navigate('/settings')}>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Settings</ListItemText>
-                </MenuItem>
-                
-                <MenuItem onClick={handleLogout}>
-                  <ListItemIcon>
-                    <LogoutIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Logout</ListItemText>
-                </MenuItem>
-              </Menu>
-            )}
-          </Toolbar>
-        </AppBar>
-        )}
-        
-        {/* 네비게이션 바 - 데스크톱만 */}
-        {!isMobile && (
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-            <Tabs 
-              value={navTab} 
-              onChange={(_, v) => setNavTab(v)}
-              sx={{
-                '& .MuiTab-root': {
-                  minWidth: 'auto',
-                  padding: '12px 16px'
-                }
-              }}
-            >
-              {navigationTabs.map((nav, idx) => (
-                <Tab 
-                  key={nav} 
-                  label={nav} 
-                  onClick={() => {
-                    setNavTab(idx);
-                    switch(nav) {
-                      case 'Home':
-                        navigate('/');
-                        break;
-                      case 'Date':
-                        navigate('/date');
-                        break;
-                      case 'Wordbook':
-                        navigate('/wordbook');
-                        break;
-                      case 'Like':
-                        navigate('/like');
-                        break;
-                      case 'Profile':
-                        navigate('/profile');
-                        break;
-                      default:
-                        break;
-                    }
-                  }}
-                />
-              ))}
-            </Tabs>
-          </Box>
-        )}
-
-        {/* Home 페이지 카테고리 탭과 동일한 높이 유지 */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2, height: '48px' }}>
-        </Box>
 
       {/* 기사 상세 내용 */}
       <PageContainer>
@@ -952,7 +835,7 @@ const ArticleDetail = () => {
                 disabled={ttsSpeed <= 0.5}
                 title="Slower"
               >
-                <SpeedIcon sx={{ transform: 'scaleX(-1)' }} />
+                <SpeedIcon style={{ transform: 'scaleX(-1)' }} />
               </SpeedButton>
               <SpeedDisplay>{ttsSpeed.toFixed(1)}x</SpeedDisplay>
               <SpeedButton 
@@ -969,66 +852,119 @@ const ArticleDetail = () => {
             </LikeButton>
           </LeftControls>
           
-          <LevelTabs>
+          {/* 레벨 인디케이터 */}
+          <LevelIndicator>
             {[1, 2, 3].map(level => (
-              <LevelTab 
+              <IndicatorDot 
                 key={level}
                 $active={selectedLevel === level}
                 onClick={() => handleLevelChange(level)}
-              >
-                {selectedLevel === level 
-                  ? (level === 1 ? '❶' : level === 2 ? '❷' : '❸')
-                  : (level === 1 ? '①' : level === 2 ? '②' : '③')
-                }
-              </LevelTab>
+              />
             ))}
-          </LevelTabs>
+          </LevelIndicator>
         </ControlsRow>
 
-        {/* 카드형 본문 */}
-        <ContentCard>
-          <ContentTitle>{articleData.levels[selectedLevel].title}</ContentTitle>
-          <ContentText>
-            {(() => {
-              const content = articleData.levels[selectedLevel].content;
-              const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-              
-              return sentences.map((sentence, sentenceIdx) => {
-                const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying;
-                
-                return (
-                  <SentenceSpan 
-                    key={sentenceIdx}
-                    $isActive={isCurrentSentence}
-                  >
-                    {sentence.trim().split(' ').map((word, wordIdx) => {
-                      const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
-                      const isHighlighted = highlightedWords.has(cleanWord);
+        {/* 스와이프 카드 시스템 */}
+        <SwipeCardContainer {...swipeHandlers}>
+          {[1, 2, 3].map(level => {
+            // 순환 구조를 위한 position 계산 (3→1→2→3)
+            let position = level - selectedLevel;
+            
+            // 순환 로직: 1번 카드 좌측에 3번 카드가 보이도록
+            if (selectedLevel === 1 && level === 3) {
+              position = -1; // 3번 카드를 왼쪽에 표시
+            } else if (selectedLevel === 2 && level === 1) {
+              position = -1; // 1번 카드를 왼쪽에 표시
+            } else if (selectedLevel === 3 && level === 2) {
+              position = -1; // 2번 카드를 왼쪽에 표시
+            } else if (selectedLevel === 1 && level === 2) {
+              position = 1; // 2번 카드를 오른쪽에 표시
+            } else if (selectedLevel === 2 && level === 3) {
+              position = 1; // 3번 카드를 오른쪽에 표시
+            } else if (selectedLevel === 3 && level === 1) {
+              position = 1; // 1번 카드를 오른쪽에 표시
+            }
+            
+            const isActive = level === selectedLevel;
+            
+            return (
+              <SwipeCard
+                key={level}
+                $position={position}
+                $isDragging={swipeState.isDragging}
+                $dragOffset={swipeState.dragOffset}
+                $isTransitioning={swipeState.isTransitioning}
+                $isActive={isActive}
+                onClick={(e) => handleCardClick(e, level)}
+              >
+                <ContentTitle>
+                  Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
+                </ContentTitle>
+                <ContentText>
+                  {(() => {
+                    const content = articleData.levels[level].content;
+                    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                    
+                    return sentences.map((sentence, sentenceIdx) => {
+                      const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive;
                       
                       return (
-                        <WordSpan 
-                          key={`${sentenceIdx}-${wordIdx}`}
-                          $isHighlighted={isHighlighted}
-                          onClick={(e) => {
-                            if (isHighlighted) {
-                              handleRemoveWord(e, word);
-                            } else {
-                              handleWordClick(e, word);
-                            }
-                          }}
-                          className={isHighlighted ? 'highlighted-word' : ''}
+                        <SentenceSpan 
+                          key={sentenceIdx}
+                          $isActive={isCurrentSentence}
                         >
-                          {word}{' '}
-                        </WordSpan>
+                          {sentence.trim().split(' ').map((word, wordIdx) => {
+                            const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
+                            const isHighlighted = highlightedWords.has(cleanWord);
+                            
+                            return (
+                              <WordSpan 
+                                key={`${sentenceIdx}-${wordIdx}`}
+                                $isHighlighted={isHighlighted}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isHighlighted) {
+                                    handleRemoveWord(e, word);
+                                  } else {
+                                    handleWordClick(e, word);
+                                  }
+                                }}
+                                className={isHighlighted ? 'highlighted-word' : ''}
+                              >
+                                {word}{' '}
+                              </WordSpan>
+                            );
+                          })}
+                          {sentenceIdx < sentences.length - 1 && '. '}
+                        </SentenceSpan>
                       );
-                    })}
-                    {sentenceIdx < sentences.length - 1 && '. '}
-                  </SentenceSpan>
-                );
-              });
-            })()}
-          </ContentText>
-        </ContentCard>
+                    });
+                  })()}
+                </ContentText>
+              </SwipeCard>
+            );
+          })}
+          
+          {/* 네비게이션 버튼 */}
+          <NavButton 
+            $position="left" 
+            onClick={() => {
+              const newLevel = selectedLevel === 1 ? 3 : selectedLevel - 1;
+              handleLevelChange(newLevel);
+            }}
+          >
+            <ArrowBackIosIcon />
+          </NavButton>
+          <NavButton 
+            $position="right" 
+            onClick={() => {
+              const newLevel = selectedLevel === 3 ? 1 : selectedLevel + 1;
+              handleLevelChange(newLevel);
+            }}
+          >
+            <ArrowForwardIosIcon />
+          </NavButton>
+        </SwipeCardContainer>
       </PageContainer>
 
       {/* 단어 팝업 */}
@@ -1307,55 +1243,90 @@ const LikeButton = styled.button`
   }
 `;
 
-const LevelTabs = styled.div`
+const LevelIndicator = styled.div`
   display: flex;
-  gap: 0.1rem;
+  gap: 0.5rem;
 `;
 
-const LevelTab = styled.button`
-  background: transparent;
+const IndicatorDot = styled.button`
+  width: 16px;
+  height: 16px;
+  background: ${props => props.$active ? '#1976d2' : '#f5f5f5'};
   border: none;
-  color: ${props => props.$active ? '#1976d2' : '#999'};
+  border-radius: 50%;
   cursor: pointer;
-  font-size: 1.5rem;
-  font-weight: normal;
-  transition: all 0.3s ease;
-  padding: 0.5rem;
-  border-radius: 8px;
-  min-width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: background-color 0.2s;
   
   &:hover {
-    background: ${props => props.$active ? 'rgba(25, 118, 210, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
-    transform: scale(1.1);
+    background-color: ${props => props.$active ? '#1565c0' : '#e0e0e0'};
   }
-  
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const ContentCard = styled.div`
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-  padding: 2rem;
 `;
 
 const ContentTitle = styled.h3`
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   color: #1976d2;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e3f2fd;
 `;
 
 const ContentText = styled.div`
   font-size: 1.1rem;
   line-height: 1.8;
   cursor: text;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  max-height: calc(100% - 100px); /* 제목 영역 제외 */
+  
+  /* 스크롤바 스타일 개선 */
+  scrollbar-width: thin;
+  scrollbar-color: #1976d2 #f0f0f0;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+    margin: 4px 0;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #1976d2;
+    border-radius: 4px;
+    border: 1px solid #f0f0f0;
+    
+    &:hover {
+      background: #1565c0;
+    }
+  }
+  
+  /* 스크롤 시 페이드 효과 */
+  &:before {
+    content: '';
+    position: sticky;
+    top: 0;
+    height: 10px;
+    background: linear-gradient(to bottom, white, transparent);
+    z-index: 1;
+    display: block;
+    margin-bottom: -10px;
+  }
+  
+  &:after {
+    content: '';
+    position: sticky;
+    bottom: 0;
+    height: 10px;
+    background: linear-gradient(to top, white, transparent);
+    z-index: 1;
+    display: block;
+    margin-top: -10px;
+  }
   
   .highlighted-word {
     background-color: #fff9c4 !important;
@@ -1452,6 +1423,94 @@ const ExampleText = styled.div`
 const PopupActions = styled.div`
   padding: 12px 16px;
   border-top: 1px solid #f0f0f0;
+`;
+
+const SwipeCardContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 700px;
+  overflow: visible;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+`;
+
+const SwipeCard = styled.div`
+  position: absolute;
+  top: 0;
+  width: ${props => props.$isActive ? '80%' : '70%'};
+  height: 100%;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: ${props => props.$isActive 
+    ? '0 8px 32px rgba(0,0,0,0.15)' 
+    : '0 4px 16px rgba(0,0,0,0.1)'};
+  cursor: ${props => props.$isActive ? 'default' : 'pointer'};
+  display: flex;
+  flex-direction: column;
+  opacity: ${props => props.$isActive ? 1 : 0.7};
+  transform: ${props => {
+    // 간소화된 position 기반 변환
+    const baseTransform = props.$position === 0 ? '-50%' :   // 중앙 (메인 카드)
+                         props.$position === -1 ? '-85%' :   // 왼쪽 (이전 카드)
+                         props.$position === 1 ? '-15%' :    // 오른쪽 (다음 카드)
+                         '-50%';                              // 기본값
+    
+    const dragOffset = props.$isDragging ? props.$dragOffset : 0;
+    const scaleTransform = props.$isActive ? 'scale(1)' : 'scale(0.9)';
+    
+    return `translateX(calc(${baseTransform} + ${dragOffset}px)) ${scaleTransform}`;
+  }};
+  transition: ${props => props.$isDragging || props.$isTransitioning ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'};
+  z-index: ${props => props.$isActive ? 10 : 5};
+  filter: ${props => props.$isActive ? 'brightness(1)' : 'brightness(0.8)'};
+  left: 50%;
+  
+  &:hover {
+    ${props => !props.$isActive && `
+      opacity: 0.85;
+      transform: translateX(calc(${props.$position === 0 ? '-50%' : 
+                  props.$position === -1 ? '-83%' : 
+                  props.$position === 1 ? '-17%' : 
+                  '-50%'} + ${props.$isDragging ? props.$dragOffset : 0}px)) scale(0.92);
+    `}
+  }
+`;
+
+const NavButton = styled.button`
+  position: absolute;
+  top: 50%;
+  ${props => props.$position}: 20px;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  border-radius: 50%;
+  color: #1976d2;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    background: rgba(25, 118, 210, 0.1);
+    border-color: #1976d2;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
 `;
 
 export default ArticleDetail;

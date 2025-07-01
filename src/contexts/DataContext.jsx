@@ -12,12 +12,18 @@ export const useData = () => {
       savedWords: [],
       likedArticles: [],
       userSettings: {},
+      viewRecords: [],
       addWord: () => false,
       removeWord: () => {},
       sortWords: () => {},
       toggleLike: () => false,
       isArticleLiked: () => false,
+      addLikedArticle: () => false,
+      removeLikedArticle: () => false,
       sortLikedArticles: () => {},
+      addViewRecord: () => {},
+      updateActivityTime: () => {},
+      getArticleById: () => null,
       updateSettings: () => {},
       getStats: () => ({ totalWords: 0, totalLikedArticles: 0, wordsThisWeek: 0, favoriteCategory: {} })
     };
@@ -34,12 +40,16 @@ export const DataProvider = ({ children }) => {
   // 좋아요 상태
   const [likedArticles, setLikedArticles] = useState([]);
   
+  // 조회 기록 상태 추가
+  const [viewRecords, setViewRecords] = useState([]);
+  
   // 사용자 설정
   const [userSettings, setUserSettings] = useState({
     language: 'en',
     translationLanguage: 'ko', // 번역 대상 언어 (기본: 한국어)
     ttsSpeed: 0.8,
-    lastVisited: new Date().toISOString()
+    lastVisited: new Date().toISOString(),
+    lastActivityTime: new Date().toISOString()
   });
 
   // 사용자별 localStorage 키 생성
@@ -71,23 +81,27 @@ export const DataProvider = ({ children }) => {
       const wordsKey = getUserKey('marlang_saved_words');
       const likedKey = getUserKey('marlang_liked_articles');
       const settingsKey = getUserKey('marlang_user_settings');
+      const viewRecordsKey = getUserKey('marlang_view_records');
       
       loadFromStorage(wordsKey, setSavedWords);
       loadFromStorage(likedKey, setLikedArticles);
       loadFromStorage(settingsKey, setUserSettings);
+      loadFromStorage(viewRecordsKey, setViewRecords);
     } else {
       // 로그아웃 상태일 때 모든 데이터 초기화
       console.log('🚪 로그아웃 - 데이터 초기화');
       setSavedWords([]);
       setLikedArticles([]);
+      setViewRecords([]);
       setUserSettings({
         language: 'en',
         translationLanguage: 'ko',
         ttsSpeed: 0.8,
-        lastVisited: new Date().toISOString()
+        lastVisited: new Date().toISOString(),
+        lastActivityTime: new Date().toISOString()
       });
     }
-  }, [user]);
+  }, [user?.id, user?.name]);
 
   // 로컬 스토리지에 데이터 저장
   const saveToStorage = (key, data) => {
@@ -193,6 +207,80 @@ export const DataProvider = ({ children }) => {
     return likedArticles.some(a => a.id === articleId);
   };
 
+  // 좋아요 추가 (toggleLike와 별도로)
+  const addLikedArticle = (article) => {
+    if (!user?.id) return false;
+    
+    const isAlreadyLiked = likedArticles.some(a => a.id === article.id);
+    if (!isAlreadyLiked) {
+      const likedArticle = {
+        ...article,
+        likedAt: new Date().toISOString()
+      };
+      const updatedLikes = [...likedArticles, likedArticle];
+      setLikedArticles(updatedLikes);
+      saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
+      return true;
+    }
+    return false;
+  };
+
+  // 좋아요 제거 (toggleLike와 별도로)
+  const removeLikedArticle = (articleId) => {
+    if (!user?.id) return false;
+    
+    const updatedLikes = likedArticles.filter(a => a.id !== articleId);
+    setLikedArticles(updatedLikes);
+    saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
+    return true;
+  };
+
+  // 조회 기록 추가
+  const addViewRecord = (articleId) => {
+    if (!user?.id) return;
+    
+    const viewRecord = {
+      articleId,
+      viewedAt: new Date().toISOString(),
+      userId: user.id
+    };
+    
+    // 중복 방지 - 최근 1시간 내 같은 기사 조회는 기록하지 않음
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    
+    const recentView = viewRecords.find(record => 
+      record.articleId === articleId && 
+      new Date(record.viewedAt) > oneHourAgo
+    );
+    
+    if (!recentView) {
+      const updatedRecords = [...viewRecords, viewRecord];
+      setViewRecords(updatedRecords);
+      saveToStorage(getUserKey('marlang_view_records'), updatedRecords);
+    }
+  };
+
+  // 활동 시간 업데이트
+  const updateActivityTime = () => {
+    if (!user?.id) return;
+    
+    const updatedSettings = {
+      ...userSettings,
+      lastActivityTime: new Date().toISOString()
+    };
+    setUserSettings(updatedSettings);
+    saveToStorage(getUserKey('marlang_user_settings'), updatedSettings);
+  };
+
+  // 기사 ID로 기사 찾기 (만약 allArticles가 전역에서 접근 가능하다면)
+  const getArticleById = (articleId) => {
+    // 이 함수는 실제로는 ArticlesContext에서 제공되어야 하지만
+    // 임시로 여기에 추가합니다
+    console.warn('getArticleById should be provided by ArticlesContext');
+    return null;
+  };
+
   // 사용자 설정 업데이트
   const updateSettings = (newSettings) => {
     if (!user?.id) return;
@@ -260,6 +348,7 @@ export const DataProvider = ({ children }) => {
     savedWords,
     likedArticles,
     userSettings,
+    viewRecords,
     
     // 단어 관련 함수
     addWord,
@@ -269,7 +358,18 @@ export const DataProvider = ({ children }) => {
     // 좋아요 관련 함수
     toggleLike,
     isArticleLiked,
+    addLikedArticle,
+    removeLikedArticle,
     sortLikedArticles,
+    
+    // 조회 기록 관련 함수
+    addViewRecord,
+    
+    // 활동 시간 관련 함수
+    updateActivityTime,
+    
+    // 기사 관련 함수
+    getArticleById,
     
     // 설정 관련 함수
     updateSettings,

@@ -181,6 +181,11 @@ export const ArticlesProvider = ({ children }) => {
     });
   };
 
+  // Get article by ID
+  const getArticleById = (articleId) => {
+    return allArticles.find(article => article.id === articleId) || null;
+  };
+
   // Refresh data (localStorage에서 다시 로드)
   const refreshArticles = () => {
     setLoading(true);
@@ -239,6 +244,7 @@ export const ArticlesProvider = ({ children }) => {
     getPopularArticles,
     getArticlesByDate,
     getArticlesForDate,
+    getArticleById,
     refreshArticles,
     saveArticlesToStorage,
     deleteArticle,
