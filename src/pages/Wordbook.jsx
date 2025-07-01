@@ -24,7 +24,7 @@ const Wordbook = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
-  const [sortBy, setSortBy] = useState('alphabetical');
+  const [sortBy, setSortBy] = useState('recent');
   const [isPlaying, setIsPlaying] = useState(null);
 
   // 인증되지 않은 경우 AuthGuard 표시

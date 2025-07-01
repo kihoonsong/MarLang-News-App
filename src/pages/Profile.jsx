@@ -72,8 +72,6 @@ const Profile = () => {
   // 다국어 텍스트
   const translations = {
     ko: {
-      profileSettings: '프로필 & 설정',
-      personalizeEnvironment: '나만의 학습 환경을 설정해보세요',
       admin: '👑 관리자',
       user: '👤 일반 사용자',
       learningLevel: '학습 레벨',
@@ -115,8 +113,6 @@ const Profile = () => {
       noLikedArticles: '아직 좋아요한 기사가 없습니다'
     },
     en: {
-      profileSettings: 'Profile & Settings',
-      personalizeEnvironment: 'Customize your learning environment',
       admin: '👑 Admin',
       user: '👤 User',
       learningLevel: 'Learning Level',
@@ -158,8 +154,6 @@ const Profile = () => {
       noLikedArticles: 'No liked articles yet'
     },
     ja: {
-      profileSettings: 'プロフィール & 設定',
-      personalizeEnvironment: '学習環境をカスタマイズしましょう',
       admin: '👑 管理者',
       user: '👤 ユーザー',
       learningLevel: '学習レベル',
@@ -300,11 +294,7 @@ const Profile = () => {
         <div style={styles.container}>
           <PageContainer>
             
-            {/* 헤더 */}
-            <div style={styles.header}>
-              <h1 style={styles.title}>{t.profileSettings}</h1>
-              <p style={styles.subtitle}>{t.personalizeEnvironment}</p>
-            </div>
+            {/* 헤더 삭제됨 */}
 
             {/* 메인 그리드 */}
             <div style={styles.grid}>
