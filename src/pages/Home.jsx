@@ -23,6 +23,7 @@ import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
+import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -143,13 +144,25 @@ const Home = () => {
     }
   }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
 
-  const scrollToCategory = (categoryId) => {
-    const element = document.getElementById(`category-${categoryId}`);
-    if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+  const handleCategoryClick = (category) => {
+    // Recent, Popular 카테고리는 기존처럼 스크롤
+    if (category.type === 'recent' || category.type === 'popular') {
+      const element = document.getElementById(`category-${category.id}`);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+      return;
+    }
+    
+    // 다른 카테고리는 전용 페이지로 이동
+    if (isValidCategory(category)) {
+      const categoryUrl = getCategoryPageUrl(category);
+      if (categoryUrl) {
+        navigate(categoryUrl);
+      }
     }
   };
 
@@ -181,9 +194,10 @@ const Home = () => {
               <Tab 
                 key={category.id} 
                 label={category.name}
-                onClick={() => scrollToCategory(category.id)}
+                onClick={() => handleCategoryClick(category)}
                 sx={{ 
                   fontWeight: 'medium',
+                  cursor: 'pointer',
                   '&:hover': {
                     backgroundColor: 'rgba(25, 118, 210, 0.04)'
                   }

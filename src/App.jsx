@@ -31,6 +31,7 @@ const DatePage = React.lazy(() => import('./pages/Date'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -372,6 +373,16 @@ function App() {
                             <BlogStyleDashboard />
                           </PageWrapper>
                         </AuthGuard>
+                      } 
+                    />
+                    
+                    {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}
+                    <Route 
+                      path="/:categorySlug" 
+                      element={
+                        <PageWrapper pageName="Category">
+                          <CategoryPage />
+                        </PageWrapper>
                       } 
                     />
                   </Routes>
