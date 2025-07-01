@@ -1,10 +1,78 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // 네트워크 상태 감지 Hook
 export const useNetworkStatus = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // 더 관용적인 초기값 - 기본적으로 온라인으로 가정
+  const [isOnline, setIsOnline] = useState(true);
   const [networkStrength, setNetworkStrength] = useState('unknown');
   const [connectionType, setConnectionType] = useState('unknown');
+
+  // 실제 네트워크 연결 확인 함수
+  const checkActualConnection = async () => {
+    try {
+      // 간단한 favicon 요청으로 실제 연결 확인
+      const response = await fetch('/vite.svg', { 
+        method: 'HEAD',
+        cache: 'no-cache',
+        signal: AbortSignal.timeout(3000) // 3초 타임아웃
+      });
+      return response.ok;
+    } catch (error) {
+      console.log('🔗 Actual connection check failed:', error.message);
+      return false;
+    }
+  };
+
+    // 초기 네트워크 상태 확인 및 디버깅
+  React.useEffect(() => {
+    console.log('🔍 Network Status Debug:', {
+      navigatorOnline: navigator.onLine,
+      userAgent: navigator.userAgent,
+      connection: navigator.connection || navigator.mozConnection || navigator.webkitConnection
+    });
+
+    // 초기 상태를 navigator.onLine 기반으로 설정
+    setIsOnline(navigator.onLine);
+
+    // 실제 연결 상태 확인
+    checkActualConnection().then(actuallyOnline => {
+      console.log('🌐 Actual connection status:', actuallyOnline);
+      
+      if (!navigator.onLine && actuallyOnline) {
+        console.warn('⚠️ navigator.onLine is false but actual connection works - fixing state');
+        setIsOnline(true);
+      } else if (navigator.onLine && !actuallyOnline) {
+        console.warn('⚠️ navigator.onLine is true but actual connection failed');
+        // navigator.onLine이 true이면 일단 믿어보기 (개발 환경에서는 false positive 많음)
+        setIsOnline(true);
+      } else {
+        setIsOnline(actuallyOnline);
+      }
+    }).catch(() => {
+      // 연결 확인 실패 시 navigator.onLine 기반으로 결정
+      console.log('🔗 Connection check failed, using navigator.onLine');
+      setIsOnline(navigator.onLine);
+    });
+
+    // 전역 디버그 함수 등록
+    window.debugNetworkStatus = () => {
+      console.log('🔍 Current Network Status:', {
+        navigatorOnline: navigator.onLine,
+        reactState: isOnline,
+        networkStrength,
+        connectionType
+      });
+      
+      checkActualConnection().then(actuallyOnline => {
+        console.log('🌐 Actual connection test:', actuallyOnline);
+      });
+    };
+
+    window.forceOnlineStatus = () => {
+      console.log('🔧 Forcing online status...');
+      setIsOnline(true);
+    };
+  }, [isOnline, networkStrength, connectionType]);
 
   useEffect(() => {
     const handleOnline = () => {
