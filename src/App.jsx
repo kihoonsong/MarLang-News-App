@@ -15,10 +15,7 @@ import Wordbook from './pages/Wordbook';
 import Like from './pages/Like';
 import DatePage from './pages/Date';
 import Profile from './pages/Profile';
-import Dashboard from './pages/FullDashboard';
-import ModernDashboard from './pages/ModernDashboard';
 import BlogStyleDashboard from './pages/BlogStyleDashboard';
-import SimpleDashboardTest from './pages/SimpleDashboardTest';
 import Settings from './pages/Settings';
 
 // 전역 TTS 관리 컴포넌트

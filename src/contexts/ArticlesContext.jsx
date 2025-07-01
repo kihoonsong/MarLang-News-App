@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const ArticlesContext = createContext();
 
@@ -135,32 +135,32 @@ export const ArticlesProvider = ({ children }) => {
     }
   }, []);
 
-  // Get articles by category
-  const getArticlesByCategory = (categoryName, limit = null) => {
+  // Get articles by category (memoized)
+  const getArticlesByCategory = useCallback((categoryName, limit = null) => {
     const filtered = allArticles.filter(article => 
       article.category === categoryName
     );
     return limit ? filtered.slice(0, limit) : filtered;
-  };
+  }, [allArticles]);
 
-  // Get recent articles (sorted by date)
-  const getRecentArticles = (limit = 10) => {
+  // Get recent articles (sorted by date) - memoized
+  const getRecentArticles = useCallback((limit = 10) => {
     return allArticles
       .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
       .slice(0, limit);
-  };
+  }, [allArticles]);
 
-  // Get popular articles (sorted by likes)
-  const getPopularArticles = (limit = 10) => {
+  // Get popular articles (sorted by likes) - memoized
+  const getPopularArticles = useCallback((limit = 10) => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     return allArticles
       .filter(article => new Date(article.publishedAt) >= weekAgo)
       .sort((a, b) => b.likes - a.likes)
       .slice(0, limit);
-  };
+  }, [allArticles]);
 
-  // Get articles grouped by date
-  const getArticlesByDate = () => {
+  // Get articles grouped by date - memoized
+  const getArticlesByDate = useCallback(() => {
     const grouped = {};
     allArticles.forEach(article => {
       const date = new Date(article.publishedAt);
@@ -171,23 +171,33 @@ export const ArticlesProvider = ({ children }) => {
       grouped[dateStr].push(article);
     });
     return grouped;
-  };
+  }, [allArticles]);
 
-  // Get articles for a specific date
-  const getArticlesForDate = (dateString) => {
+  // Get articles for a specific date - memoized
+  const getArticlesForDate = useCallback((dateString) => {
     return allArticles.filter(article => {
       const articleDate = new Date(article.publishedAt).toISOString().split('T')[0];
       return articleDate === dateString;
     });
-  };
+  }, [allArticles]);
 
-  // Get article by ID
-  const getArticleById = (articleId) => {
+  // Get article by ID - memoized
+  const getArticleById = useCallback((articleId) => {
     return allArticles.find(article => article.id === articleId) || null;
-  };
+  }, [allArticles]);
 
-  // Refresh data (localStorage에서 다시 로드)
-  const refreshArticles = () => {
+  // localStorage에 기사 저장 - memoized
+  const saveArticlesToStorage = useCallback((articles) => {
+    try {
+      localStorage.setItem('marlang_articles', JSON.stringify(articles));
+      console.log('💾 기사 저장됨:', articles.length + '개');
+    } catch (error) {
+      console.error('❌ 기사 저장 실패:', error);
+    }
+  }, []);
+
+  // Refresh data (localStorage에서 다시 로드) - memoized
+  const refreshArticles = useCallback(() => {
     setLoading(true);
     setError(null);
     
@@ -206,34 +216,25 @@ export const ArticlesProvider = ({ children }) => {
         setLoading(false);
       }
     }, 300);
-  };
+  }, []);
 
-  // localStorage에 기사 저장
-  const saveArticlesToStorage = (articles) => {
-    try {
-      localStorage.setItem('marlang_articles', JSON.stringify(articles));
-      console.log('💾 기사 저장됨:', articles.length + '개');
-    } catch (error) {
-      console.error('❌ 기사 저장 실패:', error);
-    }
-  };
-
-  // 기사 삭제
-  const deleteArticle = (articleId) => {
+  // 기사 삭제 - memoized
+  const deleteArticle = useCallback((articleId) => {
     const updatedArticles = allArticles.filter(article => article.id !== articleId);
     setAllArticles(updatedArticles);
     saveArticlesToStorage(updatedArticles);
     console.log('🗑️ 기사 삭제됨:', articleId);
-  };
+  }, [allArticles, saveArticlesToStorage]);
 
-  // 기사 추가/업데이트
-  const updateArticles = (newArticles) => {
+  // 기사 추가/업데이트 - memoized
+  const updateArticles = useCallback((newArticles) => {
     setAllArticles(newArticles);
     saveArticlesToStorage(newArticles);
     setLastUpdated(new Date().toISOString());
-  };
+  }, [saveArticlesToStorage]);
 
-  const value = {
+  // Context value - memoized to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     allArticles,
     setAllArticles,
     loading,
@@ -249,7 +250,22 @@ export const ArticlesProvider = ({ children }) => {
     saveArticlesToStorage,
     deleteArticle,
     updateArticles
-  };
+  }), [
+    allArticles,
+    loading,
+    error,
+    lastUpdated,
+    getArticlesByCategory,
+    getRecentArticles,
+    getPopularArticles,
+    getArticlesByDate,
+    getArticlesForDate,
+    getArticleById,
+    refreshArticles,
+    saveArticlesToStorage,
+    deleteArticle,
+    updateArticles
+  ]);
 
   return (
     <ArticlesContext.Provider value={value}>

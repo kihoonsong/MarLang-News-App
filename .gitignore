@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 민감한 정보 파일들
+ADMIN_ACCOUNTS.md
+*.env.local
+*.env.production
+config/secrets.js
+secrets/
+admin-credentials.*
