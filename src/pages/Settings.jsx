@@ -14,8 +14,6 @@ import LanguageIcon from '@mui/icons-material/Language';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PaletteIcon from '@mui/icons-material/Palette';
 import SecurityIcon from '@mui/icons-material/Security';
-import StorageIcon from '@mui/icons-material/Storage';
-import RestoreIcon from '@mui/icons-material/Restore';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LockIcon from '@mui/icons-material/Lock';
@@ -41,7 +39,6 @@ const Settings = () => {
     ttsSpeed: userSettings.ttsSpeed || 1.0,
     notifications: userSettings.notifications !== false,
     autoPlay: userSettings.autoPlay || false,
-    darkMode: userSettings.darkMode || false,
     fontSize: userSettings.fontSize || 'medium',
     readingGoal: userSettings.readingGoal || 10,
     autoSaveWords: userSettings.autoSaveWords !== false,
@@ -81,7 +78,6 @@ const Settings = () => {
       ttsSpeed: 1.0,
       notifications: true,
       autoPlay: false,
-      darkMode: false,
       fontSize: 'medium',
       readingGoal: 10,
       autoSaveWords: true,
@@ -123,38 +119,7 @@ const Settings = () => {
     setShowPasswords({ current: false, new: false, confirm: false });
   };
 
-  const clearData = () => {
-    if (window.confirm('Are you sure you want to clear all your data? This cannot be undone.')) {
-      localStorage.clear();
-      toast.warning('All data cleared. Please refresh the page.');
-    }
-  };
 
-  const exportData = () => {
-    try {
-      const data = {
-        settings: userSettings,
-        savedWords: JSON.parse(localStorage.getItem('marlang_saved_words') || '[]'),
-        likedArticles: JSON.parse(localStorage.getItem('marlang_liked_articles') || '[]'),
-        searchHistory: JSON.parse(localStorage.getItem('marlang_search_history') || '[]'),
-        exportDate: new Date().toISOString()
-      };
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `marlang-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success('Data exported successfully!');
-    } catch (error) {
-      toast.error('Failed to export data');
-    }
-  };
 
   if (!isAuthenticated) {
     return (
@@ -198,9 +163,6 @@ const Settings = () => {
           <Header>
             <Title>⚙️ Settings</Title>
             <HeaderActions>
-              <Button variant="outlined" onClick={resetSettings} startIcon={<RestoreIcon />}>
-                Reset
-              </Button>
               <Button variant="contained" onClick={saveSettings}>
                 Save Changes
               </Button>
@@ -444,20 +406,6 @@ const Settings = () => {
               <CardContent>
                 <SettingRow>
                   <SettingLabel>
-                    <Typography variant="subtitle1">Dark Mode</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Use dark theme (coming soon)
-                    </Typography>
-                  </SettingLabel>
-                  <Switch
-                    checked={localSettings.darkMode}
-                    onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
-                    disabled
-                  />
-                </SettingRow>
-
-                <SettingRow>
-                  <SettingLabel>
                     <Typography variant="subtitle1">Compact Mode</Typography>
                     <Typography variant="body2" color="text.secondary">
                       Show more content in less space
@@ -472,38 +420,7 @@ const Settings = () => {
             </SettingsCard>
           </SettingsSection>
 
-          {/* 데이터 관리 */}
-          <SettingsSection>
-            <SectionHeader>
-              <StorageIcon sx={{ mr: 1, color: '#1976d2' }} />
-              <Typography variant="h6">Data Management</Typography>
-            </SectionHeader>
-            
-            <SettingsCard>
-              <CardContent>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Your data is stored locally on your device. Export regularly to backup your progress.
-                </Alert>
 
-                <DataActionRow>
-                  <Button
-                    variant="outlined"
-                    onClick={exportData}
-                    sx={{ mr: 2 }}
-                  >
-                    Export Data
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    onClick={clearData}
-                  >
-                    Clear All Data
-                  </Button>
-                </DataActionRow>
-              </CardContent>
-            </SettingsCard>
-          </SettingsSection>
 
           {/* 정보 섹션 */}
           <SettingsSection>
@@ -718,13 +635,6 @@ const SliderContainer = styled.div`
   }
 `;
 
-const DataActionRow = styled.div`
-  display: flex;
-  gap: 1rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
+
 
 export default Settings;
