@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Box, Tabs, Tab, Container, Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -363,26 +363,26 @@ const BlogStyleDashboard = () => {
           />
         );
       case 3:
-        return (
+          return (
           <MemberManagement
             getMembers={getMembers}
             setSnackbar={setSnackbar}
           />
         );
       case 4:
-        return (
+    return (
           <Box sx={{ p: 4, textAlign: 'center' }}>
             <h2>분석</h2>
             <p>분석 컴포넌트는 개발 중입니다.</p>
-          </Box>
-        );
+      </Box>
+    );
       case 5:
-        return (
+    return (
           <Box sx={{ p: 4, textAlign: 'center' }}>
             <h2>공지사항 관리</h2>
             <p>공지사항 관리 컴포넌트는 개발 중입니다.</p>
-          </Box>
-        );
+      </Box>
+    );
       default:
         return null;
     }
@@ -394,40 +394,40 @@ const BlogStyleDashboard = () => {
       <MobileContentWrapper>
         <Container maxWidth="xl">
           <DashboardContainer>
-            {/* 탭 네비게이션 */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Tabs 
-                value={activeTab} 
+          {/* 탭 네비게이션 */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs 
+              value={activeTab} 
                 onChange={(e, newValue) => setActiveTab(newValue)}
-                variant="scrollable"
-                scrollButtons="auto"
-              >
-                <Tab label="📊 대시보드" />
+              variant="scrollable"
+              scrollButtons="auto"
+            >
+              <Tab label="📊 대시보드" />
                 <Tab label="📰 기사 관리" />
                 <Tab label="📂 카테고리" />
-                <Tab label="👥 회원 관리" />
+              <Tab label="👥 회원 관리" />
                 <Tab label="📈 분석" />
                 <Tab label="📢 공지사항" />
-              </Tabs>
-            </Box>
+            </Tabs>
+          </Box>
 
             {/* 탭 컨텐츠 */}
             {renderTabContent()}
 
-            {/* 스낵바 */}
-            <Snackbar
-              open={snackbar.open}
-              autoHideDuration={4000}
-              onClose={() => setSnackbar({ ...snackbar, open: false })}
-            >
-              <Alert 
-                onClose={() => setSnackbar({ ...snackbar, open: false })} 
-                severity={snackbar.severity}
-                variant="filled"
-              >
-                {snackbar.message}
-              </Alert>
-            </Snackbar>
+        {/* 스낵바 */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert 
+            onClose={() => setSnackbar({ ...snackbar, open: false })} 
+            severity={snackbar.severity}
+            variant="filled"
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
           </DashboardContainer>
         </Container>
       </MobileContentWrapper>
@@ -435,4 +435,4 @@ const BlogStyleDashboard = () => {
   );
 };
 
-export default BlogStyleDashboard;
+export default BlogStyleDashboard; 

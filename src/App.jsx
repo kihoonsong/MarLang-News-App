@@ -5,8 +5,20 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
-import { ToastProvider } from './components/ToastProvider';
+
+// 향상된 에러 처리 시스템 import
 import ErrorBoundary from './components/ErrorBoundary';
+import { 
+  EnhancedToastProvider, 
+  useEnhancedToast, 
+  setupGlobalErrorHandling 
+} from './components/EnhancedToastProvider';
+import { 
+  OfflineBanner, 
+  NetworkStatusIndicator 
+} from './components/EnhancedLoadingComponents';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+
 import AuthGuard from './components/AuthGuard';
 import Home from './pages/Home';
 import ArticleDetail from './pages/ArticleDetail';
@@ -18,9 +30,11 @@ import Profile from './pages/Profile';
 import BlogStyleDashboard from './pages/BlogStyleDashboard';
 import Settings from './pages/Settings';
 
-// 전역 TTS 관리 컴포넌트
+// 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
   const location = useLocation();
+  const { isOnline } = useNetworkStatus();
+  const { warning } = useEnhancedToast();
 
   useEffect(() => {
     // 강력한 전역 TTS 중지 함수
@@ -85,7 +99,59 @@ const TTSManager = () => {
     };
   }, [location]); // location이 바뀔 때마다 실행
 
+  // 오프라인 상태에서 TTS 사용 시 경고
+  useEffect(() => {
+    if (!isOnline) {
+      warning('TTS may not work properly while offline', {
+        group: 'tts-offline',
+        duration: 5000
+      });
+    }
+  }, [isOnline, warning]);
+
   return null; // 렌더링하지 않음
+};
+
+// 전역 에러 처리 초기화 컴포넌트
+const GlobalErrorHandler = () => {
+  const { error } = useEnhancedToast();
+
+  useEffect(() => {
+    // 전역 에러 핸들링 설정
+    setupGlobalErrorHandling(error);
+
+    // 개발 환경에서만 추가 로깅
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🛡️ Global error handling initialized');
+    }
+  }, [error]);
+
+  return null;
+};
+
+// 네트워크 상태 모니터링 컴포넌트
+const NetworkMonitor = () => {
+  const { isOnline, isSlowConnection } = useNetworkStatus();
+  const { warning, info } = useEnhancedToast();
+
+  useEffect(() => {
+    if (isSlowConnection) {
+      warning('Slow network detected. Loading may take longer than usual.', {
+        group: 'network-speed',
+        duration: 6000
+      });
+    }
+  }, [isSlowConnection, warning]);
+
+  useEffect(() => {
+    if (!isOnline) {
+      console.log('📱 App went offline');
+    } else {
+      console.log('🌐 App back online');
+    }
+  }, [isOnline]);
+
+  return null;
 };
 
 const theme = createTheme({
@@ -100,28 +166,109 @@ const theme = createTheme({
   },
 });
 
+// 향상된 페이지 래퍼 컴포넌트
+const PageWrapper = ({ children, pageName }) => {
+  return (
+    <ErrorBoundary 
+      fallback={(props) => (
+        <div style={{ 
+          padding: '2rem', 
+          textAlign: 'center',
+          minHeight: '50vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center'
+        }}>
+          <h2>Oops! Something went wrong in {pageName}</h2>
+          <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
+          <div style={{ marginTop: '1rem' }}>
+            <button 
+              onClick={props.retry}
+              style={{
+                padding: '0.5rem 1rem',
+                marginRight: '0.5rem',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={props.goHome}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#f5f5f5',
+                color: '#333',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Go Home
+            </button>
+          </div>
+          <NetworkStatusIndicator showDetails style={{ marginTop: '1rem' }} />
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
+
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <ToastProvider>
+        <EnhancedToastProvider>
           <AuthProvider>
             <DataProvider>
               <ArticlesProvider>
                 <BrowserRouter>
+                  {/* 전역 시스템 컴포넌트들 */}
+                  <GlobalErrorHandler />
+                  <NetworkMonitor />
                   <TTSManager />
+                  
+                  {/* 오프라인 알림 배너 */}
+                  <OfflineBanner />
+                  
                   <Routes>
                     {/* 공개 페이지 */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/article/:id" element={<ArticleDetail />} />
-                    <Route path="/search" element={<Search />} />
+                    <Route 
+                      path="/" 
+                      element={
+                        <PageWrapper pageName="Home">
+                          <Home />
+                        </PageWrapper>
+                      } 
+                    />
+                    <Route 
+                      path="/article/:id" 
+                      element={
+                        <PageWrapper pageName="Article">
+                          <ArticleDetail />
+                        </PageWrapper>
+                      } 
+                    />
+                    <Route 
+                      path="/search" 
+                      element={
+                        <PageWrapper pageName="Search">
+                          <Search />
+                        </PageWrapper>
+                      } 
+                    />
                     <Route 
                       path="/date" 
                       element={
-                        <ErrorBoundary>
+                        <PageWrapper pageName="Date">
                           <DatePage />
-                        </ErrorBoundary>
+                        </PageWrapper>
                       } 
                     />
                     
@@ -130,19 +277,27 @@ function App() {
                       path="/wordbook" 
                       element={
                         <AuthGuard>
-                          <Wordbook />
+                          <PageWrapper pageName="Wordbook">
+                            <Wordbook />
+                          </PageWrapper>
                         </AuthGuard>
                       } 
                     />
                     <Route 
                       path="/like" 
-                      element={<Like />} 
+                      element={
+                        <PageWrapper pageName="Liked Articles">
+                          <Like />
+                        </PageWrapper>
+                      } 
                     />
                     <Route 
                       path="/profile" 
                       element={
                         <AuthGuard>
-                          <Profile />
+                          <PageWrapper pageName="Profile">
+                            <Profile />
+                          </PageWrapper>
                         </AuthGuard>
                       } 
                     />
@@ -150,7 +305,9 @@ function App() {
                       path="/settings" 
                       element={
                         <AuthGuard>
-                          <Settings />
+                          <PageWrapper pageName="Settings">
+                            <Settings />
+                          </PageWrapper>
                         </AuthGuard>
                       } 
                     />
@@ -158,7 +315,9 @@ function App() {
                       path="/dashboard" 
                       element={
                         <AuthGuard requireAdmin={true}>
-                          <BlogStyleDashboard />
+                          <PageWrapper pageName="Dashboard">
+                            <BlogStyleDashboard />
+                          </PageWrapper>
                         </AuthGuard>
                       } 
                     />
@@ -167,7 +326,7 @@ function App() {
               </ArticlesProvider>
             </DataProvider>
           </AuthProvider>
-        </ToastProvider>
+        </EnhancedToastProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
