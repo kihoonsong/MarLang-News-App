@@ -213,7 +213,7 @@ const Home = () => {
             </ErrorBoundary>
           </Box>
         )}
-
+        
         {/* 로딩 상태 */}
         {loading ? (
           <ArticleListSkeleton count={6} />
@@ -315,7 +315,7 @@ const CategoryTitle = styled.h2`
   color: #1976d2;
   margin: 0;
 `;
-
+  
 const NoticeSection = styled.div`
   margin-bottom: ${designTokens.spacing.md};
 `;

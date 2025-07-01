@@ -4,16 +4,14 @@ import {
   Select, MenuItem, FormControl, InputLabel, useMediaQuery, useTheme, CircularProgress,
   Button
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
-import ArticleIcon from '@mui/icons-material/Article';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
-import MainNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { speakWord, isSpeechSynthesisSupported, getCurrentPlayingStatus, stopCurrentSpeech } from '../utils/speechUtils';
 import { designTokens, getColor, getBorderRadius } from '../utils/designTokens';
@@ -32,7 +30,7 @@ const Wordbook = () => {
   if (!isAuthenticated) {
     return (
       <AuthGuard feature="your wordbook">
-        <MainNavigation />
+        <MobileNavigation />
         <MobileContentWrapper>
           <PageContainer>
             <EmptyAuthState>
@@ -102,18 +100,18 @@ const Wordbook = () => {
 
   return (
     <>
-      <MainNavigation />
+      <MobileNavigation />
       <MobileContentWrapper>
         <PageContainer>
           <ContentHeader>
-            <PageTitle>📚 My Wordbook</PageTitle>
-            <WordCount>{sortedWords.length} words saved</WordCount>
+            <PageTitle>My Wordbook</PageTitle>
+            <WordCount>{sortedWords.length} word{sortedWords.length !== 1 ? 's' : ''}</WordCount>
           </ContentHeader>
-
+            
           {/* 정렬 옵션 */}
           <SortSection>
-            <Button
-              variant="outlined"
+              <Button
+                variant="outlined"
               sx={{
                 borderColor: '#1976d2',
                 color: '#1976d2',
@@ -160,54 +158,52 @@ const Wordbook = () => {
               </EmptyState>
             ) : (
               sortedWords.map((word) => (
-                <WordCard key={word.id}>
+                <WordCard 
+                  key={word.id}
+                  onClick={() => handleGoToArticle(word.articleId)}
+                >
+                  {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
                   <WordHeader>
-                    <WordInfo>
-                      <WordText>{word.word}</WordText>
-                      {word.partOfSpeech && (
-                        <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
-                      )}
-                    </WordInfo>
-                    <WordActions>
-                      <ActionButton
-                        onClick={() => handlePlayWord(word.word, word.id)}
-                        disabled={!isSpeechSynthesisSupported()}
-                        title="Play pronunciation"
-                      >
-                        {isPlaying === word.id ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                      </ActionButton>
-                      <ActionButton
-                        onClick={() => handleGoToArticle(word.articleId)}
-                        title="Go to article"
-                      >
-                        <ArticleIcon />
-                      </ActionButton>
-                      <ActionButton
-                        onClick={() => handleRemoveWord(word.id)}
-                        title="Remove word"
-                        $isDelete
-                      >
-                        <DeleteIcon />
-                      </ActionButton>
-                    </WordActions>
+                    <LeftGroup>
+                      <WordColumn>
+                        <WordRow>
+                          <WordText>{word.word}</WordText>
+                          <PronunciationButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlayWord(word.word, word.id);
+                            }}
+                            disabled={!isSpeechSynthesisSupported()}
+                            title="Play pronunciation"
+                          >
+                            {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+                          </PronunciationButton>
+                        </WordRow>
+                        {word.partOfSpeech && (
+                          <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
+                        )}
+                      </WordColumn>
+                    </LeftGroup>
+                    <DeleteButton 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveWord(word.id);
+                      }}
+                      title="Remove word"
+                    >
+                      <CloseIcon fontSize="small" />
+                    </DeleteButton>
                   </WordHeader>
-
+                
+                  {/* 정의 */}
                   <Definition>{word.definition}</Definition>
                   
+                  {/* 예문 (있는 경우만) */}
                   {word.example && (
                     <Example>
                       <strong>Example:</strong> "{word.example}"
                     </Example>
                   )}
-
-                  <WordFooter>
-                    <ArticleTitle onClick={() => handleGoToArticle(word.articleId)}>
-                      📄 {word.articleTitle}
-                    </ArticleTitle>
-                    <SavedDate>
-                      Saved {new Date(word.savedAt).toLocaleDateString()}
-                    </SavedDate>
-                  </WordFooter>
                 </WordCard>
               ))
             )}
@@ -222,142 +218,217 @@ const ContentHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${designTokens.spacing.lg};
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
 `;
 
 const PageTitle = styled.h1`
-  font-size: 1.8rem;
-  font-weight: bold;
+  font-size: 1.75rem;
+  font-weight: 700;
   margin: 0;
-  color: ${getColor('text.primary')};
+  color: #333;
 `;
 
 const WordCount = styled.span`
-  font-size: 1rem;
-  color: ${getColor('text.hint')};
+  font-size: 0.9rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 500;
 `;
 
 const SortSection = styled.div`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing.sm};
+  gap: 12px;
+  margin-bottom: 8px;
 `;
 
 const WordList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: ${designTokens.spacing.md};
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
   
-  @media (min-width: ${designTokens.breakpoints.mobile}) {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
   
-  @media (min-width: ${designTokens.breakpoints.desktop}) {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: ${designTokens.spacing.lg};
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
   }
 `;
 
 const WordCard = styled.div`
-  background: ${getColor('background.paper')};
-  border-radius: ${getBorderRadius('large')};
-  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-  padding: ${designTokens.spacing.md};
-  transition: all 0.2s;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+  padding: 20px;
+  transition: all 0.25s ease;
   cursor: pointer;
-  height: fit-content;
+  height: 180px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   
   &:hover {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
+    border-color: #1976d2;
+    box-shadow: 0 8px 32px rgba(25, 118, 210, 0.12);
+    transform: translateY(-4px);
+  }
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #999;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-weight: bold;
+  
+  & .MuiSvgIcon-root {
+    font-weight: bold;
+    stroke-width: 2;
+  }
+  
+  &:hover {
+    color: #f44336;
+    transform: scale(1.15);
   }
 `;
 
 const WordHeader = styled.div`
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: ${designTokens.spacing.sm};
+  margin-bottom: 12px;
+  width: 100%;
 `;
 
-const WordInfo = styled.div`
+const LeftGroup = styled.div`
+  display: flex;
+  align-items: flex-start;
+  flex: 0 1 auto;
+  min-width: 0;
+`;
+
+const WordColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const WordRow = styled.div`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing.xs};
-  flex: 1;
+  gap: 6px;
 `;
 
 const WordText = styled.h3`
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.25rem;
+  font-weight: 700;
   margin: 0;
-  color: ${getColor('primary')};
+  color: #333;
   word-break: break-word;
+  line-height: 1.2;
 `;
 
-const PartOfSpeech = styled.span`
-  font-size: 0.9rem;
-  color: ${getColor('text.hint')};
-`;
-
-const WordActions = styled.div`
-  display: flex;
-  gap: ${designTokens.spacing.xs};
-`;
-
-const ActionButton = styled.button`
+const PronunciationButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: ${designTokens.spacing.xs};
-  border-radius: ${getBorderRadius('small')};
-  transition: background 0.2s;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  
+  & .MuiSvgIcon-root {
+    font-size: 1rem;
+  }
   
   &:hover {
-    background: ${designTokens.colors.background.grey};
+    background: #f5f5f5;
+    color: #1976d2;
   }
+  
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    
+    &:hover {
+      background: none;
+      color: #ccc;
+    }
+  }
+`;
+
+const PartOfSpeech = styled.span`
+  font-size: 0.7rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+  align-self: flex-start;
 `;
 
 const Definition = styled.p`
   font-size: 0.9rem;
   line-height: 1.5;
-  margin: 0 0 ${designTokens.spacing.sm} 0;
-  color: ${getColor('text.primary')};
+  margin: 0;
+  color: #555;
+  flex: 1;
+  overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-weight: 400;
 `;
 
 const Example = styled.p`
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 0 0 ${designTokens.spacing.sm} 0;
-  color: ${getColor('text.hint')};
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 12px 0 0 0;
+  color: #666;
+  padding: 8px 12px;
+  background: #f8fbff;
+  border-radius: 8px;
+  border-left: 3px solid #1976d2;
   overflow: hidden;
-`;
-
-const WordFooter = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-  color: ${getColor('text.hint')};
-`;
-
-const ArticleTitle = styled.span`
-  cursor: pointer;
-  color: ${getColor('primary')};
-  &:hover {
-    text-decoration: underline;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-style: normal;
+  
+  strong {
+    color: #1976d2;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
-`;
-
-const SavedDate = styled.span`
-  color: ${getColor('text.hint')};
 `;
 
 const EmptyState = styled.div`

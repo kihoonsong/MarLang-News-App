@@ -81,11 +81,14 @@ const ArticleDetail = () => {
     addLikedArticle, 
     removeLikedArticle, 
     isArticleLiked,
+    toggleLike,
     addViewRecord,
-    updateActivityTime
+    updateActivityTime,
+    updateSettings,
+    userSettings
   } = useData();
   const toast = useToast();
-
+  
   // Remove unused navigation state
   const [articleData, setArticleData] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState(1);
@@ -105,7 +108,7 @@ const ArticleDetail = () => {
     error: null,
     selectedWord: null
   });
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedLanguage, setSelectedLanguage] = useState(userSettings?.translationLanguage || 'en');
   
   // TTS 상태
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
@@ -159,6 +162,13 @@ const ArticleDetail = () => {
     }
   }, [isArticleLiked, articleData?.id]);
 
+  // userSettings 변경 시 언어 설정 동기화
+  useEffect(() => {
+    if (userSettings?.translationLanguage) {
+      setSelectedLanguage(userSettings.translationLanguage);
+    }
+  }, [userSettings?.translationLanguage]);
+
   // 하이라이트된 단어들을 로컬스토리지에서 로드
   useEffect(() => {
     if (articleData) {
@@ -174,6 +184,25 @@ const ArticleDetail = () => {
       }
     }
   }, [articleData?.id]);
+
+  // 단어장과 하이라이트 초기 동기화 (한 번만 실행)
+  useEffect(() => {
+    if (articleData && savedWords && savedWords.length > 0) {
+      // 현재 기사에 해당하는 저장된 단어들 찾기
+      const articleWords = savedWords
+        .filter(word => word.articleId === articleData.id)
+        .map(word => word.word.toLowerCase());
+      
+      if (articleWords.length > 0) {
+        console.log('🔄 단어장 동기화:', articleWords);
+        setHighlightedWords(prev => {
+          const newHighlights = new Set([...prev, ...articleWords]);
+          saveHighlights(newHighlights);
+          return newHighlights;
+        });
+      }
+    }
+  }, [articleData?.id]); // savedWords 제거하여 무한 루프 방지
 
   // localStorage 변경 감지 (다른 탭/창에서 단어장 변경 시)
   useEffect(() => {
@@ -207,6 +236,27 @@ const ArticleDetail = () => {
     };
   }, [articleData?.id]);
 
+  // 하이라이트 상태 변경 시 DOM 업데이트
+  useEffect(() => {
+    if (articleData) {
+      // 모든 clickable-word 요소 찾기
+      const clickableWords = document.querySelectorAll('.clickable-word');
+      
+      clickableWords.forEach(element => {
+        const word = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
+        if (word && word.length > 2) {
+          if (highlightedWords.has(word)) {
+            element.classList.add('highlighted-word');
+          } else {
+            element.classList.remove('highlighted-word');
+          }
+        }
+      });
+      
+      console.log('🎨 DOM 하이라이트 업데이트:', highlightedWords.size, '개 단어');
+    }
+  }, [highlightedWords, articleData?.id]);
+
   // 하이라이트된 단어들을 로컬스토리지에 저장
   const saveHighlights = (highlights) => {
     if (articleData) {
@@ -227,9 +277,9 @@ const ArticleDetail = () => {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
-      setIsTTSPlaying(false);
-      setCurrentSentence(-1);
-      setCurrentUtterance(null);
+        setIsTTSPlaying(false);
+        setCurrentSentence(-1);
+        setCurrentUtterance(null);
     };
 
     // 전역에 등록하여 어디서든 접근 가능하게
@@ -300,7 +350,7 @@ const ArticleDetail = () => {
         setCurrentUtterance(null);
         return;
       }
-
+      
       const sentence = sentences[currentIndex].trim();
       if (!sentence) {
         currentIndex++;
@@ -313,12 +363,37 @@ const ArticleDetail = () => {
       utterance.rate = ttsSpeed;
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
-
-      // 음성 선택
+      
+      // 성별 설정에 따른 음성 선택
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                            voices.find(voice => voice.lang === 'en-GB') ||
-                            voices.find(voice => voice.lang.startsWith('en'));
+      const voiceGender = userSettings?.voiceGender || 'female';
+      
+      let preferredVoice;
+      if (voiceGender === 'female') {
+        // 여성 음성 우선 선택
+        preferredVoice = voices.find(voice => 
+          (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
+          (voice.name.includes('Samantha') || voice.name.includes('Victoria') || 
+           voice.name.includes('Susan') || voice.name.includes('Allison') || 
+           voice.name.includes('Ava') || voice.name.includes('Female'))
+        );
+      } else {
+        // 남성 음성 우선 선택
+        preferredVoice = voices.find(voice => 
+          (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
+          (voice.name.includes('Alex') || voice.name.includes('Daniel') || 
+           voice.name.includes('Aaron') || voice.name.includes('Tom') || 
+           voice.name.includes('Bruce') || voice.name.includes('Male'))
+        );
+      }
+      
+      // 선호 음성이 없으면 기본 영어 음성 사용
+      if (!preferredVoice) {
+        preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                        voices.find(voice => voice.lang === 'en-GB') ||
+                        voices.find(voice => voice.lang.startsWith('en'));
+      }
+      
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
@@ -326,16 +401,16 @@ const ArticleDetail = () => {
       utterance.onstart = () => {
         if (isPlaying) {
           setCurrentSentence(currentIndex);
-        }
+      }
       };
-
+      
       utterance.onend = () => {
         if (isPlaying) {
           currentIndex++;
           setTimeout(playNextSentence, 200);
         }
       };
-
+      
       utterance.onerror = (event) => {
         console.error('TTS Error:', event.error);
         if (isPlaying) {
@@ -343,11 +418,11 @@ const ArticleDetail = () => {
           setTimeout(playNextSentence, 100);
         }
       };
-
+      
       setCurrentUtterance(utterance);
       window.speechSynthesis.speak(utterance);
     };
-
+    
     // TTS 중지 함수 등록
     const stopTTS = () => {
       isPlaying = false;
@@ -429,7 +504,7 @@ const ArticleDetail = () => {
           ...prev,
           dragOffset: Math.max(-200, Math.min(200, offset)) // 드래그 제한
         }));
-      }
+            }
     };
 
     const handleEnd = () => {
@@ -467,7 +542,7 @@ const ArticleDetail = () => {
         e.preventDefault();
         if (swipeState.isDragging) {
           handleMove(e.touches[0].clientX);
-        }
+              }
       },
       onTouchEnd: (e) => {
         e.preventDefault();
@@ -593,44 +668,65 @@ const ArticleDetail = () => {
   };
 
   const handleSaveWord = () => {
-    // 로그인 상태 확인
-    if (!isAuthenticated) {
-      alert('단어 저장 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
-      setWordPopup({
-        open: false,
-        anchorEl: null,
-        word: '',
-        englishDefinition: '',
-        translatedDefinition: '',
-        phonetic: '',
-        partOfSpeech: '',
-        example: '',
-        audio: '',
-        isLoading: false,
-        error: null,
-        selectedWord: null
-      });
-      return;
+    // 로그인 상태 확인 (임시로 완화)
+    if (!isAuthenticated && !window.enableGuestMode) {
+      // 게스트 모드 활성화 제안
+      const enableGuest = confirm('단어 저장 기능을 테스트하려면 게스트 모드를 활성화하시겠습니까?\n\n게스트 모드에서는 브라우저 종료 시 데이터가 삭제됩니다.');
+      if (enableGuest) {
+        window.enableGuestMode = true;
+        // 임시 사용자 정보 설정
+        if (!user) {
+          window.tempUser = { id: 'guest_' + Date.now(), name: 'Guest User' };
+        }
+      } else {
+        alert('단어 저장 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
+        setWordPopup({
+          open: false,
+          anchorEl: null,
+          word: '',
+          englishDefinition: '',
+          translatedDefinition: '',
+          phonetic: '',
+          partOfSpeech: '',
+          example: '',
+          audio: '',
+          isLoading: false,
+          error: null,
+          selectedWord: null
+        });
+        return;
+      }
     }
 
-    // 영어 정의와 번역 모두 저장
+    // 현재 사용자가 보고 있는 언어의 정의를 저장
     const englishDefinition = wordPopup.englishDefinition;
     const translatedDefinition = wordPopup.translatedDefinition;
     
+    // 현재 선택된 언어에 따라 메인 정의 결정
+    const currentViewingDefinition = selectedLanguage === 'en' 
+      ? englishDefinition 
+      : translatedDefinition;
+    
+    // 보조 정의 (반대 언어의 정의)
+    const secondaryDefinition = selectedLanguage === 'en' 
+      ? null  // 영어를 보고 있으면 보조 정의는 없음
+      : englishDefinition; // 다른 언어를 보고 있으면 영어 정의를 보조로
+    
     const success = addWord(
       wordPopup.word,
-      englishDefinition, // 영어 정의를 메인으로
+      currentViewingDefinition, // 현재 보고 있는 언어의 정의를 메인으로
       articleData.id,
       articleData.title,
-      selectedLanguage !== 'en' ? translatedDefinition : null // 번역이 있을 때만 저장
+      secondaryDefinition, // 보조 정의 (영어가 아닌 경우 영어 정의 포함)
+      wordPopup.example, // 예문 추가
+      wordPopup.partOfSpeech // 품사 추가
     );
     
     if (success) {
       // 활동 시간 업데이트
       updateActivityTime && updateActivityTime();
       
-      // 단어 하이라이트 추가
-      setSavedWords(prev => new Set([...prev, wordPopup.word]));
+      console.log('💾 단어 저장:', wordPopup.word);
       
       // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
       const newHighlights = new Set([...highlightedWords, wordPopup.word]);
@@ -642,9 +738,45 @@ const ArticleDetail = () => {
         detail: { articleId: articleData.id, highlights: [...newHighlights] }
       }));
       
-      // 해당 단어에 하이라이트 클래스 추가
-      if (wordPopup.selectedWord) {
-        wordPopup.selectedWord.classList.add('highlighted-word');
+      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가
+      const allWordElements = document.querySelectorAll('.clickable-word');
+      allWordElements.forEach(element => {
+        const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
+        if (elementWord === wordPopup.word.toLowerCase()) {
+          element.classList.add('highlighted-word');
+        }
+      });
+      
+      // 토스트 메시지 표시 (언어별)
+      if (toast && toast.success) {
+        const languageNames = {
+          'en': 'English',
+          'ko': '한국어',
+          'ja': '日本語',
+          'zh': '中文',
+          'es': 'Español',
+          'fr': 'Français',
+          'de': 'Deutsch',
+          'it': 'Italiano',
+          'pt': 'Português',
+          'ru': 'Русский',
+          'ar': 'العربية',
+          'hi': 'हिन्दी',
+          'th': 'ไทย',
+          'vi': 'Tiếng Việt'
+        };
+        
+        const currentLanguageName = languageNames[selectedLanguage] || selectedLanguage;
+        const message = selectedLanguage === 'en' 
+          ? `"${wordPopup.word}" saved with English definition!`
+          : `"${wordPopup.word}" 단어가 ${currentLanguageName} 뜻으로 저장되었습니다!`;
+        
+        toast.success(message);
+      }
+    } else {
+      console.warn('단어 저장 실패');
+      if (toast && toast.error) {
+        toast.error('단어 저장에 실패했습니다.');
       }
     }
     
@@ -665,15 +797,11 @@ const ArticleDetail = () => {
   };
 
   const handleRemoveWord = (event, word) => {
+    event.preventDefault();
     event.stopPropagation();
     const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
     
-    // 하이라이트 제거
-    setSavedWords(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(cleanWord);
-      return newSet;
-    });
+    console.log('🗑️ 단어 삭제:', cleanWord);
     
     // 하이라이트된 단어 목록에서 제거하고 로컬스토리지에 저장
     const newHighlights = new Set([...highlightedWords]);
@@ -682,18 +810,28 @@ const ArticleDetail = () => {
     saveHighlights(newHighlights);
     
     // 단어장에서도 해당 단어 삭제
-    const wordToRemove = savedWords.find(w => w.word === cleanWord && w.articleId === articleData.id);
+    const wordToRemove = savedWords.find(w => w.word.toLowerCase() === cleanWord && w.articleId === articleData.id);
     if (wordToRemove) {
+      console.log('📚 단어장에서 삭제:', wordToRemove);
       removeWord(wordToRemove.id);
     }
+    
+    // 활동 시간 업데이트
+    updateActivityTime && updateActivityTime();
     
     // 같은 탭 내에서 하이라이트 변경 알림
     window.dispatchEvent(new CustomEvent('highlightUpdated', {
       detail: { articleId: articleData.id, highlights: [...newHighlights] }
     }));
     
-    // DOM에서 하이라이트 클래스 제거
-    event.target.classList.remove('highlighted-word');
+    // DOM에서 해당 단어의 모든 인스턴스에서 하이라이트 클래스 제거
+    const allWordElements = document.querySelectorAll('.clickable-word');
+    allWordElements.forEach(element => {
+      const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
+      if (elementWord === cleanWord) {
+        element.classList.remove('highlighted-word');
+      }
+    });
   };
 
   // 단어 팝업에서 언어 변경 처리
@@ -708,16 +846,16 @@ const ArticleDetail = () => {
         isLoading: true,
         error: null
       }));
-
-      try {
+    
+    try {
         const wordData = await fetchWordDefinitionAndTranslation(
           wordPopup.word, 
           newLanguage === 'en' ? 'en' : newLanguage
-        );
-
+      );
+      
         if (wordData.error) {
-          setWordPopup(prev => ({
-            ...prev,
+      setWordPopup(prev => ({
+        ...prev,
             isLoading: false,
             error: wordData.error,
             englishDefinition: `Definition not found for "${wordPopup.word}"`,
@@ -738,12 +876,12 @@ const ArticleDetail = () => {
             example: wordData.example,
             audio: wordData.audio,
             error: null
-          }));
+      }));
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error fetching word data:', error);
-        setWordPopup(prev => ({
-          ...prev,
+      setWordPopup(prev => ({
+        ...prev,
           isLoading: false,
           error: 'Failed to fetch word definition',
           englishDefinition: `Error loading definition for "${wordPopup.word}"`,
@@ -755,28 +893,79 @@ const ArticleDetail = () => {
     }
   };
 
-  // 음성 재생
+  // 음성 재생 (성별 설정 적용)
   const playWordAudio = () => {
     if (wordPopup.audio) {
+      // API에서 제공된 오디오 파일 재생
       const audio = new Audio(wordPopup.audio);
       audio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        // TTS fallback
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(wordPopup.word);
-          utterance.lang = 'en-US';
-          speechSynthesis.speak(utterance);
-        }
+        console.error('Audio playback failed, falling back to TTS:', error);
+        playWordTTS();
       });
     } else {
-      // TTS fallback
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(wordPopup.word);
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
-      }
+      // API 오디오가 없으면 TTS 사용
+      playWordTTS();
     }
   };
+
+  // 단어 TTS 재생 (성별 설정 적용)
+  const playWordTTS = () => {
+    if (!window.speechSynthesis || !wordPopup.word) {
+      console.error('❌ Speech synthesis 또는 단어가 없음');
+      return;
+    }
+
+    // 기존 재생 중지
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(wordPopup.word);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.8; // 단어는 천천히
+    utterance.volume = 1.0;
+    utterance.pitch = 1.0;
+
+    // 성별 설정에 따른 음성 선택
+    const voices = window.speechSynthesis.getVoices();
+    const voiceGender = userSettings?.voiceGender || 'female';
+    
+    let preferredVoice;
+    if (voiceGender === 'female') {
+      // 여성 음성 우선 선택
+      preferredVoice = voices.find(voice => 
+        (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
+        (voice.name.includes('Samantha') || voice.name.includes('Victoria') || 
+         voice.name.includes('Susan') || voice.name.includes('Allison') || 
+         voice.name.includes('Ava') || voice.name.includes('Female'))
+      );
+    } else {
+      // 남성 음성 우선 선택
+      preferredVoice = voices.find(voice => 
+        (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
+        (voice.name.includes('Alex') || voice.name.includes('Daniel') || 
+         voice.name.includes('Aaron') || voice.name.includes('Tom') || 
+         voice.name.includes('Bruce') || voice.name.includes('Male'))
+      );
+    }
+    
+    // 선호 음성이 없으면 기본 영어 음성 사용
+    if (!preferredVoice) {
+      preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                      voices.find(voice => voice.lang === 'en-GB') ||
+                      voices.find(voice => voice.lang.startsWith('en'));
+    }
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    utterance.onerror = (event) => {
+      console.error('TTS Error:', event.error);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+
 
   // 로딩 중이거나 기사를 찾지 못한 경우
   if (articlesLoading) {
@@ -1091,14 +1280,41 @@ const ArticleDetail = () => {
           {/* 정의/번역 표시 */}
           {!wordPopup.isLoading && !wordPopup.error && (
             <DefinitionArea>
-              <DefinitionHeader>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
-                  {selectedLanguage === 'en' ? 'Definition' : 'Translation'}
-                </Typography>
-              </DefinitionHeader>
-              <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
-                {selectedLanguage === 'en' ? wordPopup.englishDefinition : wordPopup.translatedDefinition}
-              </Typography>
+              {selectedLanguage === 'en' ? (
+                // 영어인 경우: 영영사전 정의만 표시
+                <>
+                  <DefinitionHeader>
+                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
+                      Definition
+                    </Typography>
+                  </DefinitionHeader>
+                  <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
+                    {wordPopup.englishDefinition}
+                  </Typography>
+                </>
+              ) : (
+                // 다른 언어인 경우: 단어 번역 + 영어 정의 (보조)
+                <>
+                  <DefinitionHeader>
+                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
+                      Translation
+                    </Typography>
+                  </DefinitionHeader>
+                  <Typography variant="h6" sx={{ lineHeight: 1.6, mb: 2, fontSize: '1.2rem', fontWeight: 'bold', color: '#1976d2' }}>
+                    {wordPopup.translatedDefinition}
+                  </Typography>
+                  
+                  {/* 영어 정의 (보조 정보) */}
+                  <DefinitionHeader>
+                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#666', mb: 0.5 }}>
+                      English Definition
+                    </Typography>
+                  </DefinitionHeader>
+                  <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1, color: '#666', fontSize: '0.85rem' }}>
+                    {wordPopup.englishDefinition}
+                  </Typography>
+                </>
+              )}
               
               {wordPopup.example && (
                 <ExampleText>
@@ -1243,6 +1459,63 @@ const LikeButton = styled.button`
   }
 `;
 
+const LevelTabs = styled.div`
+  display: flex;
+  gap: 0.1rem;
+`;
+
+const LevelTab = styled.button`
+  background: transparent;
+  border: none;
+  color: ${props => props.$active ? '#1976d2' : '#999'};
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: normal;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: #1976d2;
+    background: rgba(25, 118, 210, 0.08);
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const ContentCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  padding: 2rem;
+`;
+
+const WordSpan = styled.span`
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 3px;
+  padding: 1px 2px;
+  
+  ${props => props.$isHighlighted ? `
+    background-color: #fff9c4;
+    &:hover {
+      background-color: #fff59d;
+    }
+  ` : `
+    &:hover {
+      background-color: #f0f0f0;
+    }
+  `}
+`;
+
 const LevelIndicator = styled.div`
   display: flex;
   gap: 0.5rem;
@@ -1347,24 +1620,6 @@ const SentenceSpan = styled.span`
   ${props => props.$isActive && `
     border-bottom: 2px solid #1976d2;
     background-color: rgba(25, 118, 210, 0.1);
-  `}
-`;
-
-const WordSpan = styled.span`
-  cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 3px;
-  padding: 1px 2px;
-  
-  ${props => props.$isHighlighted ? `
-    background-color: #fff9c4;
-    &:hover {
-      background-color: #fff59d;
-    }
-  ` : `
-    &:hover {
-      background-color: #f0f0f0;
-    }
   `}
 `;
 

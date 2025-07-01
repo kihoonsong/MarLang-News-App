@@ -74,7 +74,7 @@ const Profile = () => {
       <MobileContentWrapper>
         <PageContainer>
           <ContentHeader>
-            <PageTitle>👤 My Profile</PageTitle>
+            {/* 빈 공간 - 심플하게 유지 */}
             <EditButton 
               variant={isEditing ? "outlined" : "contained"}
               onClick={() => setIsEditing(!isEditing)}
@@ -364,13 +364,6 @@ const ContentHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-`;
-
-const PageTitle = styled.h1`
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #1976d2;
-  margin: 0;
 `;
 
 const EditButton = styled(Button)`

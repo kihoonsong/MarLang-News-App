@@ -246,8 +246,15 @@ export const fetchWordDefinitionAndTranslation = async (word, targetLang = 'ko')
       };
     }
 
-    // Translate the definition
-    const translatedDefinition = await translateText(englishDef.definition, targetLang);
+    let translatedDefinition;
+    
+    if (targetLang === 'en') {
+      // 영어인 경우 영영사전 정의 그대로 사용
+      translatedDefinition = englishDef.definition;
+    } else {
+      // 다른 언어인 경우 단어 자체를 번역 (정의가 아닌 단어 번역)
+      translatedDefinition = await translateText(word, targetLang);
+    }
     
     // Language names mapping
     const languageNames = {
@@ -272,6 +279,7 @@ export const fetchWordDefinitionAndTranslation = async (word, targetLang = 'ko')
       partOfSpeech: englishDef.partOfSpeech,
       englishDefinition: englishDef.definition,
       translatedDefinition: translatedDefinition || 'Translation not available',
+      wordTranslation: targetLang !== 'en' ? translatedDefinition : null, // 단어 번역 추가
       example: englishDef.example,
       audio: englishDef.audio,
       synonyms: englishDef.synonyms,

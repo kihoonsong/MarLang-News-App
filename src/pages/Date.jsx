@@ -3,23 +3,15 @@ import styled from 'styled-components';
 import {
   Typography, Box, Chip, IconButton, Card, CardContent, 
   CardMedia, Select, MenuItem, FormControl, InputLabel,
-  useMediaQuery, useTheme, Grid, Badge, AppBar, Toolbar, 
-  InputBase, Tabs, Tab, Avatar, Menu, ListItemIcon, 
-  ListItemText
+  useMediaQuery, useTheme, Grid, Badge
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import SearchIcon from '@mui/icons-material/Search';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useArticles } from '../contexts/ArticlesContext';
-import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
-import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
 import ArticleCard from '../components/ArticleCard';
 
@@ -29,7 +21,6 @@ const monthNames = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
 
 // 날짜별로 기사를 그룹핑하는 함수
 const groupArticlesByDate = (articles) => {
@@ -49,16 +40,11 @@ const DatePage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, isAuthenticated, signOut } = useAuth() || {};
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentArticles, setCurrentArticles] = useState([]);
-  const [navTab, setNavTab] = useState(1); // Date 탭이 선택된 상태
-  const [searchQuery, setSearchQuery] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   // 기사 데이터 가져오기
   const { 
@@ -67,7 +53,6 @@ const DatePage = () => {
     getArticlesByDate 
   } = useArticles();
   const [articlesByDate, setArticlesByDate] = useState({});
-  
 
   // 기사 데이터가 로드되면 날짜별로 그룹핑
   useEffect(() => {
@@ -126,8 +111,6 @@ const DatePage = () => {
   const isWeekend = (dayOfWeek) => {
     return dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
   };
-  
-
 
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
@@ -204,220 +187,15 @@ const DatePage = () => {
     });
   };
 
-  // 네비게이션 바 관련 함수들
-  const handleUserMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleUserMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    signOut();
-    handleUserMenuClose();
-  };
-
-  const handleLoginClick = () => {
-    setAuthModalOpen(true);
-  };
-
   return (
     <>
       <MobileNavigation />
       <MobileContentWrapper>
-        {/* 상단바 - 데스크톱만 표시 */}
-        {!isMobile && (
-          <AppBar position="static" color="default" elevation={1}>
-            <Toolbar>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  flexGrow: 1, 
-                  fontWeight: 'bold', 
-                  color: '#23408e',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: '#1976d2'
-                  }
-                }}
-                onClick={() => navigate('/')}
-              >
-                MarLang Eng News
-              </Typography>
-              <InputBase
-                placeholder="Search articles..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && searchQuery.trim()) {
-                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                  }
-                }}
-                onClick={() => navigate('/search')}
-                startAdornment={<SearchIcon sx={{ mr: 1 }} />}
-                sx={{ background: '#f5f5f5', borderRadius: 2, px: 2, mr: 2, cursor: 'pointer' }}
-              />
-              
-              {/* 사용자 프로필 메뉴 또는 로그인 버튼 */}
-              {isAuthenticated ? (
-                <IconButton
-                  size="large"
-                  onClick={handleUserMenuOpen}
-                  color="inherit"
-                >
-                  <Avatar 
-                    src={user?.picture} 
-                    alt={user?.name}
-                    sx={{ width: 32, height: 32 }}
-                  >
-                    {!user?.picture && <AccountCircleIcon />}
-                  </Avatar>
-                </IconButton>
-              ) : (
-                <IconButton
-                  size="large"
-                  onClick={handleLoginClick}
-                  color="inherit"
-                  sx={{ 
-                    border: '1px solid #1976d2', 
-                    borderRadius: 2,
-                    padding: '6px 12px',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  <AccountCircleIcon sx={{ mr: 0.5 }} />
-                  Login
-                </IconButton>
-              )}
-              
-              {isAuthenticated && (
-                <Menu
-                  anchorEl={anchorEl}
-                  open={Boolean(anchorEl)}
-                  onClose={handleUserMenuClose}
-                  onClick={handleUserMenuClose}
-                  PaperProps={{
-                    elevation: 0,
-                    sx: {
-                      overflow: 'visible',
-                      filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                      mt: 1.5,
-                      '& .MuiAvatar-root': {
-                        width: 32,
-                        height: 32,
-                        ml: -0.5,
-                        mr: 1,
-                      },
-                      '&:before': {
-                        content: '""',
-                        display: 'block',
-                        position: 'absolute',
-                        top: 0,
-                        right: 14,
-                        width: 10,
-                        height: 10,
-                        bgcolor: 'background.paper',
-                        transform: 'translateY(-50%) rotate(45deg)',
-                        zIndex: 0,
-                      },
-                    },
-                  }}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                >
-                  <MenuItem onClick={() => navigate('/profile')}>
-                    <ListItemIcon>
-                      <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
-                        <AccountCircleIcon fontSize="small" />
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {user?.name || 'Guest User'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {user?.email || 'guest@marlang.com'}
-                      </Typography>
-                    </ListItemText>
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => navigate('/settings')}>
-                    <ListItemIcon>
-                      <SettingsIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Settings</ListItemText>
-                  </MenuItem>
-                  
-                  <MenuItem onClick={handleLogout}>
-                    <ListItemIcon>
-                      <LogoutIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Logout</ListItemText>
-                  </MenuItem>
-                </Menu>
-              )}
-            </Toolbar>
-          </AppBar>
-        )}
-        
-        {/* 네비게이션 바 - 데스크톱만 */}
-        {!isMobile && (
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-            <Tabs 
-              value={navTab} 
-              onChange={(_, v) => setNavTab(v)}
-              sx={{
-                '& .MuiTab-root': {
-                  minWidth: 'auto',
-                  padding: '12px 16px'
-                }
-              }}
-            >
-              {navigationTabs.map((nav, idx) => (
-                <Tab 
-                  key={nav} 
-                  label={nav} 
-                  onClick={() => {
-                    setNavTab(idx);
-                    switch(nav) {
-                      case 'Home':
-                        navigate('/');
-                        break;
-                      case 'Date':
-                        // 현재 페이지이므로 아무것도 하지 않음
-                        break;
-                      case 'Wordbook':
-                        navigate('/wordbook');
-                        break;
-                      case 'Like':
-                        navigate('/like');
-                        break;
-                      case 'Profile':
-                        navigate('/profile');
-                        break;
-                      case 'Dashboard':
-                        navigate('/dashboard');
-                        break;
-                      default:
-                        break;
-                    }
-                  }}
-                />
-              ))}
-            </Tabs>
-          </Box>
-        )}
-        
-
         <PageContainer>
           {/* 헤더 */}
           <Header>
             <HeaderContent>
-              <CalendarTodayIcon sx={{ mr: 1, fontSize: '1.8rem', color: '#1976d2' }} />
-              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
-                📅 News Calendar
-              </Typography>
+              {/* 빈 공간 - 심플하게 유지 */}
             </HeaderContent>
             <div>
               {/* 빈 공간 - 다른 페이지의 정렬 기능과 동일한 위치 */}
@@ -524,12 +302,6 @@ const DatePage = () => {
           )}
         </PageContainer>
       </MobileContentWrapper>
-
-      {/* 인증 모달 */}
-      <AuthModal 
-        open={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)} 
-      />
     </>
   );
 };

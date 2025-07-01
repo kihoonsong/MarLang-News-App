@@ -74,14 +74,25 @@ export const DataProvider = ({ children }) => {
       }
     };
 
-    if (user?.id) {
-      // 로그인한 사용자의 데이터 로드
-      console.log('👤 사용자별 데이터 로드:', user.name);
+    const currentUser = user || window.tempUser;
+    
+    if (currentUser?.id || window.enableGuestMode) {
+      // 로그인한 사용자 또는 게스트 모드의 데이터 로드
+      const userLabel = user?.name || 'Guest User';
+      console.log('👤 사용자별 데이터 로드:', userLabel);
       
-      const wordsKey = getUserKey('marlang_saved_words');
-      const likedKey = getUserKey('marlang_liked_articles');
-      const settingsKey = getUserKey('marlang_user_settings');
-      const viewRecordsKey = getUserKey('marlang_view_records');
+      const wordsKey = currentUser?.id 
+        ? `marlang_saved_words_${currentUser.id}`
+        : 'marlang_saved_words_guest';
+      const likedKey = currentUser?.id 
+        ? `marlang_liked_articles_${currentUser.id}`
+        : 'marlang_liked_articles_guest';
+      const settingsKey = currentUser?.id 
+        ? `marlang_user_settings_${currentUser.id}`
+        : 'marlang_user_settings_guest';
+      const viewRecordsKey = currentUser?.id 
+        ? `marlang_view_records_${currentUser.id}`
+        : 'marlang_view_records_guest';
       
       loadFromStorage(wordsKey, setSavedWords);
       loadFromStorage(likedKey, setLikedArticles);
@@ -101,22 +112,25 @@ export const DataProvider = ({ children }) => {
         lastActivityTime: new Date().toISOString()
       });
     }
-  }, [user?.id, user?.name]);
+  }, [user?.id, user?.name, window.enableGuestMode]);
 
   // 로컬 스토리지에 데이터 저장
   const saveToStorage = (key, data) => {
-    if (!key) return; // 사용자가 로그인하지 않은 경우 저장하지 않음
+    if (!key) return; // 키가 없으면 저장하지 않음
     
     try {
       localStorage.setItem(key, JSON.stringify(data));
+      console.log('💾 localStorage 저장:', key, data.length || 'object');
     } catch (error) {
       console.error(`Error saving ${key} to localStorage:`, error);
     }
   };
 
-  // 단어 추가 - 뜻과 번역을 모두 저장
-  const addWord = (word, definition, articleId, articleTitle, translation = null) => {
-    if (!user?.id) {
+  // 단어 추가 - 뜻, 번역, 예문을 모두 저장
+  const addWord = (word, definition, articleId, articleTitle, translation = null, example = null, partOfSpeech = null) => {
+    // 게스트 모드 또는 로그인 상태 확인
+    const currentUser = user || window.tempUser;
+    if (!currentUser?.id && !window.enableGuestMode) {
       console.warn('로그인이 필요합니다');
       return false;
     }
@@ -127,31 +141,47 @@ export const DataProvider = ({ children }) => {
       definition, // 영어 정의
       meaning: definition, // 호환성을 위해 meaning 필드도 추가
       translation, // 번역된 뜻 (선택사항)
+      example, // 예문 추가
+      partOfSpeech, // 품사 추가
       articleId,
       articleTitle,
       addedAt: new Date().toISOString(),
-      savedDate: new Date().toISOString() // 호환성을 위해 savedDate도 추가
+      savedDate: new Date().toISOString(), // 호환성을 위해 savedDate도 추가
+      savedAt: new Date().toISOString() // Wordbook에서 사용하는 필드
     };
     
     // 이미 존재하는 단어인지 확인
-    const exists = savedWords.some(w => w.word === newWord.word);
+    const exists = savedWords.some(w => w.word === newWord.word && w.articleId === articleId);
     if (!exists) {
       const updatedWords = [...savedWords, newWord];
       setSavedWords(updatedWords);
-      saveToStorage(getUserKey('marlang_saved_words'), updatedWords);
+      
+      // 게스트 모드일 경우 임시 키 사용
+      const storageKey = currentUser?.id 
+        ? `marlang_saved_words_${currentUser.id}`
+        : 'marlang_saved_words_guest';
+      
+      saveToStorage(storageKey, updatedWords);
+      
+      console.log('✅ 단어 저장 성공:', newWord.word, '(게스트 모드:', !!window.enableGuestMode, ')');
       return true;
     }
+    
+    console.log('⚠️ 이미 저장된 단어:', newWord.word);
     return false;
   };
 
   // 단어 삭제
   const removeWord = (wordId) => {
-    if (!user?.id) return;
+    const currentUser = user || window.tempUser;
+    if (!currentUser?.id && !window.enableGuestMode) return;
 
     // 삭제할 단어 찾기
     const wordToRemove = savedWords.find(w => w.id === wordId);
     
     if (wordToRemove) {
+      console.log('🗑️ 단어 삭제:', wordToRemove.word);
+      
       // 해당 기사의 하이라이트에서도 제거
       const highlightKey = `marlang_highlights_${wordToRemove.articleId}`;
       try {
@@ -173,7 +203,21 @@ export const DataProvider = ({ children }) => {
     
     const updatedWords = savedWords.filter(w => w.id !== wordId);
     setSavedWords(updatedWords);
-    saveToStorage(getUserKey('marlang_saved_words'), updatedWords);
+    
+    // 게스트 모드일 경우 임시 키 사용
+    const storageKey = currentUser?.id 
+      ? `marlang_saved_words_${currentUser.id}`
+      : 'marlang_saved_words_guest';
+    
+    saveToStorage(storageKey, updatedWords);
+  };
+
+  // 단어가 저장되었는지 확인
+  const isWordSaved = (word, articleId = null) => {
+    if (articleId) {
+      return savedWords.some(w => w.word.toLowerCase() === word.toLowerCase() && w.articleId === articleId);
+    }
+    return savedWords.some(w => w.word.toLowerCase() === word.toLowerCase());
   };
 
   // 기사 좋아요 토글
@@ -353,6 +397,7 @@ export const DataProvider = ({ children }) => {
     // 단어 관련 함수
     addWord,
     removeWord,
+    isWordSaved,
     sortWords,
     
     // 좋아요 관련 함수

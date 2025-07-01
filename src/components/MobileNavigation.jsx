@@ -123,9 +123,9 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
     <>
       {/* 모바일 네비게이션 */}
       {isMobile && (
-        <>
-          {/* 모바일 상단 헤더 */}
-          <MobileHeader>
+    <>
+      {/* 모바일 상단 헤더 */}
+      <MobileHeader>
             {showBackButton && (
               <IconButton 
                 color="inherit" 
@@ -136,97 +136,97 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
               </IconButton>
             )}
             
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 'bold', 
-                color: '#23408e', 
-                mr: 2,
-                cursor: 'pointer',
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontWeight: 'bold', 
+            color: '#23408e', 
+            mr: 2,
+            cursor: 'pointer',
                 flexShrink: 0,
-                '&:hover': {
-                  color: '#1976d2'
-                }
-              }}
-              onClick={() => navigate('/')}
-            >
+            '&:hover': {
+              color: '#1976d2'
+            }
+          }}
+          onClick={() => navigate('/')}
+        >
               {title || 'MarLang'}
-            </Typography>
-            
-            <SearchDropdown 
-              placeholder="Search articles..."
-              compact={true}
-              style={{ 
-                flexGrow: 1,
-                marginRight: '16px',
-                maxWidth: 'none'
-              }}
-            />
-            
-            {isAuthenticated ? (
-              <Avatar 
-                src={user?.picture} 
-                alt={user?.name}
-                sx={{ width: 32, height: 32, cursor: 'pointer' }}
-                onClick={handleAvatarClick}
-              />
-            ) : (
-              <IconButton
-                color="inherit"
-                onClick={() => setAuthModalOpen(true)}
-                sx={{ 
-                  border: '1px solid #1976d2', 
-                  borderRadius: 2,
-                  padding: '4px 8px',
-                  fontSize: '0.75rem'
-                }}
-              >
-                <PersonIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            )}
-          </MobileHeader>
+        </Typography>
+        
+        <SearchDropdown 
+          placeholder="Search articles..."
+          compact={true}
+          style={{ 
+            flexGrow: 1,
+            marginRight: '16px',
+            maxWidth: 'none'
+          }}
+        />
+        
+        {isAuthenticated ? (
+          <Avatar 
+            src={user?.picture} 
+            alt={user?.name}
+            sx={{ width: 32, height: 32, cursor: 'pointer' }}
+            onClick={handleAvatarClick}
+          />
+        ) : (
+          <IconButton
+            color="inherit"
+            onClick={() => setAuthModalOpen(true)}
+            sx={{ 
+              border: '1px solid #1976d2', 
+              borderRadius: 2,
+              padding: '4px 8px',
+              fontSize: '0.75rem'
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        )}
+      </MobileHeader>
 
-          {/* 하단 네비게이션 */}
-          <MobileBottomNav>
-            <BottomNavigation
-              value={navValue}
-              onChange={handleNavChange}
-              showLabels
-              sx={{
-                height: 80,
-                '& .MuiBottomNavigationAction-root': {
-                  minWidth: 0,
+      {/* 하단 네비게이션 */}
+      <MobileBottomNav>
+        <BottomNavigation
+          value={navValue}
+          onChange={handleNavChange}
+          showLabels
+          sx={{
+            height: 80,
+            '& .MuiBottomNavigationAction-root': {
+              minWidth: 0,
                   padding: '6px 8px 8px',
-                  '&.Mui-selected': {
-                    color: '#1976d2',
-                  }
-                }
-              }}
-            >
+              '&.Mui-selected': {
+                color: '#1976d2',
+              }
+            }
+          }}
+        >
               <BottomNavigationAction label="Home" icon={<HomeIcon />} />
               <BottomNavigationAction label="Date" icon={<CalendarTodayIcon />} />
-              <BottomNavigationAction 
-                label="Words" 
-                icon={<BookIcon />} 
-                sx={!isAuthenticated ? { opacity: 0.6 } : {}}
-              />
-              <BottomNavigationAction 
-                label="Likes" 
-                icon={<FavoriteIcon />} 
-                sx={!isAuthenticated ? { opacity: 0.6 } : {}}
-              />
-              <BottomNavigationAction 
-                label="Profile" 
-                icon={<PersonIcon />} 
-                sx={!isAuthenticated ? { opacity: 0.6 } : {}}
-              />
+          <BottomNavigationAction 
+            label="Words" 
+            icon={<BookIcon />} 
+            sx={!isAuthenticated ? { opacity: 0.6 } : {}}
+          />
+          <BottomNavigationAction 
+            label="Likes" 
+            icon={<FavoriteIcon />} 
+            sx={!isAuthenticated ? { opacity: 0.6 } : {}}
+          />
+          <BottomNavigationAction 
+            label="Profile" 
+            icon={<PersonIcon />} 
+            sx={!isAuthenticated ? { opacity: 0.6 } : {}}
+          />
               <BottomNavigationAction 
                 label="Dashboard" 
                 icon={<DashboardIcon />} 
                 sx={!isAuthenticated ? { opacity: 0.6 } : {}}
               />
-            </BottomNavigation>
-          </MobileBottomNav>
+        </BottomNavigation>
+      </MobileBottomNav>
         </>
       )}
 

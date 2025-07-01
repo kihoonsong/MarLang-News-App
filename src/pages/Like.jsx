@@ -29,11 +29,11 @@ const Like = () => {
     return likedArticles.map(likedItem => {
       const article = getArticleById(likedItem.articleId);
       if (article) {
-        return {
+      return {
           ...article,
           likedAt: likedItem.likedAt
-        };
-      }
+      };
+    }
       return null;
     }).filter(Boolean);
   };
@@ -82,13 +82,13 @@ const Like = () => {
       <MobileContentWrapper>
         <PageContainer>
           <ContentHeader>
-            <PageTitle>❤️ Liked Articles</PageTitle>
+            {/* 빈 공간 - 심플하게 유지 */}
           </ContentHeader>
-
+              
           {/* 정렬 옵션 */}
           <SortSection>
-            <Button
-              variant="outlined"
+                <Button
+                  variant="outlined"
               sx={{
                 borderColor: '#1976d2',
                 color: '#1976d2',
@@ -124,19 +124,19 @@ const Like = () => {
                 </Select>
               </FormControl>
             </Button>
-          </SortSection>
-
+              </SortSection>
+          
           {/* 기사 목록 */}
           <ArticleGrid>
-            {sortedArticles.length === 0 ? (
-              <EmptyState>
+          {sortedArticles.length === 0 ? (
+            <EmptyState>
                 <EmptyIcon>💭</EmptyIcon>
                 <EmptyText>No liked articles yet</EmptyText>
                 <EmptySubtext>Like articles while reading to save them here!</EmptySubtext>
-              </EmptyState>
-            ) : (
+            </EmptyState>
+          ) : (
               sortedArticles.map(article => (
-                <ArticleCard 
+                  <ArticleCard 
                   key={article.id} 
                   {...article} 
                   navigate={navigate}
