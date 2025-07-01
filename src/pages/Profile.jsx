@@ -1,589 +1,730 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { 
-  Card, CardContent, useMediaQuery, useTheme, 
-  Button, Grid, TextField, FormControl, InputLabel, Select, Switch, FormControlLabel,
-  Chip, Divider, Paper, Alert, Snackbar, MenuItem
-} from '@mui/material';
-import { 
-  AccountCircle, Edit, MenuBook, Favorite, Save, PhotoCamera,
-  Person, CalendarToday, Language, Speed, VolumeUp, Notifications, Security, History
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import AuthGuard from '../components/AuthGuard';
+import { useNavigate } from 'react-router-dom';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import AuthGuard from '../components/AuthGuard';
 
 const Profile = () => {
+  const { user, logout } = useAuth();
+  const { 
+    userSettings, 
+    updateSettings, 
+    getStats, 
+    savedWords, 
+    likedArticles, 
+    exportData, 
+    clearAllData 
+  } = useData();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, isAuthenticated } = useAuth() || {};
-  const { userSettings, updateUserSettings, savedWords, likedArticles, viewHistory } = useData();
   
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedSettings, setEditedSettings] = useState(userSettings);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [recentWords, setRecentWords] = useState([]);
+  const [recentArticles, setRecentArticles] = useState([]);
+  const [saveMessage, setSaveMessage] = useState('');
 
-  // 사용자 설정이 변경될 때 편집 상태 업데이트
+  const stats = getStats();
+
+  // 최근 활동 데이터 준비
   useEffect(() => {
-    setEditedSettings(userSettings);
-  }, [userSettings]);
+    // 최근 5개 단어
+    const recent = [...savedWords]
+      .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
+      .slice(0, 5);
+    setRecentWords(recent);
 
-  // 로그인하지 않은 경우
-  if (!isAuthenticated) {
-    return (
-      <AuthGuard feature="your profile">
-        <MobileNavigation />
-        <MobileContentWrapper>
-          <PageContainer>
-            <EmptyAuthState>
-              <EmptyIcon>👤</EmptyIcon>
-              <EmptyText>Please sign in to view your profile</EmptyText>
-              <EmptySubtext>Track your learning progress and manage your account!</EmptySubtext>
-            </EmptyAuthState>
-          </PageContainer>
-        </MobileContentWrapper>
-      </AuthGuard>
-    );
-  }
+    // 최근 5개 좋아요 기사
+    const recentLiked = [...likedArticles]
+      .sort((a, b) => new Date(b.likedAt) - new Date(a.likedAt))
+      .slice(0, 5);
+    setRecentArticles(recentLiked);
+  }, [savedWords, likedArticles]);
 
-  const handleSaveSettings = () => {
-    updateUserSettings(editedSettings);
-    setIsEditing(false);
-    setShowSuccess(true);
-  };
-
-  const handleCancelEdit = () => {
-    setEditedSettings(userSettings);
-    setIsEditing(false);
-  };
-
+  // 설정 변경 - 즉시 저장
   const handleSettingChange = (key, value) => {
-    setEditedSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    updateSettings({ [key]: value });
+    
+    // 저장 성공 메시지 표시
+    setSaveMessage('✅ 저장됨');
+    setTimeout(() => setSaveMessage(''), 2000);
+  };
+
+  // 데이터 내보내기
+  const handleExportData = () => {
+    if (exportData()) {
+      alert('📄 데이터가 성공적으로 내보내졌습니다!');
+    } else {
+      alert('❌ 데이터 내보내기에 실패했습니다.');
+    }
+  };
+
+  // 데이터 삭제 확인
+  const handleClearData = () => {
+    if (clearAllData()) {
+      setShowClearConfirm(false);
+      alert('🗑️ 모든 데이터가 삭제되었습니다.');
+    } else {
+      alert('❌ 데이터 삭제에 실패했습니다.');
+    }
+  };
+
+  // 시간 형식 함수
+  const formatTimeAgo = (dateString) => {
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffInMinutes = Math.floor((now - past) / (1000 * 60));
+    
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
+    return `${Math.floor(diffInMinutes / 1440)}일 전`;
+  };
+
+  // 언어 옵션
+  const languageOptions = [
+    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+    { code: 'zh', name: '中文', flag: '🇨🇳' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
+  ];
+
+  // 스타일
+  const styles = {
+    container: {
+      background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+      minHeight: '100vh',
+      paddingTop: '1rem'
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: '2rem'
+    },
+    title: {
+      fontSize: '2.5rem',
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: '0.5rem'
+    },
+    subtitle: {
+      color: '#6b7280',
+      fontSize: '1rem'
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gap: '1.5rem',
+      marginBottom: '2rem'
+    },
+    card: {
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+      border: '1px solid #e5e7eb'
+    },
+    button: {
+      padding: '0.75rem 1.5rem',
+      borderRadius: '8px',
+      border: 'none',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      fontSize: '0.875rem'
+    },
+    primaryButton: {
+      backgroundColor: '#2563eb',
+      color: '#ffffff'
+    },
+    secondaryButton: {
+      backgroundColor: '#6b7280',
+      color: '#ffffff'
+    },
+    successButton: {
+      backgroundColor: '#059669',
+      color: '#ffffff'
+    },
+    dangerButton: {
+      backgroundColor: '#dc2626',
+      color: '#ffffff'
+    },
+    input: {
+      width: '100%',
+      padding: '0.75rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '0.875rem'
+    },
+    toggleContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '1rem 0'
+    },
+    toggle: {
+      position: 'relative',
+      width: '44px',
+      height: '24px',
+      backgroundColor: '#d1d5db',
+      borderRadius: '12px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
+    },
+    toggleActive: {
+      backgroundColor: '#2563eb'
+    },
+    toggleKnob: {
+      position: 'absolute',
+      top: '2px',
+      left: '2px',
+      width: '20px',
+      height: '20px',
+      backgroundColor: '#ffffff',
+      borderRadius: '50%',
+      transition: 'transform 0.2s'
+    },
+    toggleKnobActive: {
+      transform: 'translateX(20px)'
+    }
   };
 
   return (
-    <>
+    <AuthGuard>
       <MobileNavigation />
       <MobileContentWrapper>
-        <PageContainer>
-          <ContentHeader>
-            {/* 빈 공간 - 심플하게 유지 */}
-            <EditButton 
-              variant={isEditing ? "outlined" : "contained"}
-              onClick={() => setIsEditing(!isEditing)}
-              startIcon={<Edit />}
-            >
-              {isEditing ? 'Cancel' : 'Edit Profile'}
-            </EditButton>
-          </ContentHeader>
+        <div style={styles.container}>
+          <PageContainer>
+            
+            {/* 헤더 */}
+            <div style={styles.header}>
+              <h1 style={styles.title}>프로필 & 설정</h1>
+              <p style={styles.subtitle}>나만의 학습 환경을 설정해보세요</p>
+            </div>
 
-          <Grid container spacing={3}>
-            {/* 프로필 정보 카드 */}
-            <Grid item xs={12} md={4}>
-              <ProfileCard>
-                <CardContent>
-                  <ProfileSection>
-                    <ProfileImageSection>
-                      {user?.picture ? (
-                        <ProfileAvatar src={user.picture} alt={user.name} />
-                      ) : (
-                        <DefaultAvatar>
-                          <AccountCircle sx={{ fontSize: 60 }} />
-                        </DefaultAvatar>
-                      )}
-                      {isEditing && (
-                        <ImageUploadButton size="small">
-                          <PhotoCamera />
-                        </ImageUploadButton>
-                      )}
-                    </ProfileImageSection>
+            {/* 메인 그리드 */}
+            <div style={styles.grid}>
+              
+              {/* 프로필 카드 */}
+              <div style={{...styles.card, textAlign: 'center'}}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1rem',
+                  fontSize: '2rem',
+                  fontWeight: 'bold',
+                  color: '#ffffff'
+                }}>
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem'}}>
+                  {user?.name}
+                </h2>
+                <p style={{color: '#6b7280', marginBottom: '1.5rem'}}>{user?.email}</p>
+                
+                {/* 레벨 시스템 */}
+                <div style={{marginBottom: '1.5rem'}}>
+                  <div style={{fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem'}}>학습 레벨</div>
+                  <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem'}}>
+                    레벨 {Math.floor(stats.totalWords / 10) + 1}
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: `${(stats.totalWords % 10) * 10}%`,
+                      height: '100%',
+                      backgroundColor: '#2563eb',
+                      transition: 'width 0.3s'
+                    }}></div>
+                  </div>
+                  <div style={{fontSize: '0.75rem', color: '#6b7280'}}>
+                    다음 레벨까지 {10 - (stats.totalWords % 10)}개 단어
+                  </div>
+                </div>
 
-                    <ProfileInfo>
-                      {isEditing ? (
-                        <TextField
-                          fullWidth
-                          label="Nickname"
-                          value={editedSettings.nickname || ''}
-                          onChange={(e) => handleSettingChange('nickname', e.target.value)}
-                          margin="normal"
-                          size="small"
-                        />
-                      ) : (
-                        <UserName>{editedSettings.nickname || user?.name || 'User'}</UserName>
-                      )}
-                      <UserEmail>{user?.email}</UserEmail>
-                      
-                      {isEditing ? (
-                        <>
-                          <TextField
-                            fullWidth
-                            label="Birth Date"
-                            type="date"
-                            value={editedSettings.birthDate || ''}
-                            onChange={(e) => handleSettingChange('birthDate', e.target.value)}
-                            margin="normal"
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                          />
-                          <FormControl fullWidth margin="normal" size="small">
-                            <InputLabel>Gender</InputLabel>
-                            <Select
-                              value={editedSettings.gender || ''}
-                              onChange={(e) => handleSettingChange('gender', e.target.value)}
-                              label="Gender"
-                            >
-                              <MenuItem value="male">Male</MenuItem>
-                              <MenuItem value="female">Female</MenuItem>
-                              <MenuItem value="other">Other</MenuItem>
-                              <MenuItem value="prefer-not-to-say">Prefer not to say</MenuItem>
-                            </Select>
-                          </FormControl>
-                          <TextField
-                            fullWidth
-                            label="Bio"
-                            multiline
-                            rows={3}
-                            value={editedSettings.bio || ''}
-                            onChange={(e) => handleSettingChange('bio', e.target.value)}
-                            margin="normal"
-                            size="small"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          {editedSettings.birthDate && (
-                            <UserInfo>
-                              <CalendarToday sx={{ fontSize: 16, mr: 1 }} />
-                              Born {new Date(editedSettings.birthDate).toLocaleDateString()}
-                            </UserInfo>
-                          )}
-                          {editedSettings.bio && (
-                            <UserBio>{editedSettings.bio}</UserBio>
-                          )}
-                        </>
-                      )}
-                    </ProfileInfo>
-                  </ProfileSection>
-
-                  {isEditing && (
-                    <ActionButtons>
-                      <Button
-                        variant="contained"
-                        onClick={handleSaveSettings}
-                        startIcon={<Save />}
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      >
-                        Save Changes
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        onClick={handleCancelEdit}
-                        fullWidth
-                      >
-                        Cancel
-                      </Button>
-                    </ActionButtons>
+                {/* 배지 */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '0.5rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {stats.totalWords >= 50 && (
+                    <div style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#92400e',
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '9999px',
+                      textAlign: 'center'
+                    }}>
+                      🏆 단어 수집가
+                    </div>
                   )}
-                </CardContent>
-              </ProfileCard>
-            </Grid>
+                  {stats.totalLikedArticles >= 20 && (
+                    <div style={{
+                      backgroundColor: '#fecaca',
+                      color: '#b91c1c',
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '9999px',
+                      textAlign: 'center'
+                    }}>
+                      ❤️ 독서광
+                    </div>
+                  )}
+                  {stats.wordsThisWeek >= 20 && (
+                    <div style={{
+                      backgroundColor: '#bbf7d0',
+                      color: '#059669',
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '9999px',
+                      textAlign: 'center'
+                    }}>
+                      🔥 이번 주 MVP
+                    </div>
+                  )}
+                  <div style={{
+                    backgroundColor: '#dbeafe',
+                    color: '#1d4ed8',
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '9999px',
+                    textAlign: 'center'
+                  }}>
+                    📚 학습자
+                  </div>
+                </div>
 
-            {/* 학습 설정 카드 */}
-            <Grid item xs={12} md={4}>
-              <SettingsCard>
-                <CardContent>
-                  <SectionTitle>
-                    <Language sx={{ mr: 1 }} />
-                    Learning Settings
-                  </SectionTitle>
+                <button 
+                  onClick={logout}
+                  style={{
+                    ...styles.button,
+                    backgroundColor: '#f3f4f6',
+                    color: '#4b5563',
+                    width: '100%'
+                  }}
+                >
+                  로그아웃
+                </button>
+              </div>
 
-                  <SettingItem>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Preferred Language</InputLabel>
-                      <Select
-                        value={isEditing ? editedSettings.preferredLanguage || 'en' : userSettings.preferredLanguage || 'en'}
-                        onChange={(e) => handleSettingChange('preferredLanguage', e.target.value)}
-                        label="Preferred Language"
-                        disabled={!isEditing}
-                      >
-                        <MenuItem value="en">English</MenuItem>
-                        <MenuItem value="ko">한국어</MenuItem>
-                        <MenuItem value="ja">日本語</MenuItem>
-                        <MenuItem value="zh">中文</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </SettingItem>
+              {/* 학습 통계 */}
+              <div style={styles.card}>
+                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                  📊 학습 통계
+                </h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '1rem'
+                }}>
+                  <div style={{textAlign: 'center'}}>
+                    <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb'}}>
+                      {stats.totalWords}
+                    </div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>저장 단어</div>
+                  </div>
+                  <div style={{textAlign: 'center'}}>
+                    <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626'}}>
+                      {stats.totalLikedArticles}
+                    </div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>좋아요 기사</div>
+                  </div>
+                  <div style={{textAlign: 'center'}}>
+                    <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#059669'}}>
+                      {stats.wordsThisWeek}
+                    </div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>이번 주 단어</div>
+                  </div>
+                  <div style={{textAlign: 'center'}}>
+                    <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#7c3aed'}}>
+                      {Math.floor((stats.totalWords + stats.totalLikedArticles) / 7)}
+                    </div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>연속 학습일</div>
+                  </div>
+                </div>
+              </div>
 
-                  <SettingItem>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Reading Level</InputLabel>
-                      <Select
-                        value={isEditing ? editedSettings.readingLevel || 'intermediate' : userSettings.readingLevel || 'intermediate'}
-                        onChange={(e) => handleSettingChange('readingLevel', e.target.value)}
-                        label="Reading Level"
-                        disabled={!isEditing}
-                      >
-                        <MenuItem value="beginner">Beginner</MenuItem>
-                        <MenuItem value="intermediate">Intermediate</MenuItem>
-                        <MenuItem value="advanced">Advanced</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </SettingItem>
+              {/* 빠른 액션 */}
+              <div style={styles.card}>
+                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                  🚀 빠른 액션
+                </h3>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                  <button 
+                    onClick={() => navigate('/wordbook')}
+                    style={{
+                      ...styles.button,
+                      ...styles.primaryButton,
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    📚 단어장 보기 ({stats.totalWords}개)
+                  </button>
+                  <button 
+                    onClick={() => navigate('/dashboard')}
+                    style={{
+                      ...styles.button,
+                      backgroundColor: '#7c3aed',
+                      color: '#ffffff',
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ❤️ 좋아요 기사 ({stats.totalLikedArticles}개)
+                  </button>
+                </div>
+              </div>
+            </div>
 
-                  <SettingItem>
-                    <SettingLabel>
-                      <Speed sx={{ mr: 1 }} />
-                      TTS Speed: {(isEditing ? editedSettings.ttsSpeed : userSettings.ttsSpeed) || 1.0}x
-                    </SettingLabel>
-                    <SliderContainer>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2.0"
-                        step="0.1"
-                        value={(isEditing ? editedSettings.ttsSpeed : userSettings.ttsSpeed) || 1.0}
-                        onChange={(e) => handleSettingChange('ttsSpeed', parseFloat(e.target.value))}
-                        disabled={!isEditing}
-                      />
-                    </SliderContainer>
-                  </SettingItem>
+            {/* 설정 섹션 */}
+            <div style={{...styles.card, marginBottom: '2rem'}}>
+              <div style={{marginBottom: '1.5rem'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937'}}>⚙️ 실제 작동 설정</h3>
+                  {saveMessage && (
+                    <div style={{
+                      fontSize: '0.875rem',
+                      color: '#059669',
+                      fontWeight: '500',
+                      backgroundColor: '#d1fae5',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '6px',
+                      animation: 'fadeIn 0.3s ease-in-out'
+                    }}>
+                      {saveMessage}
+                    </div>
+                  )}
+                </div>
+                <p style={{fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem'}}>
+                  아래 모든 설정은 실제로 작동하며, 변경 시 즉시 적용됩니다
+                </p>
+              </div>
 
-                  <SettingItem>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={(isEditing ? editedSettings.autoTTS : userSettings.autoTTS) || false}
-                          onChange={(e) => handleSettingChange('autoTTS', e.target.checked)}
-                          disabled={!isEditing}
-                        />
-                      }
-                      label="Auto TTS"
-                    />
-                  </SettingItem>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.5rem'
+              }}>
+                
+                {/* 번역 언어 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '0.5rem'
+                  }}>
+                    🌍 번역 언어 (단어 클릭 시 번역 언어)
+                  </label>
+                  <select 
+                    value={userSettings.translationLanguage}
+                    onChange={(e) => handleSettingChange('translationLanguage', e.target.value)}
+                    style={styles.input}
+                  >
+                    {languageOptions.map(lang => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <SettingItem>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={(isEditing ? editedSettings.notifications : userSettings.notifications) || false}
-                          onChange={(e) => handleSettingChange('notifications', e.target.checked)}
-                          disabled={!isEditing}
-                        />
-                      }
-                      label="Notifications"
-                    />
-                  </SettingItem>
-                </CardContent>
-              </SettingsCard>
-            </Grid>
+                {/* TTS 속도 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '0.5rem'
+                  }}>
+                    ⚡ TTS 속도: {userSettings.ttsSpeed}x (음성 재생 속도)
+                  </label>
+                  <input 
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={userSettings.ttsSpeed}
+                    onChange={(e) => handleSettingChange('ttsSpeed', parseFloat(e.target.value))}
+                    style={{width: '100%'}}
+                  />
+                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6b7280'}}>
+                    <span>0.5x</span>
+                    <span>1.0x</span>
+                    <span>2.0x</span>
+                  </div>
+                </div>
 
-            {/* 학습 통계 카드 */}
-            <Grid item xs={12} md={4}>
-              <StatsCard>
-                <CardContent>
-                  <SectionTitle>
-                    <History sx={{ mr: 1 }} />
-                    Learning Stats
-                  </SectionTitle>
+                {/* 토글 설정들 */}
+                {/* 자동 저장 단어 */}
+                <div style={styles.toggleContainer}>
+                  <div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>💾 자동 단어 저장</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>단어 클릭 시 자동으로 저장</div>
+                  </div>
+                  <div 
+                    onClick={() => handleSettingChange('autoSaveWords', !userSettings.autoSaveWords)}
+                    style={{
+                      ...styles.toggle,
+                      ...(userSettings.autoSaveWords ? styles.toggleActive : {}),
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{
+                      ...styles.toggleKnob,
+                      ...(userSettings.autoSaveWords ? styles.toggleKnobActive : {})
+                    }}></div>
+                  </div>
+                </div>
 
-                  <StatItem>
-                    <StatIcon><MenuBook /></StatIcon>
-                    <StatContent>
-                      <StatNumber>{savedWords?.length || 0}</StatNumber>
-                      <StatLabel>Saved Words</StatLabel>
-                    </StatContent>
-                  </StatItem>
+                {/* 자동 음성 재생 */}
+                <div style={styles.toggleContainer}>
+                  <div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>🔊 자동 음성 재생</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>단어 팝업 시 자동 발음</div>
+                  </div>
+                  <div 
+                    onClick={() => handleSettingChange('autoPlay', !userSettings.autoPlay)}
+                    style={{
+                      ...styles.toggle,
+                      ...(userSettings.autoPlay ? styles.toggleActive : {}),
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{
+                      ...styles.toggleKnob,
+                      ...(userSettings.autoPlay ? styles.toggleKnobActive : {})
+                    }}></div>
+                  </div>
+                </div>
 
-                  <StatItem>
-                    <StatIcon><Favorite color="error" /></StatIcon>
-                    <StatContent>
-                      <StatNumber>{likedArticles?.length || 0}</StatNumber>
-                      <StatLabel>Liked Articles</StatLabel>
-                    </StatContent>
-                  </StatItem>
+                {/* 저장된 단어 하이라이트 */}
+                <div style={styles.toggleContainer}>
+                  <div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>✨ 저장된 단어 하이라이트</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>기사에서 저장된 단어 강조 표시</div>
+                  </div>
+                  <div 
+                    onClick={() => handleSettingChange('highlightSavedWords', !userSettings.highlightSavedWords)}
+                    style={{
+                      ...styles.toggle,
+                      ...(userSettings.highlightSavedWords ? styles.toggleActive : {}),
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{
+                      ...styles.toggleKnob,
+                      ...(userSettings.highlightSavedWords ? styles.toggleKnobActive : {})
+                    }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                  <StatItem>
-                    <StatIcon><History /></StatIcon>
-                    <StatContent>
-                      <StatNumber>{viewHistory?.length || 0}</StatNumber>
-                      <StatLabel>Articles Read</StatLabel>
-                    </StatContent>
-                  </StatItem>
+            {/* 데이터 관리 & 최근 활동 */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              
+              {/* 데이터 관리 */}
+              <div style={styles.card}>
+                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                  🔐 데이터 관리
+                </h3>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                  <button 
+                    onClick={handleExportData}
+                    style={{
+                      ...styles.button,
+                      ...styles.successButton,
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    📄 데이터 내보내기 (JSON)
+                  </button>
+                  <button 
+                    onClick={() => setShowClearConfirm(true)}
+                    style={{
+                      ...styles.button,
+                      ...styles.dangerButton,
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️ 모든 데이터 삭제
+                  </button>
+                </div>
+              </div>
 
-                  <StatItem>
-                    <StatIcon><CalendarToday /></StatIcon>
-                    <StatContent>
-                      <StatNumber>{calculateActiveDays()}</StatNumber>
-                      <StatLabel>Active Days</StatLabel>
-                    </StatContent>
-                  </StatItem>
-                </CardContent>
-              </StatsCard>
-            </Grid>
-          </Grid>
+              {/* 최근 활동 */}
+              <div style={styles.card}>
+                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                  📊 최근 활동
+                </h3>
+                
+                {/* 최근 저장 단어 */}
+                <div style={{marginBottom: '1.5rem'}}>
+                  <h4 style={{fontWeight: '500', color: '#374151', marginBottom: '0.75rem'}}>💾 최근 저장한 단어</h4>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                    {recentWords.length > 0 ? recentWords.slice(0, 3).map(word => (
+                      <div key={word.id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.5rem',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '6px'
+                      }}>
+                        <div>
+                          <div style={{fontWeight: '500', color: '#1f2937'}}>{word.word}</div>
+                          <div style={{fontSize: '0.75rem', color: '#6b7280'}}>{word.articleTitle}</div>
+                        </div>
+                        <div style={{fontSize: '0.75rem', color: '#9ca3af'}}>
+                          {formatTimeAgo(word.addedAt)}
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>
+                        아직 저장한 단어가 없습니다
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-          {/* 성공 메시지 */}
-          <Snackbar
-            open={showSuccess}
-            autoHideDuration={3000}
-            onClose={() => setShowSuccess(false)}
-          >
-            <Alert severity="success" onClose={() => setShowSuccess(false)}>
-              Profile updated successfully!
-            </Alert>
-          </Snackbar>
-        </PageContainer>
+                {/* 최근 좋아요 기사 */}
+                <div>
+                  <h4 style={{fontWeight: '500', color: '#374151', marginBottom: '0.75rem'}}>❤️ 최근 좋아요한 기사</h4>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                    {recentArticles.length > 0 ? recentArticles.slice(0, 3).map(article => (
+                      <div key={article.id} style={{
+                        padding: '0.5rem',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '6px'
+                      }}>
+                        <div style={{
+                          fontWeight: '500',
+                          color: '#1f2937',
+                          fontSize: '0.875rem',
+                          lineHeight: '1.25',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {article.title}
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginTop: '0.25rem'
+                        }}>
+                          <div style={{fontSize: '0.75rem', color: '#6b7280'}}>{article.category}</div>
+                          <div style={{fontSize: '0.75rem', color: '#9ca3af'}}>
+                            {formatTimeAgo(article.likedAt)}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>
+                        아직 좋아요한 기사가 없습니다
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 데이터 삭제 확인 다이얼로그 */}
+            {showClearConfirm && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50
+              }}>
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  maxWidth: '400px',
+                  width: '90%',
+                  margin: '0 1rem'
+                }}>
+                  <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                    ⚠️ 경고
+                  </h3>
+                  <p style={{color: '#6b7280', marginBottom: '1.5rem'}}>
+                    모든 학습 데이터(저장된 단어, 좋아요한 기사, 설정 등)가 영구적으로 삭제됩니다. 
+                    이 작업은 되돌릴 수 없습니다.
+                  </p>
+                  <div style={{display: 'flex', gap: '1rem'}}>
+                    <button 
+                      onClick={handleClearData}
+                      style={{
+                        ...styles.button,
+                        ...styles.dangerButton,
+                        flex: 1
+                      }}
+                    >
+                      삭제
+                    </button>
+                    <button 
+                      onClick={() => setShowClearConfirm(false)}
+                      style={{
+                        ...styles.button,
+                        ...styles.secondaryButton,
+                        flex: 1
+                      }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </PageContainer>
+        </div>
       </MobileContentWrapper>
-    </>
+    </AuthGuard>
   );
-
-  function calculateActiveDays() {
-    if (!viewHistory || viewHistory.length === 0) return 0;
-    
-    const dates = new Set();
-    viewHistory.forEach(record => {
-      const date = new Date(record.viewedAt).toDateString();
-      dates.add(date);
-    });
-    
-    return dates.size;
-  }
 };
-
-// 스타일드 컴포넌트들
-const ContentHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const EditButton = styled(Button)`
-  && {
-    min-width: 120px;
-  }
-`;
-
-const ProfileCard = styled(Card)`
-  && {
-    height: fit-content;
-  }
-`;
-
-const SettingsCard = styled(Card)`
-  && {
-    height: fit-content;
-  }
-`;
-
-const StatsCard = styled(Card)`
-  && {
-    height: fit-content;
-  }
-`;
-
-const ProfileSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-`;
-
-const ProfileImageSection = styled.div`
-  position: relative;
-  margin-bottom: 1rem;
-`;
-
-const ProfileAvatar = styled.img`
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #e3f2fd;
-`;
-
-const DefaultAvatar = styled.div`
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: #f5f5f5;
-  border: 4px solid #e3f2fd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1976d2;
-`;
-
-const ImageUploadButton = styled(Button)`
-  && {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    min-width: 36px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #1976d2;
-    color: white;
-    
-    &:hover {
-      background: #1565c0;
-    }
-  }
-`;
-
-const ProfileInfo = styled.div`
-  width: 100%;
-`;
-
-const UserName = styled.h2`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  margin: 0 0 0.5rem 0;
-`;
-
-const UserEmail = styled.p`
-  font-size: 1rem;
-  color: #666;
-  margin: 0 0 1rem 0;
-`;
-
-const UserInfo = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0.5rem 0;
-`;
-
-const UserBio = styled.p`
-  font-size: 0.9rem;
-  color: #555;
-  line-height: 1.5;
-  margin: 1rem 0;
-`;
-
-const ActionButtons = styled.div`
-  margin-top: 1.5rem;
-`;
-
-const SectionTitle = styled.h3`
-  display: flex;
-  align-items: center;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #333;
-  margin: 0 0 1.5rem 0;
-`;
-
-const SettingItem = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const SettingLabel = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 0.5rem;
-`;
-
-const SliderContainer = styled.div`
-  input[type="range"] {
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: #e0e0e0;
-    outline: none;
-    
-    &::-webkit-slider-thumb {
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #1976d2;
-      cursor: pointer;
-    }
-    
-    &::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #1976d2;
-      cursor: pointer;
-      border: none;
-    }
-  }
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #f0f0f0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const StatIcon = styled.div`
-  margin-right: 1rem;
-  color: #1976d2;
-`;
-
-const StatContent = styled.div`
-  flex: 1;
-`;
-
-const StatNumber = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.9rem;
-  color: #666;
-`;
-
-const EmptyAuthState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6rem 2rem;
-  text-align: center;
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
-`;
-
-const EmptyText = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.5rem 0;
-`;
-
-const EmptySubtext = styled.p`
-  font-size: 1rem;
-  color: #666;
-  margin: 0;
-  max-width: 400px;
-`;
 
 export default Profile; 

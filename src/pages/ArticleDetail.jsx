@@ -115,7 +115,14 @@ const ArticleDetail = () => {
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
   const [currentSentence, setCurrentSentence] = useState(0);
   const [currentUtterance, setCurrentUtterance] = useState(null);
-  const [ttsSpeed, setTtsSpeed] = useState(1.0);
+  const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
+
+  // userSettings 변경 시 TTS 속도 업데이트
+  useEffect(() => {
+    if (userSettings?.ttsSpeed) {
+      setTtsSpeed(userSettings.ttsSpeed);
+    }
+  }, [userSettings?.ttsSpeed]);
 
   // 스와이프 상태 추가
   const [swipeState, setSwipeState] = useState({
@@ -253,7 +260,8 @@ const ArticleDetail = () => {
       clickableWords.forEach(element => {
         const word = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
         if (word && word.length > 2) {
-          if (highlightedWords.has(word)) {
+          // highlightSavedWords 설정이 켜져 있을 때만 하이라이트 적용
+          if ((userSettings?.highlightSavedWords !== false) && highlightedWords.has(word)) {
             element.classList.add('highlighted-word');
           } else {
             element.classList.remove('highlighted-word');
@@ -263,7 +271,7 @@ const ArticleDetail = () => {
       
       console.log('🎨 DOM 하이라이트 업데이트:', highlightedWords.size, '개 단어');
     }
-  }, [highlightedWords, articleData?.id]);
+  }, [highlightedWords, articleData?.id, userSettings?.highlightSavedWords]);
 
   // 하이라이트된 단어들을 로컬스토리지에 저장
   const saveHighlights = (highlights) => {
@@ -352,35 +360,11 @@ const ArticleDetail = () => {
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
       
-      // 성별 설정에 따른 음성 선택
+      // 기본 영어 음성 선택
       const voices = window.speechSynthesis.getVoices();
-      const voiceGender = userSettings?.voiceGender || 'female';
-      
-      let preferredVoice;
-      if (voiceGender === 'female') {
-        // 여성 음성 우선 선택
-        preferredVoice = voices.find(voice => 
-          (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
-          (voice.name.includes('Samantha') || voice.name.includes('Victoria') || 
-           voice.name.includes('Susan') || voice.name.includes('Allison') || 
-           voice.name.includes('Ava') || voice.name.includes('Female'))
-        );
-      } else {
-        // 남성 음성 우선 선택
-        preferredVoice = voices.find(voice => 
-          (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
-          (voice.name.includes('Alex') || voice.name.includes('Daniel') || 
-           voice.name.includes('Aaron') || voice.name.includes('Tom') || 
-           voice.name.includes('Bruce') || voice.name.includes('Male'))
-        );
-      }
-      
-      // 선호 음성이 없으면 기본 영어 음성 사용
-      if (!preferredVoice) {
-        preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                        voices.find(voice => voice.lang === 'en-GB') ||
-                        voices.find(voice => voice.lang.startsWith('en'));
-      }
+      const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                           voices.find(voice => voice.lang === 'en-GB') ||
+                           voices.find(voice => voice.lang.startsWith('en'));
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
@@ -684,6 +668,37 @@ const ArticleDetail = () => {
             audio: wordData.audio,
             error: null
           }));
+
+          // 자동 저장 설정이 켜져 있으면 자동으로 저장
+          if (userSettings?.autoSaveWords !== false) {
+            await autoSaveWord(cleanWord, wordData);
+          }
+
+          // 자동 재생 설정이 켜져 있으면 자동으로 발음 재생
+          if (userSettings?.autoPlay && wordData.audio) {
+            setTimeout(() => {
+              try {
+                const audio = new Audio(wordData.audio);
+                audio.volume = 0.7;
+                audio.play().catch(e => {
+                  console.log('Auto-play failed, using TTS:', e);
+                  // API 오디오 실패 시 TTS로 폴백
+                  const utterance = new SpeechSynthesisUtterance(cleanWord);
+                  utterance.lang = 'en-US';
+                  utterance.rate = userSettings?.ttsSpeed || 0.8;
+                  
+                  const voices = window.speechSynthesis.getVoices();
+                  const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                                       voices.find(voice => voice.lang.startsWith('en'));
+                  
+                  if (preferredVoice) utterance.voice = preferredVoice;
+                  window.speechSynthesis.speak(utterance);
+                });
+              } catch (error) {
+                console.log('Auto-play audio failed:', error);
+              }
+            }, 500); // 팝업이 완전히 열린 후 재생
+          }
         }
       } catch (error) {
         console.error('Error fetching word data:', error);
@@ -696,6 +711,76 @@ const ArticleDetail = () => {
             ? `Error loading definition for "${cleanWord}"`
             : `"${cleanWord}"의 정의를 불러오는데 실패했습니다.`
         }));
+      }
+    }
+  };
+
+  // 자동 단어 저장 함수
+  const autoSaveWord = async (cleanWord, wordData) => {
+    // 로그인 상태 확인 (임시로 완화)
+    if (!isAuthenticated && !window.enableGuestMode) {
+      return; // 자동 저장은 조용히 실패
+    }
+
+    // 이미 저장된 단어인지 확인
+    if (isWordSaved && isWordSaved(cleanWord, articleData.id)) {
+      return; // 이미 저장된 경우 저장하지 않음
+    }
+
+    // 현재 사용자가 보고 있는 언어의 정의를 저장
+    const englishDefinition = wordData.englishDefinition;
+    const translatedDefinition = wordData.translatedDefinition;
+    
+    // 현재 선택된 언어에 따라 메인 정의 결정
+    const currentViewingDefinition = selectedLanguage === 'en' 
+      ? englishDefinition 
+      : translatedDefinition;
+    
+    // 보조 정의 (반대 언어의 정의)
+    const secondaryDefinition = selectedLanguage === 'en' 
+      ? null  // 영어를 보고 있으면 보조 정의는 없음
+      : englishDefinition; // 다른 언어를 보고 있으면 영어 정의를 보조로
+    
+    const success = addWord(
+      cleanWord,
+      currentViewingDefinition, // 현재 보고 있는 언어의 정의를 메인으로
+      articleData.id,
+      articleData.title,
+      secondaryDefinition, // 보조 정의 (영어가 아닌 경우 영어 정의 포함)
+      wordData.example, // 예문 추가
+      wordData.partOfSpeech // 품사 추가
+    );
+    
+    if (success) {
+      // 활동 시간 업데이트
+      updateActivityTime && updateActivityTime();
+      
+      console.log('🔄 자동 저장:', cleanWord);
+      
+      // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
+      const newHighlights = new Set([...highlightedWords, cleanWord]);
+      setHighlightedWords(newHighlights);
+      saveHighlights(newHighlights);
+      
+      // 같은 탭 내에서 하이라이트 변경 알림
+      window.dispatchEvent(new CustomEvent('highlightUpdated', {
+        detail: { articleId: articleData.id, highlights: [...newHighlights] }
+      }));
+      
+      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가 (설정이 켜져 있을 때만)
+      if (userSettings?.highlightSavedWords !== false) {
+        const allWordElements = document.querySelectorAll('.clickable-word');
+        allWordElements.forEach(element => {
+          const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
+          if (elementWord === cleanWord.toLowerCase()) {
+            element.classList.add('highlighted-word');
+          }
+        });
+      }
+      
+      // 조용한 토스트 메시지 (자동 저장이므로 덜 눈에 띄게)
+      if (toast && toast.info) {
+        toast.info(`"${cleanWord}" auto-saved`, { autoClose: 2000 });
       }
     }
   };
@@ -771,14 +856,16 @@ const ArticleDetail = () => {
         detail: { articleId: articleData.id, highlights: [...newHighlights] }
       }));
       
-      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가
-      const allWordElements = document.querySelectorAll('.clickable-word');
-      allWordElements.forEach(element => {
-        const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
-        if (elementWord === wordPopup.word.toLowerCase()) {
-          element.classList.add('highlighted-word');
-        }
-      });
+      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가 (설정이 켜져 있을 때만)
+      if (userSettings?.highlightSavedWords !== false) {
+        const allWordElements = document.querySelectorAll('.clickable-word');
+        allWordElements.forEach(element => {
+          const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
+          if (elementWord === wordPopup.word.toLowerCase()) {
+            element.classList.add('highlighted-word');
+          }
+        });
+      }
       
       // 토스트 메시지 표시 (언어별)
       if (toast && toast.success) {
@@ -957,35 +1044,11 @@ const ArticleDetail = () => {
     utterance.volume = 1.0;
     utterance.pitch = 1.0;
 
-    // 성별 설정에 따른 음성 선택
+    // 기본 영어 음성 선택
     const voices = window.speechSynthesis.getVoices();
-    const voiceGender = userSettings?.voiceGender || 'female';
-    
-    let preferredVoice;
-    if (voiceGender === 'female') {
-      // 여성 음성 우선 선택
-      preferredVoice = voices.find(voice => 
-        (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
-        (voice.name.includes('Samantha') || voice.name.includes('Victoria') || 
-         voice.name.includes('Susan') || voice.name.includes('Allison') || 
-         voice.name.includes('Ava') || voice.name.includes('Female'))
-      );
-    } else {
-      // 남성 음성 우선 선택
-      preferredVoice = voices.find(voice => 
-        (voice.lang === 'en-US' || voice.lang === 'en-GB' || voice.lang.startsWith('en')) &&
-        (voice.name.includes('Alex') || voice.name.includes('Daniel') || 
-         voice.name.includes('Aaron') || voice.name.includes('Tom') || 
-         voice.name.includes('Bruce') || voice.name.includes('Male'))
-      );
-    }
-    
-    // 선호 음성이 없으면 기본 영어 음성 사용
-    if (!preferredVoice) {
-      preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                      voices.find(voice => voice.lang === 'en-GB') ||
-                      voices.find(voice => voice.lang.startsWith('en'));
-    }
+    const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
+                         voices.find(voice => voice.lang === 'en-GB') ||
+                         voices.find(voice => voice.lang.startsWith('en'));
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
@@ -1132,7 +1195,7 @@ const ArticleDetail = () => {
                         >
                           {sentence.trim().split(' ').map((word, wordIdx) => {
                             const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
-                            const isHighlighted = highlightedWords.has(cleanWord);
+                                                          const isHighlighted = (userSettings?.highlightSavedWords !== false) && highlightedWords.has(cleanWord);
                             
                             return (
                               <WordSpan 

@@ -47,8 +47,10 @@ export const DataProvider = ({ children }) => {
   const [userSettings, setUserSettings] = useState({
     language: 'en',
     translationLanguage: 'ko', // 번역 대상 언어 (기본: 한국어)
-    ttsSpeed: 0.8,
-    voiceGender: 'female', // TTS 음성 성별 (기본: 여성)
+    ttsSpeed: 0.8, // TTS 속도 (실제 작동)
+    autoSaveWords: true, // 자동 단어 저장 (실제 작동)
+    autoPlay: false, // TTS 자동 재생 (실제 작동) 
+    highlightSavedWords: true, // 저장된 단어 하이라이트 (실제 작동)
     lastVisited: new Date().toISOString(),
     lastActivityTime: new Date().toISOString()
   });
@@ -109,7 +111,9 @@ export const DataProvider = ({ children }) => {
         language: 'en',
         translationLanguage: 'ko',
         ttsSpeed: 0.8,
-        voiceGender: 'female',
+        autoSaveWords: true,
+        autoPlay: false,
+        highlightSavedWords: true,
         lastVisited: new Date().toISOString(),
         lastActivityTime: new Date().toISOString()
       });
@@ -404,6 +408,85 @@ export const DataProvider = ({ children }) => {
     };
   };
 
+  // 데이터 내보내기 (JSON)
+  const exportData = () => {
+    if (!user?.id) return null;
+    
+    const exportData = {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      },
+      savedWords,
+      likedArticles,
+      userSettings,
+      viewRecords,
+      exportedAt: new Date().toISOString(),
+      version: '1.0'
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `marlang_data_${user.name}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    return true;
+  };
+
+  // 모든 데이터 삭제
+  const clearAllData = () => {
+    if (!user?.id) return false;
+    
+    try {
+      // 상태 초기화
+      setSavedWords([]);
+      setLikedArticles([]);
+      setViewRecords([]);
+      setUserSettings({
+        language: 'en',
+        translationLanguage: 'ko',
+        ttsSpeed: 0.8,
+        autoSaveWords: true,
+        autoPlay: false,
+        highlightSavedWords: true,
+        lastVisited: new Date().toISOString(),
+        lastActivityTime: new Date().toISOString()
+      });
+      
+      // localStorage에서 모든 사용자 데이터 삭제
+      const keysToRemove = [
+        `marlang_saved_words_${user.id}`,
+        `marlang_liked_articles_${user.id}`,
+        `marlang_user_settings_${user.id}`,
+        `marlang_view_records_${user.id}`
+      ];
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // 하이라이트 데이터도 삭제 (패턴 매칭으로)
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('marlang_highlights_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      console.log('🗑️ 모든 데이터 삭제 완료');
+      return true;
+    } catch (error) {
+      console.error('데이터 삭제 중 오류:', error);
+      return false;
+    }
+  };
+
   const value = {
     // 상태
     savedWords,
@@ -437,7 +520,13 @@ export const DataProvider = ({ children }) => {
     updateSettings,
     
     // 통계 함수
-    getStats
+    getStats,
+
+    // 데이터 내보내기 (JSON)
+    exportData,
+
+    // 모든 데이터 삭제
+    clearAllData
   };
 
   return (
