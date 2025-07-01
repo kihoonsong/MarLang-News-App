@@ -75,19 +75,26 @@ const BlogStyleDashboard = () => {
 
   // 카테고리 관리 상태
   const [categoryDialog, setCategoryDialog] = useState(false);
-  const [editableCategories, setEditableCategories] = useState(() => {
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [allEditableCategories, setAllEditableCategories] = useState(() => {
     const saved = localStorage.getItem('marlang_categories');
     if (saved) {
       try {
         const categories = JSON.parse(saved);
-        return categories.filter(cat => cat.type === 'category').map(cat => cat.name);
+        return categories;
       } catch {
-        return homeCategories.filter(cat => cat.type === 'category').map(cat => cat.name);
+        return homeCategories;
       }
     }
-    return homeCategories.filter(cat => cat.type === 'category').map(cat => cat.name);
+    return homeCategories;
   });
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // 편집 가능한 카테고리 목록 (기존 호환성 유지)
+  const editableCategories = allEditableCategories
+    .filter(cat => cat.type === 'category')
+    .map(cat => cat.name);
 
   // 회원 관리 상태
   const [memberDialog, setMemberDialog] = useState(false);
@@ -244,19 +251,8 @@ const BlogStyleDashboard = () => {
 
   // 카테고리 변경사항을 로컬스토리지에 저장하고 홈페이지에 알림
   const updateCategoriesAndNotify = (newCategories) => {
-    setEditableCategories(newCategories);
-    
-    const fullCategories = [
-      { id: 'recent', name: 'Recent', type: 'recent' },
-      ...newCategories.map((name, index) => ({
-        id: name.toLowerCase().replace(/\s+/g, ''),
-        name: name,
-        type: 'category'
-      })),
-      { id: 'popular', name: 'Popular', type: 'popular' }
-    ];
-    
-    localStorage.setItem('marlang_categories', JSON.stringify(fullCategories));
+    setAllEditableCategories(newCategories);
+    localStorage.setItem('marlang_categories', JSON.stringify(newCategories));
     window.dispatchEvent(new CustomEvent('categoriesUpdated'));
   };
 
@@ -282,8 +278,7 @@ const BlogStyleDashboard = () => {
       if (saved) {
         try {
           const categories = JSON.parse(saved);
-          const categoryNames = categories.filter(cat => cat.type === 'category').map(cat => cat.name);
-          setEditableCategories(categoryNames);
+          setAllEditableCategories(categories);
         } catch (e) {
           console.error('Failed to parse categories:', e);
         }
@@ -643,37 +638,55 @@ const BlogStyleDashboard = () => {
       return;
     }
 
-    if (editableCategories.includes(newCategoryName)) {
+    if (allEditableCategories.some(cat => cat.name === newCategoryName.trim())) {
       setSnackbar({ open: true, message: '이미 존재하는 카테고리입니다.', severity: 'warning' });
       return;
     }
 
-    const newCategories = [...editableCategories, newCategoryName];
-    updateCategoriesAndNotify(newCategories);
+    const newCategory = {
+      id: newCategoryName.trim().toLowerCase().replace(/\s+/g, ''),
+      name: newCategoryName.trim(),
+      type: 'category'
+    };
+
+    const updatedCategories = [...allEditableCategories, newCategory];
+    updateCategoriesAndNotify(updatedCategories);
     setSnackbar({ open: true, message: `"${newCategoryName}" 카테고리가 추가되었습니다! 홈페이지에 반영됩니다.`, severity: 'success' });
     setNewCategoryName('');
+    setCategoryDialog(false);
   };
 
-  // 카테고리 삭제
-  const handleDeleteCategory = (categoryName) => {
+  // 카테고리 삭제 (최신/인기 탭은 삭제 불가)
+  const handleDeleteCategory = (categoryId) => {
+    const category = allEditableCategories.find(cat => cat.id === categoryId);
+    
+    if (category.type === 'recent' || category.type === 'popular') {
+      setSnackbar({ 
+        open: true, 
+        message: '최신/인기 탭은 삭제할 수 없습니다.', 
+        severity: 'warning' 
+      });
+      return;
+    }
+
     const updatedArticles = allArticles.map(article =>
-      article.category === categoryName ? { ...article, category: 'Technology' } : article
+      article.category === category.name ? { ...article, category: 'Technology' } : article
     );
     updateArticles(updatedArticles);
     
-    const newCategories = editableCategories.filter(cat => cat !== categoryName);
+    const newCategories = allEditableCategories.filter(cat => cat.id !== categoryId);
     updateCategoriesAndNotify(newCategories);
     setSnackbar({ 
       open: true, 
-      message: `"${categoryName}" 카테고리가 삭제되고 기사들이 Technology로 이동되었습니다. 홈페이지에 반영됩니다.`, 
+      message: `"${category.name}" 카테고리가 삭제되고 기사들이 Technology로 이동되었습니다. 홈페이지에 반영됩니다.`, 
       severity: 'info' 
     });
   };
 
-  // 카테고리 순서 변경
+  // 전체 카테고리 순서 변경
   const moveCategoryUp = (index) => {
     if (index > 0) {
-      const newOrder = [...editableCategories];
+      const newOrder = [...allEditableCategories];
       [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
       updateCategoriesAndNotify(newOrder);
       setSnackbar({ open: true, message: '카테고리 순서가 변경되었습니다! 홈페이지에 반영됩니다.', severity: 'success' });
@@ -681,12 +694,62 @@ const BlogStyleDashboard = () => {
   };
 
   const moveCategoryDown = (index) => {
-    if (index < editableCategories.length - 1) {
-      const newOrder = [...editableCategories];
+    if (index < allEditableCategories.length - 1) {
+      const newOrder = [...allEditableCategories];
       [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
       updateCategoriesAndNotify(newOrder);
       setSnackbar({ open: true, message: '카테고리 순서가 변경되었습니다! 홈페이지에 반영됩니다.', severity: 'success' });
     }
+  };
+
+  // 카테고리 이름 편집
+  const handleEditCategoryName = (index) => {
+    setEditingCategoryIndex(index);
+    setEditingCategoryName(allEditableCategories[index].name);
+  };
+
+  const handleSaveCategoryName = () => {
+    if (!editingCategoryName.trim()) {
+      setSnackbar({ open: true, message: '카테고리 이름을 입력해주세요.', severity: 'error' });
+      return;
+    }
+
+    if (allEditableCategories.some((cat, index) => 
+      cat.name === editingCategoryName.trim() && index !== editingCategoryIndex
+    )) {
+      setSnackbar({ open: true, message: '이미 존재하는 카테고리 이름입니다.', severity: 'warning' });
+      return;
+    }
+
+    const updatedCategories = [...allEditableCategories];
+    const oldName = updatedCategories[editingCategoryIndex].name;
+    
+    // 카테고리 이름 업데이트
+    updatedCategories[editingCategoryIndex] = {
+      ...updatedCategories[editingCategoryIndex],
+      name: editingCategoryName.trim(),
+      id: editingCategoryName.trim().toLowerCase().replace(/\s+/g, '')
+    };
+
+    // 해당 카테고리를 사용하는 기사들도 업데이트
+    const updatedArticles = allArticles.map(article =>
+      article.category === oldName ? { ...article, category: editingCategoryName.trim() } : article
+    );
+    updateArticles(updatedArticles);
+
+    updateCategoriesAndNotify(updatedCategories);
+    setEditingCategoryIndex(null);
+    setEditingCategoryName('');
+    setSnackbar({ 
+      open: true, 
+      message: `카테고리 이름이 "${oldName}"에서 "${editingCategoryName.trim()}"으로 변경되었습니다!`, 
+      severity: 'success' 
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategoryIndex(null);
+    setEditingCategoryName('');
   };
 
   // 회원 추가
@@ -1096,7 +1159,7 @@ const BlogStyleDashboard = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight="bold">
-          🏷️ 카테고리 관리
+          🏷️ 카테고리 관리 (전체 순서 포함)
         </Typography>
         <Button
           variant="contained"
@@ -1108,29 +1171,74 @@ const BlogStyleDashboard = () => {
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        💡 카테고리 순서는 홈페이지 네비게이션에 바로 반영됩니다. 화살표 버튼으로 순서를 조정하세요.
+        💡 모든 카테고리(최신, 인기 포함)의 순서를 조정할 수 있습니다. 순서는 홈페이지 네비게이션에 바로 반영됩니다.
       </Alert>
 
       <Grid container spacing={2}>
-        {editableCategories.map((category, index) => {
-          const articleCount = allArticles.filter(a => a.category === category).length;
+        {allEditableCategories.map((category, index) => {
+          const articleCount = category.type === 'category' 
+            ? allArticles.filter(a => a.category === category.name).length
+            : category.type === 'recent' 
+              ? allArticles.length
+              : category.type === 'popular'
+                ? allArticles.filter(a => (a.likes || 0) > 10).length
+                : 0;
+          
+          const isEditing = editingCategoryIndex === index;
+          
           return (
-            <Grid item xs={12} sm={6} md={4} key={category}>
+            <Grid item xs={12} sm={6} md={4} key={category.id}>
               <CategoryManagementCard>
                 <Box sx={{ p: 2 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                    <Box display="flex" alignItems="center">
+                    <Box display="flex" alignItems="center" sx={{ flex: 1 }}>
                       <DragIndicator sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="h6" fontWeight="bold">{category}</Typography>
+                      
+                      {isEditing ? (
+                        <TextField
+                          size="small"
+                          value={editingCategoryName}
+                          onChange={(e) => setEditingCategoryName(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSaveCategoryName()}
+                          sx={{ mr: 1, flex: 1 }}
+                          autoFocus
+                        />
+                      ) : (
+                        <Typography variant="h6" fontWeight="bold" sx={{ flex: 1 }}>
+                          {category.name}
+                        </Typography>
+                      )}
                     </Box>
-                    <Chip label={`#${index + 1}`} size="small" color="primary" />
+                    
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Chip 
+                        label={`#${index + 1}`} 
+                        size="small" 
+                        color="primary" 
+                      />
+                      <Chip 
+                        label={
+                          category.type === 'recent' ? '최신' :
+                          category.type === 'popular' ? '인기' :
+                          category.type === 'category' ? '카테고리' : '기타'
+                        }
+                        size="small"
+                        color={
+                          category.type === 'recent' ? 'success' :
+                          category.type === 'popular' ? 'warning' :
+                          'default'
+                        }
+                      />
+                    </Box>
                   </Box>
                   
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     📚 {articleCount}개 기사
+                    {category.type === 'recent' && ' (전체 최신)'}
+                    {category.type === 'popular' && ' (좋아요 10+)'}
                   </Typography>
                   
-                  <Box display="flex" justifyContent="space-between">
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Box>
                       <Tooltip title="위로 이동">
                         <IconButton
@@ -1145,19 +1253,63 @@ const BlogStyleDashboard = () => {
                         <IconButton
                           size="small"
                           onClick={() => moveCategoryDown(index)}
-                          disabled={index === editableCategories.length - 1}
+                          disabled={index === allEditableCategories.length - 1}
                         >
                           <ArrowDownward />
                         </IconButton>
                       </Tooltip>
                     </Box>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleDeleteCategory(category)}
-                    >
-                      <Delete />
-                    </IconButton>
+                    
+                    <Box>
+                      {isEditing ? (
+                        <>
+                          <Tooltip title="저장">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={handleSaveCategoryName}
+                            >
+                              <Save />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="취소">
+                            <IconButton
+                              size="small"
+                              color="default"
+                              onClick={handleCancelEdit}
+                            >
+                              <Cancel />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          {category.type === 'category' && (
+                            <Tooltip title="이름 편집">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditCategoryName(index)}
+                              >
+                                <Edit />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title={category.type === 'category' ? '삭제' : '기본 탭은 삭제할 수 없습니다'}>
+                            <span>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleDeleteCategory(category.id)}
+                                disabled={category.type !== 'category'}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
               </CategoryManagementCard>
