@@ -252,11 +252,6 @@ const Home = () => {
                 <CategoryHeader>
                   <CategoryTitle>
                     {category.name}
-                    <Chip 
-                      label={`${allNewsData[category.id]?.length || 0} articles`} 
-                      size="small" 
-                      sx={{ ml: 2 }} 
-                    />
                   </CategoryTitle>
                 </CategoryHeader>
                 
