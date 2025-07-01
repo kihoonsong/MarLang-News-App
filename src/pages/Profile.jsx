@@ -69,6 +69,143 @@ const Profile = () => {
     { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
   ];
 
+  // 다국어 텍스트
+  const translations = {
+    ko: {
+      profileSettings: '프로필 & 설정',
+      personalizeEnvironment: '나만의 학습 환경을 설정해보세요',
+      admin: '👑 관리자',
+      user: '👤 일반 사용자',
+      learningLevel: '학습 레벨',
+      level: '레벨',
+      nextLevel: '다음 레벨까지',
+      words: '개 단어',
+      wordCollector: '🏆 단어 수집가',
+      bookworm: '❤️ 독서광',
+      weekMVP: '🔥 이번 주 MVP',
+      learner: '📚 학습자',
+      logout: '로그아웃',
+      learningStats: '📊 학습 통계',
+      savedWords: '저장 단어',
+      likedArticles: '좋아요 기사',
+      thisWeekWords: '이번 주 단어',
+      streakDays: '연속 학습일',
+      quickActions: '🚀 빠른 액션',
+      viewWordbook: '📚 단어장 보기',
+      viewLikedArticles: '❤️ 좋아요 기사',
+      adminDashboard: '🔧 관리자 대시보드',
+      settings: '⚙️ 설정',
+      saved: '✅ 저장됨',
+      interfaceLanguage: '🌐 인터페이스 언어',
+      interfaceLanguageDesc: '앱 화면 표시 언어',
+      translationLanguage: '🌍 번역 언어',
+      translationLanguageDesc: '단어 클릭 시 번역 언어',
+      ttsSpeed: '⚡ TTS 속도',
+      ttsSpeedDesc: '음성 재생 속도',
+      autoSaveWords: '💾 자동 단어 저장',
+      autoSaveWordsDesc: '단어 클릭 시 자동으로 저장',
+      autoAudioPlay: '🔊 자동 음성 재생',
+      autoAudioPlayDesc: '단어 팝업 시 자동 발음',
+      highlightWords: '✨ 저장된 단어 하이라이트',
+      highlightWordsDesc: '기사에서 저장된 단어 강조 표시',
+      recentActivity: '📊 최근 활동',
+      recentSavedWords: '💾 최근 저장한 단어',
+      recentLikedArticles: '❤️ 최근 좋아요한 기사',
+      noSavedWords: '아직 저장한 단어가 없습니다',
+      noLikedArticles: '아직 좋아요한 기사가 없습니다'
+    },
+    en: {
+      profileSettings: 'Profile & Settings',
+      personalizeEnvironment: 'Customize your learning environment',
+      admin: '👑 Admin',
+      user: '👤 User',
+      learningLevel: 'Learning Level',
+      level: 'Level',
+      nextLevel: 'words to next level',
+      words: ' words',
+      wordCollector: '🏆 Word Collector',
+      bookworm: '❤️ Bookworm',
+      weekMVP: '🔥 Week MVP',
+      learner: '📚 Learner',
+      logout: 'Logout',
+      learningStats: '📊 Learning Stats',
+      savedWords: 'Saved Words',
+      likedArticles: 'Liked Articles',
+      thisWeekWords: 'This Week Words',
+      streakDays: 'Streak Days',
+      quickActions: '🚀 Quick Actions',
+      viewWordbook: '📚 View Wordbook',
+      viewLikedArticles: '❤️ Liked Articles',
+      adminDashboard: '🔧 Admin Dashboard',
+      settings: '⚙️ Settings',
+      saved: '✅ Saved',
+      interfaceLanguage: '🌐 Interface Language',
+      interfaceLanguageDesc: 'App display language',
+      translationLanguage: '🌍 Translation Language',
+      translationLanguageDesc: 'Language for word translation',
+      ttsSpeed: '⚡ TTS Speed',
+      ttsSpeedDesc: 'Text-to-speech playback speed',
+      autoSaveWords: '💾 Auto Save Words',
+      autoSaveWordsDesc: 'Automatically save clicked words',
+      autoAudioPlay: '🔊 Auto Audio Play',
+      autoAudioPlayDesc: 'Auto pronunciation on word popup',
+      highlightWords: '✨ Highlight Saved Words',
+      highlightWordsDesc: 'Highlight saved words in articles',
+      recentActivity: '📊 Recent Activity',
+      recentSavedWords: '💾 Recently Saved Words',
+      recentLikedArticles: '❤️ Recently Liked Articles',
+      noSavedWords: 'No saved words yet',
+      noLikedArticles: 'No liked articles yet'
+    },
+    ja: {
+      profileSettings: 'プロフィール & 設定',
+      personalizeEnvironment: '学習環境をカスタマイズしましょう',
+      admin: '👑 管理者',
+      user: '👤 ユーザー',
+      learningLevel: '学習レベル',
+      level: 'レベル',
+      nextLevel: '次のレベルまで',
+      words: '個の単語',
+      wordCollector: '🏆 単語コレクター',
+      bookworm: '❤️ 読書家',
+      weekMVP: '🔥 今週のMVP',
+      learner: '📚 学習者',
+      logout: 'ログアウト',
+      learningStats: '📊 学習統計',
+      savedWords: '保存した単語',
+      likedArticles: 'いいねした記事',
+      thisWeekWords: '今週の単語',
+      streakDays: '連続学習日',
+      quickActions: '🚀 クイックアクション',
+      viewWordbook: '📚 単語帳を見る',
+      viewLikedArticles: '❤️ いいねした記事',
+      adminDashboard: '🔧 管理者ダッシュボード',
+      settings: '⚙️ 設定',
+      saved: '✅ 保存済み',
+      interfaceLanguage: '🌐 インターフェース言語',
+      interfaceLanguageDesc: 'アプリ表示言語',
+      translationLanguage: '🌍 翻訳言語',
+      translationLanguageDesc: '単語クリック時の翻訳言語',
+      ttsSpeed: '⚡ TTS速度',
+      ttsSpeedDesc: '音声再生速度',
+      autoSaveWords: '💾 自動単語保存',
+      autoSaveWordsDesc: '単語クリック時に自動保存',
+      autoAudioPlay: '🔊 自動音声再生',
+      autoAudioPlayDesc: '単語ポップアップ時の自動発音',
+      highlightWords: '✨ 保存単語のハイライト',
+      highlightWordsDesc: '記事内の保存単語を強調表示',
+      recentActivity: '📊 最近のアクティビティ',
+      recentSavedWords: '💾 最近保存した単語',
+      recentLikedArticles: '❤️ 最近いいねした記事',
+      noSavedWords: 'まだ保存した単語がありません',
+      noLikedArticles: 'まだいいねした記事がありません'
+    }
+  };
+
+  // 현재 언어 (기본값: 한국어)
+  const currentLanguage = userSettings.language || 'ko';
+  const t = translations[currentLanguage] || translations.ko;
+
   // 스타일
   const styles = {
     container: {
@@ -165,8 +302,8 @@ const Profile = () => {
             
             {/* 헤더 */}
             <div style={styles.header}>
-              <h1 style={styles.title}>프로필 & 설정</h1>
-              <p style={styles.subtitle}>나만의 학습 환경을 설정해보세요</p>
+              <h1 style={styles.title}>{t.profileSettings}</h1>
+              <p style={styles.subtitle}>{t.personalizeEnvironment}</p>
             </div>
 
             {/* 메인 그리드 */}
@@ -205,14 +342,14 @@ const Profile = () => {
                   color: isAdmin ? '#92400e' : '#1d4ed8',
                   marginBottom: '1.5rem'
                 }}>
-                  {isAdmin ? '👑 관리자' : '👤 일반 사용자'}
+                  {isAdmin ? t.admin : t.user}
                 </div>
                 
                 {/* 레벨 시스템 */}
                 <div style={{marginBottom: '1.5rem'}}>
-                  <div style={{fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem'}}>학습 레벨</div>
+                  <div style={{fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem'}}>{t.learningLevel}</div>
                   <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb', marginBottom: '0.5rem'}}>
-                    레벨 {Math.floor(stats.totalWords / 10) + 1}
+                    {t.level} {Math.floor(stats.totalWords / 10) + 1}
                   </div>
                   <div style={{
                     width: '100%',
@@ -230,7 +367,7 @@ const Profile = () => {
                     }}></div>
                   </div>
                   <div style={{fontSize: '0.75rem', color: '#6b7280'}}>
-                    다음 레벨까지 {10 - (stats.totalWords % 10)}개 단어
+                    {t.nextLevel} {10 - (stats.totalWords % 10)}{t.words}
                   </div>
                 </div>
 
@@ -250,7 +387,7 @@ const Profile = () => {
                       borderRadius: '9999px',
                       textAlign: 'center'
                     }}>
-                      🏆 단어 수집가
+                      {t.wordCollector}
                     </div>
                   )}
                   {stats.totalLikedArticles >= 20 && (
@@ -262,7 +399,7 @@ const Profile = () => {
                       borderRadius: '9999px',
                       textAlign: 'center'
                     }}>
-                      ❤️ 독서광
+                      {t.bookworm}
                     </div>
                   )}
                   {stats.wordsThisWeek >= 20 && (
@@ -274,7 +411,7 @@ const Profile = () => {
                       borderRadius: '9999px',
                       textAlign: 'center'
                     }}>
-                      🔥 이번 주 MVP
+                      {t.weekMVP}
                     </div>
                   )}
                   <div style={{
@@ -285,7 +422,7 @@ const Profile = () => {
                     borderRadius: '9999px',
                     textAlign: 'center'
                   }}>
-                    📚 학습자
+                    {t.learner}
                   </div>
                 </div>
 
@@ -298,14 +435,14 @@ const Profile = () => {
                     width: '100%'
                   }}
                 >
-                  로그아웃
+                  {t.logout}
                 </button>
               </div>
 
               {/* 학습 통계 */}
               <div style={styles.card}>
                 <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                  📊 학습 통계
+                  {t.learningStats}
                 </h3>
                 <div style={{
                   display: 'grid',
@@ -316,25 +453,25 @@ const Profile = () => {
                     <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#2563eb'}}>
                       {stats.totalWords}
                     </div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>저장 단어</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.savedWords}</div>
                   </div>
                   <div style={{textAlign: 'center'}}>
                     <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626'}}>
                       {stats.totalLikedArticles}
                     </div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>좋아요 기사</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.likedArticles}</div>
                   </div>
                   <div style={{textAlign: 'center'}}>
                     <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#059669'}}>
                       {stats.wordsThisWeek}
                     </div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>이번 주 단어</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.thisWeekWords}</div>
                   </div>
                   <div style={{textAlign: 'center'}}>
                     <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: '#7c3aed'}}>
                       {Math.floor((stats.totalWords + stats.totalLikedArticles) / 7)}
                     </div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>연속 학습일</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.streakDays}</div>
                   </div>
                 </div>
               </div>
@@ -342,7 +479,7 @@ const Profile = () => {
               {/* 빠른 액션 */}
               <div style={styles.card}>
                 <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                  🚀 빠른 액션
+                  {t.quickActions}
                 </h3>
                 <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                   <button 
@@ -356,7 +493,7 @@ const Profile = () => {
                       justifyContent: 'center'
                     }}
                   >
-                    📚 단어장 보기 ({stats.totalWords}개)
+                    {t.viewWordbook} ({stats.totalWords}개)
                   </button>
                   <button 
                     onClick={() => navigate('/like')}
@@ -370,7 +507,7 @@ const Profile = () => {
                       justifyContent: 'center'
                     }}
                   >
-                    ❤️ 좋아요 기사 ({stats.totalLikedArticles}개)
+                    {t.viewLikedArticles} ({stats.totalLikedArticles}개)
                   </button>
                   
                   {/* 관리자만 볼 수 있는 대시보드 버튼 */}
@@ -389,7 +526,7 @@ const Profile = () => {
                         boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)'
                       }}
                     >
-                      🔧 관리자 대시보드 
+                      {t.adminDashboard}
                     </button>
                   )}
                 </div>
@@ -400,7 +537,7 @@ const Profile = () => {
             <div style={{...styles.card, marginBottom: '2rem'}}>
               <div style={{marginBottom: '1.5rem'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937'}}>⚙️ 실제 작동 설정</h3>
+                  <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937'}}>{t.settings}</h3>
                   {saveMessage && (
                     <div style={{
                       fontSize: '0.875rem',
@@ -411,13 +548,10 @@ const Profile = () => {
                       borderRadius: '6px',
                       animation: 'fadeIn 0.3s ease-in-out'
                     }}>
-                      {saveMessage}
+                      {t.saved}
                     </div>
                   )}
                 </div>
-                <p style={{fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem'}}>
-                  아래 모든 설정은 실제로 작동하며, 변경 시 즉시 적용됩니다
-                </p>
               </div>
 
               <div style={{
@@ -425,6 +559,33 @@ const Profile = () => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: '1.5rem'
               }}>
+                
+                {/* 인터페이스 언어 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {t.interfaceLanguage}
+                  </label>
+                  <div style={{fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem'}}>
+                    {t.interfaceLanguageDesc}
+                  </div>
+                  <select 
+                    value={userSettings.language || 'ko'}
+                    onChange={(e) => handleSettingChange('language', e.target.value)}
+                    style={styles.input}
+                  >
+                    {languageOptions.slice(0, 3).map(lang => ( // 한국어, 영어, 일본어만 지원
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 
                 {/* 번역 언어 */}
                 <div>
@@ -435,8 +596,11 @@ const Profile = () => {
                     color: '#374151',
                     marginBottom: '0.5rem'
                   }}>
-                    🌍 번역 언어 (단어 클릭 시 번역 언어)
-                    </label>
+                    {t.translationLanguage}
+                  </label>
+                  <div style={{fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem'}}>
+                    {t.translationLanguageDesc}
+                  </div>
                   <select 
                     value={userSettings.translationLanguage}
                     onChange={(e) => handleSettingChange('translationLanguage', e.target.value)}
@@ -459,8 +623,11 @@ const Profile = () => {
                     color: '#374151',
                     marginBottom: '0.5rem'
                   }}>
-                    ⚡ TTS 속도: {userSettings.ttsSpeed}x (음성 재생 속도)
+                    {t.ttsSpeed}: {userSettings.ttsSpeed}x
                   </label>
+                  <div style={{fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem'}}>
+                    {t.ttsSpeedDesc}
+                  </div>
                   <input
                     type="range"
                     min="0.5"
@@ -480,8 +647,8 @@ const Profile = () => {
                 {/* 자동 저장 단어 */}
                 <div style={styles.toggleContainer}>
                   <div>
-                    <div style={{fontWeight: '500', color: '#374151'}}>💾 자동 단어 저장</div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>단어 클릭 시 자동으로 저장</div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>{t.autoSaveWords}</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.autoSaveWordsDesc}</div>
                   </div>
                   <div 
                     onClick={() => handleSettingChange('autoSaveWords', !userSettings.autoSaveWords)}
@@ -501,8 +668,8 @@ const Profile = () => {
                 {/* 자동 음성 재생 */}
                 <div style={styles.toggleContainer}>
                   <div>
-                    <div style={{fontWeight: '500', color: '#374151'}}>🔊 자동 음성 재생</div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>단어 팝업 시 자동 발음</div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>{t.autoAudioPlay}</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.autoAudioPlayDesc}</div>
                   </div>
                   <div 
                     onClick={() => handleSettingChange('autoPlay', !userSettings.autoPlay)}
@@ -522,8 +689,8 @@ const Profile = () => {
                 {/* 저장된 단어 하이라이트 */}
                 <div style={styles.toggleContainer}>
                   <div>
-                    <div style={{fontWeight: '500', color: '#374151'}}>✨ 저장된 단어 하이라이트</div>
-                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>기사에서 저장된 단어 강조 표시</div>
+                    <div style={{fontWeight: '500', color: '#374151'}}>{t.highlightWords}</div>
+                    <div style={{fontSize: '0.875rem', color: '#6b7280'}}>{t.highlightWordsDesc}</div>
                   </div>
                   <div 
                     onClick={() => handleSettingChange('highlightSavedWords', !userSettings.highlightSavedWords)}
@@ -545,7 +712,7 @@ const Profile = () => {
             {/* 최근 활동 - 전체 너비로 확장 */}
             <div style={{...styles.card, marginBottom: '2rem'}}>
               <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                📊 최근 활동
+                {t.recentActivity}
               </h3>
               
               {/* 최근 활동을 2칸 그리드로 좌우 확장 */}
@@ -564,7 +731,7 @@ const Profile = () => {
                     borderBottom: '2px solid #f3f4f6',
                     paddingBottom: '0.5rem'
                   }}>
-                    💾 최근 저장한 단어
+                    {t.recentSavedWords}
                   </h4>
                   <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
                     {recentWords.length > 0 ? recentWords.slice(0, 5).map(word => (
@@ -624,7 +791,7 @@ const Profile = () => {
                         borderRadius: '8px',
                         border: '2px dashed #d1d5db'
                       }}>
-                        아직 저장한 단어가 없습니다
+                        {t.noSavedWords}
                       </div>
                     )}
                   </div>
@@ -640,7 +807,7 @@ const Profile = () => {
                     borderBottom: '2px solid #f3f4f6',
                     paddingBottom: '0.5rem'
                   }}>
-                    ❤️ 최근 좋아요한 기사
+                    {t.recentLikedArticles}
                   </h4>
                   <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
                     {recentArticles.length > 0 ? recentArticles.slice(0, 5).map(article => (
@@ -706,7 +873,7 @@ const Profile = () => {
                         borderRadius: '8px',
                         border: '2px dashed #d1d5db'
                       }}>
-                        아직 좋아요한 기사가 없습니다
+                        {t.noLikedArticles}
                       </div>
                     )}
                   </div>
