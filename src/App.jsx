@@ -165,22 +165,6 @@ function App() {
                         </AuthGuard>
                       } 
                     />
-                    <Route 
-                      path="/dashboard-new" 
-                      element={
-                        <AuthGuard requireAdmin={true}>
-                          <ModernDashboard />
-                        </AuthGuard>
-                      } 
-                    />
-                    <Route 
-                      path="/admin" 
-                      element={
-                        <AuthGuard requireAdmin={true}>
-                          <Dashboard />
-                        </AuthGuard>
-                      } 
-                    />
                   </Routes>
                 </BrowserRouter>
               </ArticlesProvider>

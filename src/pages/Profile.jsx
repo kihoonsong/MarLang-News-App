@@ -7,7 +7,7 @@ import PageContainer from '../components/PageContainer';
 import AuthGuard from '../components/AuthGuard';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { 
     userSettings, 
     updateSettings, 
@@ -192,7 +192,21 @@ const Profile = () => {
                 <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem'}}>
                   {user?.name}
                 </h2>
-                <p style={{color: '#6b7280', marginBottom: '1.5rem'}}>{user?.email}</p>
+                <p style={{color: '#6b7280', marginBottom: '0.5rem'}}>{user?.email}</p>
+                
+                {/* 역할 배지 */}
+                <div style={{
+                  display: 'inline-block',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  backgroundColor: isAdmin ? '#fef3c7' : '#dbeafe',
+                  color: isAdmin ? '#92400e' : '#1d4ed8',
+                  marginBottom: '1.5rem'
+                }}>
+                  {isAdmin ? '👑 관리자' : '👤 일반 사용자'}
+                </div>
                 
                 {/* 레벨 시스템 */}
                 <div style={{marginBottom: '1.5rem'}}>
@@ -345,7 +359,7 @@ const Profile = () => {
                     📚 단어장 보기 ({stats.totalWords}개)
                   </button>
                   <button 
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate('/like')}
                     style={{
                       ...styles.button,
                       backgroundColor: '#7c3aed',
@@ -358,6 +372,26 @@ const Profile = () => {
                   >
                     ❤️ 좋아요 기사 ({stats.totalLikedArticles}개)
                   </button>
+                  
+                  {/* 관리자만 볼 수 있는 대시보드 버튼 */}
+                  {isAdmin && (
+                    <button 
+                      onClick={() => navigate('/dashboard')}
+                      style={{
+                        ...styles.button,
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        color: '#ffffff',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid #f59e0b',
+                        boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)'
+                      }}
+                    >
+                      🔧 관리자 대시보드 
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -402,7 +436,7 @@ const Profile = () => {
                     marginBottom: '0.5rem'
                   }}>
                     🌍 번역 언어 (단어 클릭 시 번역 언어)
-                  </label>
+                    </label>
                   <select 
                     value={userSettings.translationLanguage}
                     onChange={(e) => handleSettingChange('translationLanguage', e.target.value)}

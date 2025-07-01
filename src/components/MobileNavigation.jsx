@@ -22,7 +22,7 @@ import AuthModal from './AuthModal';
 import SearchDropdown from './SearchDropdown';
 import { designTokens, getColor, getShadow } from '../utils/designTokens';
 
-const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile', 'Dashboard'];
+const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
 const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = false, children }) => {
   const theme = useTheme();
@@ -41,7 +41,6 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
     if (path === '/wordbook') return 2;
     if (path === '/like') return 3;
     if (path === '/profile') return 4;
-    if (path === '/dashboard') return 5;
     return 0;
   };
 
@@ -52,7 +51,6 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
     if (path === '/wordbook') return 2;
     if (path === '/like') return 3;
     if (path === '/profile') return 4;
-    if (path === '/dashboard') return 5;
     return 0;
   };
 
@@ -76,7 +74,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
       window.globalStopTTS();
     }
     
-    const routes = ['/', '/date', '/wordbook', '/like', '/profile', '/dashboard'];
+    const routes = ['/', '/date', '/wordbook', '/like', '/profile'];
     const targetRoute = routes[newValue];
     
     // 인증이 필요한 경로인데 로그인하지 않은 경우
@@ -95,7 +93,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
       window.globalStopTTS();
     }
     
-    const routes = ['/', '/date', '/wordbook', '/like', '/profile', '/dashboard'];
+    const routes = ['/', '/date', '/wordbook', '/like', '/profile'];
     const targetRoute = routes[newValue];
     
     // 인증이 필요한 경우인데 로그인하지 않은 경우
@@ -253,11 +251,6 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
             icon={<PersonIcon />} 
             sx={!isAuthenticated ? { opacity: 0.6 } : {}}
           />
-              <BottomNavigationAction 
-                label="Dashboard" 
-                icon={<DashboardIcon />} 
-                sx={!isAuthenticated ? { opacity: 0.6 } : {}}
-              />
         </BottomNavigation>
       </MobileBottomNav>
         </>

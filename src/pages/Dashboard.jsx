@@ -30,12 +30,20 @@ const Dashboard = () => {
     activeNow: 15
   });
 
-  // 관리자 권한 체크 (임시로 모든 사용자 허용)
-  // useEffect(() => {
-  //   if (!isAuthenticated) {
-  //     navigate('/login');
-  //   }
-  // }, [isAuthenticated, navigate]);
+  // 관리자 권한 체크 강화
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+      return;
+    }
+    
+    // 추가 권한 체크 (이중 보안)
+    if (!user?.role || (user.role !== 'super_admin' && user.role !== 'admin')) {
+      console.warn('대시보드 접근 거부: 관리자 권한 없음', user?.role);
+      navigate('/');
+      return;
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // 실시간 데이터 업데이트 시뮬레이션
   useEffect(() => {
