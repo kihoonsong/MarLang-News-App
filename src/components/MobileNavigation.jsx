@@ -146,7 +146,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
     // 홈으로 이동 전 TTS 중지
     if (typeof window.globalStopTTS === 'function') {
       window.globalStopTTS();
-    }
+  }
     navigate('/');
   };
 

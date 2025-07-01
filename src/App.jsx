@@ -332,7 +332,7 @@ function App() {
                       element={
                         <AuthGuard>
                           <PageWrapper pageName="Wordbook">
-                            <Wordbook />
+                          <Wordbook />
                           </PageWrapper>
                         </AuthGuard>
                       } 
@@ -350,7 +350,7 @@ function App() {
                       element={
                         <AuthGuard>
                           <PageWrapper pageName="Profile">
-                            <Profile />
+                          <Profile />
                           </PageWrapper>
                         </AuthGuard>
                       } 
@@ -360,7 +360,7 @@ function App() {
                       element={
                         <AuthGuard>
                           <PageWrapper pageName="Settings">
-                            <Settings />
+                          <Settings />
                           </PageWrapper>
                         </AuthGuard>
                       } 
@@ -370,7 +370,7 @@ function App() {
                       element={
                         <AuthGuard requireAdmin={true}>
                           <PageWrapper pageName="Dashboard">
-                            <BlogStyleDashboard />
+                          <BlogStyleDashboard />
                           </PageWrapper>
                         </AuthGuard>
                       } 

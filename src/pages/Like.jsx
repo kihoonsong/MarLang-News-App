@@ -55,8 +55,8 @@ const Like = () => {
         category: originalArticle?.category || likedItem.category,
         publishedAt: originalArticle?.publishedAt || likedItem.publishedAt || likedItem.likedAt,
         likedAt: likedItem.likedAt || new Date().toISOString()
-      };
-    });
+    };
+  });
   };
 
   // 정렬된 기사 목록 가져오기
@@ -171,8 +171,8 @@ const Like = () => {
                     onChange={(e) => {
                       console.log('정렬 옵션 변경:', e.target.value);
                       setSortBy(e.target.value);
-                    }}
-                  >
+                  }}
+                >
                     <MenuItem value="dateLiked">Date Liked</MenuItem>
                     <MenuItem value="publishedDate">Published</MenuItem>
                     <MenuItem value="title">Title A-Z</MenuItem>
@@ -181,14 +181,14 @@ const Like = () => {
                 </FormControl>
               </SortControls>
             </CategoryHeader>
-            
-            {sortedArticles.length === 0 ? (
-              <EmptyState>
+          
+          {sortedArticles.length === 0 ? (
+            <EmptyState>
                 <EmptyIcon>💭</EmptyIcon>
                 <EmptyText>No liked articles yet</EmptyText>
                 <EmptySubtext>Like articles while reading to save them here!</EmptySubtext>
-              </EmptyState>
-            ) : (
+            </EmptyState>
+          ) : (
               <ArticleGrid>
                 {sortedArticles.map((article, index) => {
                   console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
@@ -201,7 +201,7 @@ const Like = () => {
                   );
                 })}
               </ArticleGrid>
-            )}
+          )}
           </CategorySection>
         </ContentContainer>
       </MobileContentWrapper>

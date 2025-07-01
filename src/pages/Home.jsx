@@ -24,7 +24,6 @@ import ArticleCard from '../components/ArticleCard';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
-import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -144,29 +143,25 @@ const Home = () => {
       setAllNewsData(categoryData);
     }
   }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
-
   const handleCategoryClick = (category) => {
-    // Recent, Popular 카테고리는 기존처럼 스크롤
-    if (category.type === 'recent' || category.type === 'popular') {
-      const element = document.getElementById(`category-${category.id}`);
-      if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-      return;
+    const element = document.getElementById(`category-${category.id}`);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
-    
-    // 다른 카테고리는 전용 페이지로 이동
-    if (isValidCategory(category)) {
+  };
+
+  // 카테고리 제목 클릭 시 카테고리 페이지로 이동
+  const handleCategoryTitleClick = (category) => {
+    if (category.type === 'category' && isValidCategory(category)) {
       const categoryUrl = getCategoryPageUrl(category);
       if (categoryUrl) {
         navigate(categoryUrl);
       }
     }
   };
-
   const retryNews = () => {
     refreshArticles();
     toast.info('Refreshing articles...');
@@ -265,7 +260,7 @@ const Home = () => {
             {categories.map((category) => (
               <CategorySection key={category.id} id={`category-${category.id}`}>
                 <CategoryHeader>
-                  <CategoryTitle>
+                  <CategoryTitle onClick={() => handleCategoryTitleClick(category)} style={{ cursor: 'pointer' }}>
                     {category.name}
                   </CategoryTitle>
                 </CategoryHeader>

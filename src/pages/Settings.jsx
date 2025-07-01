@@ -635,6 +635,6 @@ const SliderContainer = styled.div`
   }
 `;
 
-
+  
 
 export default Settings;
