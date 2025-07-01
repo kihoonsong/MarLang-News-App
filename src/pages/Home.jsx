@@ -24,6 +24,7 @@ import ArticleCard from '../components/ArticleCard';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
+import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
 const Home = () => {
   const navigate = useNavigate();
