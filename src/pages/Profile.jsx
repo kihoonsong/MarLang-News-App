@@ -13,13 +13,10 @@ const Profile = () => {
     updateSettings, 
     getStats, 
     savedWords, 
-    likedArticles, 
-    exportData, 
-    clearAllData 
+    likedArticles 
   } = useData();
   const navigate = useNavigate();
   
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [recentWords, setRecentWords] = useState([]);
   const [recentArticles, setRecentArticles] = useState([]);
   const [saveMessage, setSaveMessage] = useState('');
@@ -48,25 +45,6 @@ const Profile = () => {
     // 저장 성공 메시지 표시
     setSaveMessage('✅ 저장됨');
     setTimeout(() => setSaveMessage(''), 2000);
-  };
-
-  // 데이터 내보내기
-  const handleExportData = () => {
-    if (exportData()) {
-      alert('📄 데이터가 성공적으로 내보내졌습니다!');
-    } else {
-      alert('❌ 데이터 내보내기에 실패했습니다.');
-    }
-  };
-
-  // 데이터 삭제 확인
-  const handleClearData = () => {
-    if (clearAllData()) {
-      setShowClearConfirm(false);
-      alert('🗑️ 모든 데이터가 삭제되었습니다.');
-    } else {
-      alert('❌ 데이터 삭제에 실패했습니다.');
-    }
   };
 
   // 시간 형식 함수
@@ -138,18 +116,6 @@ const Profile = () => {
       backgroundColor: '#2563eb',
       color: '#ffffff'
     },
-    secondaryButton: {
-      backgroundColor: '#6b7280',
-      color: '#ffffff'
-    },
-    successButton: {
-      backgroundColor: '#059669',
-      color: '#ffffff'
-    },
-    dangerButton: {
-      backgroundColor: '#dc2626',
-      color: '#ffffff'
-    },
     input: {
       width: '100%',
       padding: '0.75rem',
@@ -190,10 +156,10 @@ const Profile = () => {
     }
   };
 
-    return (
+  return (
     <AuthGuard>
-        <MobileNavigation />
-        <MobileContentWrapper>
+      <MobileNavigation />
+      <MobileContentWrapper>
         <div style={styles.container}>
           <PageContainer>
             
@@ -477,7 +443,6 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* 토글 설정들 */}
                 {/* 자동 저장 단어 */}
                 <div style={styles.toggleContainer}>
                   <div>
@@ -543,78 +508,88 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* 데이터 관리 & 최근 활동 */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-              gap: '1.5rem',
-              marginBottom: '2rem'
-            }}>
+            {/* 최근 활동 - 전체 너비로 확장 */}
+            <div style={{...styles.card, marginBottom: '2rem'}}>
+              <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
+                📊 최근 활동
+              </h3>
               
-              {/* 데이터 관리 */}
-              <div style={styles.card}>
-                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                  🔐 데이터 관리
-                </h3>
-                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                  <button 
-                    onClick={handleExportData}
-                    style={{
-                      ...styles.button,
-                      ...styles.successButton,
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    📄 데이터 내보내기 (JSON)
-                  </button>
-                  <button 
-                    onClick={() => setShowClearConfirm(true)}
-                    style={{
-                      ...styles.button,
-                      ...styles.dangerButton,
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    🗑️ 모든 데이터 삭제
-                  </button>
-                </div>
-              </div>
-
-              {/* 최근 활동 */}
-              <div style={styles.card}>
-                <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                  📊 최근 활동
-                </h3>
-                
+              {/* 최근 활동을 2칸 그리드로 좌우 확장 */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '2rem'
+              }}>
                 {/* 최근 저장 단어 */}
-                <div style={{marginBottom: '1.5rem'}}>
-                  <h4 style={{fontWeight: '500', color: '#374151', marginBottom: '0.75rem'}}>💾 최근 저장한 단어</h4>
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                    {recentWords.length > 0 ? recentWords.slice(0, 3).map(word => (
+                <div>
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '1rem',
+                    fontSize: '1.1rem',
+                    borderBottom: '2px solid #f3f4f6',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    💾 최근 저장한 단어
+                  </h4>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
+                    {recentWords.length > 0 ? recentWords.slice(0, 5).map(word => (
                       <div key={word.id} style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '0.5rem',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '6px'
-                      }}>
+                        padding: '1rem',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#f1f5f9';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#f8fafc';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                      >
                         <div>
-                          <div style={{fontWeight: '500', color: '#1f2937'}}>{word.word}</div>
-                          <div style={{fontSize: '0.75rem', color: '#6b7280'}}>{word.articleTitle}</div>
+                          <div style={{
+                            fontWeight: '600',
+                            color: '#1f2937',
+                            fontSize: '1rem',
+                            marginBottom: '0.25rem'
+                          }}>
+                            {word.word}
+                          </div>
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            fontStyle: 'italic'
+                          }}>
+                            {word.articleTitle}
+                          </div>
                         </div>
-                        <div style={{fontSize: '0.75rem', color: '#9ca3af'}}>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: '#9ca3af',
+                          fontWeight: '500'
+                        }}>
                           {formatTimeAgo(word.addedAt)}
                         </div>
                       </div>
                     )) : (
-                      <div style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#6b7280',
+                        fontStyle: 'italic',
+                        textAlign: 'center',
+                        padding: '2rem',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '2px dashed #d1d5db'
+                      }}>
                         아직 저장한 단어가 없습니다
                       </div>
                     )}
@@ -623,40 +598,80 @@ const Profile = () => {
 
                 {/* 최근 좋아요 기사 */}
                 <div>
-                  <h4 style={{fontWeight: '500', color: '#374151', marginBottom: '0.75rem'}}>❤️ 최근 좋아요한 기사</h4>
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                    {recentArticles.length > 0 ? recentArticles.slice(0, 3).map(article => (
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '1rem',
+                    fontSize: '1.1rem',
+                    borderBottom: '2px solid #f3f4f6',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    ❤️ 최근 좋아요한 기사
+                  </h4>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem'}}>
+                    {recentArticles.length > 0 ? recentArticles.slice(0, 5).map(article => (
                       <div key={article.id} style={{
-                        padding: '0.5rem',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '6px'
-                      }}>
+                        padding: '1rem',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#f1f5f9';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#f8fafc';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                      >
                         <div style={{
-                          fontWeight: '500',
+                          fontWeight: '600',
                           color: '#1f2937',
-                          fontSize: '0.875rem',
-                          lineHeight: '1.25',
+                          fontSize: '0.95rem',
+                          lineHeight: '1.4',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
+                          overflow: 'hidden',
+                          marginBottom: '0.5rem'
                         }}>
                           {article.title}
                         </div>
                         <div style={{
                           display: 'flex',
                           justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginTop: '0.25rem'
+                          alignItems: 'center'
                         }}>
-                          <div style={{fontSize: '0.75rem', color: '#6b7280'}}>{article.category}</div>
-                          <div style={{fontSize: '0.75rem', color: '#9ca3af'}}>
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            fontWeight: '500'
+                          }}>
+                            {article.category}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: '#9ca3af',
+                            fontWeight: '500'
+                          }}>
                             {formatTimeAgo(article.likedAt)}
                           </div>
                         </div>
                       </div>
                     )) : (
-                      <div style={{fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic'}}>
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#6b7280',
+                        fontStyle: 'italic',
+                        textAlign: 'center',
+                        padding: '2rem',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '2px dashed #d1d5db'
+                      }}>
                         아직 좋아요한 기사가 없습니다
                       </div>
                     )}
@@ -664,61 +679,6 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-
-            {/* 데이터 삭제 확인 다이얼로그 */}
-            {showClearConfirm && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 50
-              }}>
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  maxWidth: '400px',
-                  width: '90%',
-                  margin: '0 1rem'
-                }}>
-                  <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '1rem'}}>
-                    ⚠️ 경고
-                  </h3>
-                  <p style={{color: '#6b7280', marginBottom: '1.5rem'}}>
-                    모든 학습 데이터(저장된 단어, 좋아요한 기사, 설정 등)가 영구적으로 삭제됩니다. 
-                    이 작업은 되돌릴 수 없습니다.
-                  </p>
-                  <div style={{display: 'flex', gap: '1rem'}}>
-                    <button 
-                      onClick={handleClearData}
-                      style={{
-                        ...styles.button,
-                        ...styles.dangerButton,
-                        flex: 1
-                      }}
-                    >
-                      삭제
-                    </button>
-                    <button 
-                      onClick={() => setShowClearConfirm(false)}
-                      style={{
-                        ...styles.button,
-                        ...styles.secondaryButton,
-                        flex: 1
-                      }}
-                    >
-                      취소
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
           </PageContainer>
         </div>

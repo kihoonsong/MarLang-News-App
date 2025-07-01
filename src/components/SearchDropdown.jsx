@@ -148,18 +148,6 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                     </div>
                   </Item>
                 ))}
-                
-                <ViewAll 
-                  onClick={() => {
-                    setIsOpen(false);
-                    const url = query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search';
-                    navigate(url);
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-                    View all results
-                  </Typography>
-                </ViewAll>
               </>
             ) : query.trim() ? (
               <NoResults>
@@ -242,18 +230,6 @@ const Item = styled('div')`
 const NoResults = styled('div')`
   padding: 2rem 1rem;
   text-align: center;
-`;
-
-const ViewAll = styled('div')`
-  cursor: pointer;
-  padding: 1rem;
-  border-top: 1px solid #f0f0f0;
-  text-align: center;
-  background: #fafafa;
-  
-  &:hover {
-    background: #f0f0f0;
-  }
 `;
 
 export default SearchDropdown; 
