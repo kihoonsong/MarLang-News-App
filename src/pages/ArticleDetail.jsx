@@ -10,6 +10,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import ShareIcon from '@mui/icons-material/Share';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
@@ -129,11 +130,15 @@ const ArticleDetail = () => {
     if (!articlesLoading && allArticles && id) {
       const foundArticle = allArticles.find(article => article.id === id);
       if (foundArticle) {
+        console.log('🔍 원본 기사 데이터 확인:', foundArticle);
+        
         // 기사 데이터를 ArticleDetail 형태로 변환
         const transformedArticle = {
           id: foundArticle.id,
           title: foundArticle.title,
+          summary: foundArticle.summary || foundArticle.description || foundArticle.content || 'No summary available',
           category: foundArticle.category,
+          publishedAt: foundArticle.publishedAt,
           date: new Date(foundArticle.publishedAt).toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric', 
@@ -143,6 +148,8 @@ const ArticleDetail = () => {
           liked: false,
           levels: generateLevelsFromContent(foundArticle)
         };
+        
+        console.log('🔧 변환된 기사 데이터:', transformedArticle);
         setArticleData(transformedArticle);
         
         // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
@@ -156,11 +163,12 @@ const ArticleDetail = () => {
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
-    if (isArticleLiked && articleData) {
+    if (isArticleLiked && articleData && user?.id) {
       const likedStatus = isArticleLiked(articleData.id);
+      console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
       setIsLiked(likedStatus);
     }
-  }, [isArticleLiked, articleData?.id]);
+  }, [isArticleLiked, articleData?.id, user?.id]);
 
   // userSettings 변경 시 언어 설정 동기화
   useEffect(() => {
@@ -581,7 +589,7 @@ const ArticleDetail = () => {
     
     // 로그인 상태 확인
     if (!isAuthenticated) {
-      alert('좋아요 기능을 사용하려면 로그인이 필요합니다.\n\n상단의 Login 버튼을 클릭하여 로그인해주세요.');
+      toast.warning('좋아요 기능을 사용하려면 로그인이 필요합니다.');
       return;
     }
     
@@ -592,12 +600,44 @@ const ArticleDetail = () => {
       // 활동 시간 업데이트
       updateActivityTime && updateActivityTime();
       
+      // 토스트 메시지 표시
+      if (newLikeStatus) {
+        toast.success('기사를 좋아요에 추가했습니다!');
+      } else {
+        toast.info('기사를 좋아요에서 제거했습니다.');
+      }
+      
       // 좋아요 상태 변경을 다른 컴포넌트에 알림
       window.dispatchEvent(new CustomEvent('likeUpdated', {
         detail: { articleId: articleData.id, isLiked: newLikeStatus }
       }));
     } catch (error) {
       console.error('Error toggling like:', error);
+      toast.error('좋아요 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: articleData.title,
+      text: `Check out this article: ${articleData.title}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('기사가 공유되었습니다');
+      } else {
+        // 공유 API가 지원되지 않는 경우 클립보드에 복사
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('링크가 클립보드에 복사되었습니다');
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      if (error.name !== 'AbortError') {
+        toast.error('공유에 실패했습니다');
+      }
     }
   };
 
@@ -1010,21 +1050,20 @@ const ArticleDetail = () => {
         {/* 제목 */}
         <Title>{articleData.title}</Title>
 
-        {/* TTS 버튼 + 하트 버튼 + 배속 버튼 + 난이도 탭 */}
-        <ControlsRow>
-          <LeftControls>
-            <TTSButton onClick={handleTTS} $isPlaying={isTTSPlaying}>
+        {/* 새로운 컨트롤 레이아웃 */}
+        <ControlsSection>
+          <PlaybackControls>
+            <PlayButton onClick={handleTTS} $isPlaying={isTTSPlaying}>
               {isTTSPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-              {isTTSPlaying ? 'Pause' : 'Play'}
-            </TTSButton>
+            </PlayButton>
             
-            <SpeedControls>
+            <SpeedControlGroup>
               <SpeedButton 
                 onClick={() => handleSpeedChange(Math.max(0.5, ttsSpeed - 0.1))}
                 disabled={ttsSpeed <= 0.5}
                 title="Slower"
               >
-                <SpeedIcon style={{ transform: 'scaleX(-1)' }} />
+                -
               </SpeedButton>
               <SpeedDisplay>{ttsSpeed.toFixed(1)}x</SpeedDisplay>
               <SpeedButton 
@@ -1032,26 +1071,22 @@ const ArticleDetail = () => {
                 disabled={ttsSpeed >= 2.0}
                 title="Faster"
               >
-                <SpeedIcon />
+                +
               </SpeedButton>
-            </SpeedControls>
-            
-            <LikeButton onClick={handleLike} $isLiked={isLiked}>
+            </SpeedControlGroup>
+          </PlaybackControls>
+
+          <ActionButtons>
+            <ActionButton onClick={handleLike} $isLiked={isLiked} title="좋아요">
               {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-            </LikeButton>
-          </LeftControls>
-          
-          {/* 레벨 인디케이터 */}
-          <LevelIndicator>
-            {[1, 2, 3].map(level => (
-              <IndicatorDot 
-                key={level}
-                $active={selectedLevel === level}
-                onClick={() => handleLevelChange(level)}
-              />
-            ))}
-          </LevelIndicator>
-        </ControlsRow>
+            </ActionButton>
+            <ActionButton onClick={handleShare} title="공유">
+              <ShareIcon />
+            </ActionButton>
+          </ActionButtons>
+        </ControlsSection>
+
+
 
         {/* 스와이프 카드 시스템 */}
         <SwipeCardContainer {...swipeHandlers}>
@@ -1134,25 +1169,7 @@ const ArticleDetail = () => {
             );
           })}
           
-          {/* 네비게이션 버튼 */}
-          <NavButton 
-            $position="left" 
-            onClick={() => {
-              const newLevel = selectedLevel === 1 ? 3 : selectedLevel - 1;
-              handleLevelChange(newLevel);
-            }}
-          >
-            <ArrowBackIosIcon />
-          </NavButton>
-          <NavButton 
-            $position="right" 
-            onClick={() => {
-              const newLevel = selectedLevel === 3 ? 1 : selectedLevel + 1;
-              handleLevelChange(newLevel);
-            }}
-          >
-            <ArrowForwardIosIcon />
-          </NavButton>
+
         </SwipeCardContainer>
       </PageContainer>
 
@@ -1371,25 +1388,54 @@ const Title = styled.h1`
   line-height: 1.4;
 `;
 
-const ControlsRow = styled.div`
+const ControlsSection = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem;
   margin-bottom: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1px solid #f0f0f0;
 `;
 
-const LeftControls = styled.div`
+const PlaybackControls = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
 `;
 
-const SpeedControls = styled.div`
+const PlayButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: ${props => props.$isPlaying ? '#1976d2' : 'linear-gradient(135deg, #1976d2, #42a5f5)'};
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const SpeedControlGroup = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f5f5f5;
-  border-radius: 8px;
+  background: #f8f9fa;
+  border-radius: 12px;
   padding: 0.5rem;
 `;
 
@@ -1399,16 +1445,19 @@ const SpeedButton = styled.button`
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: ${props => props.disabled ? '#e0e0e0' : 'white'};
-  color: ${props => props.disabled ? '#999' : '#1976d2'};
-  border: 1px solid ${props => props.disabled ? '#ddd' : '#1976d2'};
-  border-radius: 6px;
+  background: ${props => props.disabled ? '#e9ecef' : '#fff'};
+  color: ${props => props.disabled ? '#adb5bd' : '#1976d2'};
+  border: 1px solid ${props => props.disabled ? '#dee2e6' : '#e3f2fd'};
+  border-radius: 8px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 1rem;
   
   &:hover {
     ${props => !props.disabled && `
       background: #e3f2fd;
+      border-color: #1976d2;
       transform: scale(1.05);
     `}
   }
@@ -1416,46 +1465,43 @@ const SpeedButton = styled.button`
 
 const SpeedDisplay = styled.div`
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1976d2;
-  min-width: 35px;
+  min-width: 40px;
   text-align: center;
+  background: #e3f2fd;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
 `;
 
-const TTSButton = styled.button`
+const ActionButtons = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.5rem;
-  background: ${props => props.$isPlaying ? '#1976d2' : '#f5f5f5'};
-  color: ${props => props.$isPlaying ? 'white' : '#333'};
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: ${props => props.$isPlaying ? '#1565c0' : '#e0e0e0'};
-  }
+  gap: 0.75rem;
 `;
 
-const LikeButton = styled.button`
+const ActionButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: ${props => props.$isLiked ? '#ffebee' : '#f5f5f5'};
+  background: ${props => props.$isLiked ? '#ffebee' : '#f8f9fa'};
   color: ${props => props.$isLiked ? '#d32f2f' : '#666'};
-  border: none;
-  border-radius: 50%;
+  border: 1px solid ${props => props.$isLiked ? '#ffcdd2' : '#e9ecef'};
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.$isLiked ? '#ffcdd2' : '#e0e0e0'};
-    transform: scale(1.05);
+    background: ${props => props.$isLiked ? '#ffcdd2' : '#e3f2fd'};
+    color: ${props => props.$isLiked ? '#c62828' : '#1976d2'};
+    border-color: ${props => props.$isLiked ? '#ef9a9a' : '#bbdefb'};
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -1516,24 +1562,7 @@ const WordSpan = styled.span`
   `}
 `;
 
-const LevelIndicator = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
 
-const IndicatorDot = styled.button`
-  width: 16px;
-  height: 16px;
-  background: ${props => props.$active ? '#1976d2' : '#f5f5f5'};
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: ${props => props.$active ? '#1565c0' : '#e0e0e0'};
-  }
-`;
 
 const ContentTitle = styled.h3`
   font-size: 1.3rem;
@@ -1736,36 +1765,6 @@ const SwipeCard = styled.div`
   }
 `;
 
-const NavButton = styled.button`
-  position: absolute;
-  top: 50%;
-  ${props => props.$position}: 20px;
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(25, 118, 210, 0.2);
-  border-radius: 50%;
-  color: #1976d2;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transform: translateY(-50%);
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    background: rgba(25, 118, 210, 0.1);
-    border-color: #1976d2;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(-50%) scale(0.95);
-  }
-`;
+
 
 export default ArticleDetail;

@@ -48,6 +48,7 @@ export const DataProvider = ({ children }) => {
     language: 'en',
     translationLanguage: 'ko', // 번역 대상 언어 (기본: 한국어)
     ttsSpeed: 0.8,
+    voiceGender: 'female', // TTS 음성 성별 (기본: 여성)
     lastVisited: new Date().toISOString(),
     lastActivityTime: new Date().toISOString()
   });
@@ -108,6 +109,7 @@ export const DataProvider = ({ children }) => {
         language: 'en',
         translationLanguage: 'ko',
         ttsSpeed: 0.8,
+        voiceGender: 'female',
         lastVisited: new Date().toISOString(),
         lastActivityTime: new Date().toISOString()
       });
@@ -227,21 +229,36 @@ export const DataProvider = ({ children }) => {
       return false;
     }
 
+    console.log('🔄 좋아요 토글:', article.id, article.title);
+    
     const isLiked = likedArticles.some(a => a.id === article.id);
     let updatedLikes;
     
     if (isLiked) {
       updatedLikes = likedArticles.filter(a => a.id !== article.id);
+      console.log('💔 좋아요 제거:', article.id);
     } else {
+      // 간단하고 일관된 데이터 구조로 저장
       const likedArticle = {
-        ...article,
+        id: article.id,
+        title: article.title,
+        summary: article.summary || '',
+        image: article.image,
+        category: article.category,
+        publishedAt: article.publishedAt || article.date || new Date().toISOString(),
         likedAt: new Date().toISOString()
       };
       updatedLikes = [...likedArticles, likedArticle];
+      console.log('❤️ 좋아요 추가:', article.id, likedArticle);
     }
     
     setLikedArticles(updatedLikes);
-    saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
+    
+    const storageKey = getUserKey('marlang_liked_articles');
+    saveToStorage(storageKey, updatedLikes);
+    
+    console.log('💾 좋아요 목록 저장됨:', updatedLikes.length, '개', updatedLikes);
+    
     return !isLiked;
   };
 
