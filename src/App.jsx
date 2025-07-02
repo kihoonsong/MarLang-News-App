@@ -32,6 +32,7 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -382,6 +383,16 @@ function App() {
                       element={
                         <PageWrapper pageName="Category">
                           <CategoryPage />
+                        </PageWrapper>
+                      } 
+                    />
+                    
+                    {/* 404 페이지 - 맨 마지막에 배치 */}
+                    <Route 
+                      path="*" 
+                      element={
+                        <PageWrapper pageName="Not Found">
+                          <NotFound />
                         </PageWrapper>
                       } 
                     />

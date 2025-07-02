@@ -19,7 +19,8 @@ const ArticleManagement = ({
   currentPage,
   totalPages,
   onPageChange,
-  onUpdateArticles, 
+  onAddArticle,
+  onUpdateArticle, 
   onDeleteArticle,
   onRefreshArticles,
   editableCategories,
@@ -60,7 +61,7 @@ const ArticleManagement = ({
         intermediate: '',
         advanced: ''
       },
-      category: 'Technology',
+      category: (editableCategories && editableCategories.length > 0) ? editableCategories[0] : 'Technology',
       image: '',
       imageFile: null,
       publishType: 'immediate',
@@ -98,7 +99,7 @@ const ArticleManagement = ({
   };
 
   // 기사 추가 핸들러
-  const handleAddArticle = () => {
+  const handleAddArticle = async () => {
     if (!articleForm.title.trim()) {
       setSnackbar({ open: true, message: '제목을 입력해주세요.', severity: 'error' });
       return;
@@ -109,20 +110,22 @@ const ArticleManagement = ({
       return;
     }
 
-    if (!articleForm.content.beginner.trim() || !articleForm.content.intermediate.trim() || !articleForm.content.advanced.trim()) {
+    if (!articleForm.content?.beginner?.trim() || !articleForm.content?.intermediate?.trim() || !articleForm.content?.advanced?.trim()) {
       setSnackbar({ open: true, message: '모든 난이도의 본문을 입력해주세요.', severity: 'error' });
       return;
     }
 
     try {
-      const newArticle = {
-        id: 'custom_' + Date.now(),
+      console.log('🔄 기사 추가 시작...');
+      console.log('📝 기사 폼 데이터:', articleForm);
+      
+      const newArticleData = {
         title: articleForm.title,
         summary: articleForm.summary,
         content: {
-          beginner: articleForm.content.beginner,
-          intermediate: articleForm.content.intermediate,
-          advanced: articleForm.content.advanced
+          beginner: articleForm.content?.beginner || '',
+          intermediate: articleForm.content?.intermediate || '',
+          advanced: articleForm.content?.advanced || ''
         },
         category: articleForm.category,
         image: articleForm.image || 'https://via.placeholder.com/400x200?text=No+Image',
@@ -130,23 +133,32 @@ const ArticleManagement = ({
         author: 'Admin',
         views: 0,
         likes: 0,
-        wordCount: articleForm.content.intermediate.split(' ').length,
-        readingTime: Math.ceil(articleForm.content.intermediate.split(' ').length / 200),
+        wordCount: (articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length,
+        readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
         level: 'intermediate',
-        tags: [articleForm.category],
+        tags: articleForm.category ? [articleForm.category] : [],
         status: articleForm.status,
         isCustom: true
       };
 
-      const updatedArticles = [newArticle, ...allArticles];
-      onUpdateArticles(updatedArticles);
+      console.log('📋 전송할 기사 데이터:', newArticleData);
       
-      setSnackbar({ open: true, message: '새 기사가 성공적으로 추가되었습니다!', severity: 'success' });
-      setArticleDialog(false);
-      resetArticleForm();
+      const articleId = await onAddArticle(newArticleData);
+      
+      console.log('✅ 기사 추가 결과:', articleId);
+      
+      if (articleId) {
+        setSnackbar({ open: true, message: '새 기사가 성공적으로 추가되었습니다!', severity: 'success' });
+        setArticleDialog(false);
+        resetArticleForm();
+      } else {
+        console.error('❌ 기사 추가 실패: articleId가 null');
+        setSnackbar({ open: true, message: '기사 추가 중 오류가 발생했습니다.', severity: 'error' });
+      }
     } catch (error) {
-      console.error('Error adding article:', error);
-      setSnackbar({ open: true, message: '기사 추가 중 오류가 발생했습니다.', severity: 'error' });
+      console.error('🚨 기사 추가 중 예외 발생:', error);
+      console.error('🚨 에러 스택:', error.stack);
+      setSnackbar({ open: true, message: `기사 추가 중 오류가 발생했습니다: ${error.message}`, severity: 'error' });
     }
   };
 
@@ -172,40 +184,53 @@ const ArticleManagement = ({
   };
 
   // 기사 업데이트 핸들러
-  const handleUpdateArticle = () => {
+  const handleUpdateArticle = async () => {
     if (!articleForm.title.trim()) {
       setSnackbar({ open: true, message: '제목을 입력해주세요.', severity: 'error' });
       return;
     }
 
     try {
-      const updatedArticles = allArticles.map(article => 
-        article.id === editingArticle.id 
-          ? {
-              ...article,
-              title: articleForm.title,
-              summary: articleForm.summary,
-              content: articleForm.content,
-              category: articleForm.category,
-              image: articleForm.image,
-              status: articleForm.status,
-              publishedAt: articleForm.publishType === 'immediate' ? article.publishedAt : articleForm.publishedAt
-            }
-          : article
-      );
+      const updatedData = {
+        title: articleForm.title,
+        summary: articleForm.summary,
+        content: articleForm.content,
+        category: articleForm.category,
+        image: articleForm.image,
+        status: articleForm.status,
+        publishedAt: articleForm.publishType === 'immediate' ? editingArticle.publishedAt : articleForm.publishedAt,
+        wordCount: (articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length,
+        readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
+        tags: articleForm.category ? [articleForm.category] : []
+      };
 
-      onUpdateArticles(updatedArticles);
-      setSnackbar({ open: true, message: '기사가 성공적으로 수정되었습니다!', severity: 'success' });
-      setArticleDialog(false);
-      resetArticleForm();
+      const success = await onUpdateArticle(editingArticle.id, updatedData);
+      
+      if (success) {
+        setSnackbar({ open: true, message: '기사가 성공적으로 수정되었습니다!', severity: 'success' });
+        setArticleDialog(false);
+        resetArticleForm();
+      } else {
+        setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다.', severity: 'error' });
+      }
     } catch (error) {
       console.error('Error updating article:', error);
       setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다.', severity: 'error' });
     }
   };
 
-  const handleDeleteArticle = (articleId) => {
-    onDeleteArticle(articleId);
+  const handleDeleteArticle = async (articleId) => {
+    try {
+      const success = await onDeleteArticle(articleId);
+      if (success) {
+        setSnackbar({ open: true, message: '기사가 성공적으로 삭제되었습니다!', severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: '기사 삭제 중 오류가 발생했습니다.', severity: 'error' });
+      }
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      setSnackbar({ open: true, message: '기사 삭제 중 오류가 발생했습니다.', severity: 'error' });
+    }
   };
 
   return (
@@ -252,7 +277,7 @@ const ArticleManagement = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {articles.map((article) => (
+                {(articles || []).map((article) => (
                   <TableRow key={article.id} hover>
                     <TableCell>
                       <Box sx={{ maxWidth: 200 }}>
@@ -328,7 +353,7 @@ const ArticleManagement = ({
                 ← 이전
               </Button>
               {/* 페이지 번호 */}
-              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
+              {Array.from({ length: totalPages || 0 }, (_, idx) => idx + 1).map(page => (
                 <Button 
                   key={page}
                   variant={currentPage === page ? 'contained' : 'outlined'}
@@ -452,7 +477,7 @@ const ArticleManagement = ({
                     label="카테고리"
                     onChange={(e) => setArticleForm({ ...articleForm, category: e.target.value })}
                   >
-                    {editableCategories.map((category) => (
+                    {(editableCategories || []).map((category) => (
                       <MenuItem key={category} value={category}>{category}</MenuItem>
                     ))}
                   </Select>

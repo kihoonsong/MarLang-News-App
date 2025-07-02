@@ -21,10 +21,12 @@ const CategoryManagement = ({
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // 편집 가능한 카테고리 목록 (기존 호환성 유지)
-  const editableCategories = allEditableCategories
-    .filter(cat => cat.type === 'category')
-    .map(cat => cat.name);
+  // 편집 가능한 카테고리 목록 (기존 호환성 유지) - 안전한 배열 처리
+  const editableCategories = Array.isArray(allEditableCategories) 
+    ? allEditableCategories
+        .filter(cat => cat && cat.type === 'category')
+        .map(cat => cat.name)
+    : [];
 
   // 새 카테고리 추가
   const handleAddCategory = () => {
@@ -46,7 +48,7 @@ const CategoryManagement = ({
         type: 'category'
       };
 
-      const updatedCategories = [...allEditableCategories, newCategory];
+      const updatedCategories = [...(Array.isArray(allEditableCategories) ? allEditableCategories : []), newCategory];
       onUpdateCategories(updatedCategories);
       
       setSnackbar({ open: true, message: `"${newCategoryName}" 카테고리가 추가되었습니다!`, severity: 'success' });
@@ -60,10 +62,10 @@ const CategoryManagement = ({
 
   // 카테고리 삭제
   const handleDeleteCategory = (categoryId) => {
-    const categoryToDelete = allEditableCategories.find(cat => cat.id === categoryId);
+    const categoryToDelete = Array.isArray(allEditableCategories) ? allEditableCategories.find(cat => cat.id === categoryId) : null;
     
     if (categoryToDelete && categoryToDelete.type === 'category') {
-      const updatedCategories = allEditableCategories.filter(cat => cat.id !== categoryId);
+      const updatedCategories = Array.isArray(allEditableCategories) ? allEditableCategories.filter(cat => cat.id !== categoryId) : [];
       onUpdateCategories(updatedCategories);
       setSnackbar({ 
         open: true, 
@@ -75,7 +77,7 @@ const CategoryManagement = ({
 
   // 카테고리 순서 변경 (위로)
   const moveCategoryUp = (index) => {
-    if (index > 0) {
+    if (Array.isArray(allEditableCategories) && index > 0) {
       const newCategories = [...allEditableCategories];
       [newCategories[index], newCategories[index - 1]] = [newCategories[index - 1], newCategories[index]];
       onUpdateCategories(newCategories);
@@ -84,7 +86,7 @@ const CategoryManagement = ({
 
   // 카테고리 순서 변경 (아래로)
   const moveCategoryDown = (index) => {
-    if (index < allEditableCategories.length - 1) {
+    if (Array.isArray(allEditableCategories) && index < allEditableCategories.length - 1) {
       const newCategories = [...allEditableCategories];
       [newCategories[index], newCategories[index + 1]] = [newCategories[index + 1], newCategories[index]];
       onUpdateCategories(newCategories);
@@ -105,7 +107,7 @@ const CategoryManagement = ({
     }
 
     // 중복 확인 (자기 자신 제외)
-    const isDuplicate = allEditableCategories.some((cat, index) => 
+    const isDuplicate = Array.isArray(allEditableCategories) && allEditableCategories.some((cat, index) => 
       index !== editingCategoryIndex && 
       cat.name === editingCategoryName.trim() && 
       cat.type === 'category'
@@ -117,7 +119,7 @@ const CategoryManagement = ({
     }
 
     try {
-      const updatedCategories = allEditableCategories.map((category, index) => 
+      const updatedCategories = Array.isArray(allEditableCategories) ? allEditableCategories.map((category, index) => 
         index === editingCategoryIndex 
           ? { 
               ...category, 
@@ -125,7 +127,7 @@ const CategoryManagement = ({
               id: editingCategoryName.toLowerCase().replace(/\s+/g, '_')
             }
           : category
-      );
+      ) : [];
 
       onUpdateCategories(updatedCategories);
       setSnackbar({ 
@@ -162,7 +164,7 @@ const CategoryManagement = ({
       <Card sx={{ borderRadius: '16px', mb: 4 }}>
         <CardContent>
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            📂 카테고리 관리 ({allEditableCategories.length}개)
+            📂 카테고리 관리 ({Array.isArray(allEditableCategories) ? allEditableCategories.length : 0}개)
           </Typography>
           
           <Alert severity="info" sx={{ mb: 3 }}>
@@ -171,7 +173,7 @@ const CategoryManagement = ({
           </Alert>
 
           <Grid container spacing={2}>
-            {allEditableCategories.map((category, index) => (
+            {Array.isArray(allEditableCategories) && allEditableCategories.map((category, index) => (
               <Grid item xs={12} sm={6} md={4} key={category.id}>
                 <CategoryManagementCard>
                   <CardContent sx={{ p: 2 }}>
@@ -194,7 +196,7 @@ const CategoryManagement = ({
                         <IconButton 
                           size="small" 
                           onClick={() => moveCategoryDown(index)}
-                          disabled={index === allEditableCategories.length - 1}
+                          disabled={!Array.isArray(allEditableCategories) || index === allEditableCategories.length - 1}
                           color="primary"
                         >
                           <ArrowDownward fontSize="small" />

@@ -1,475 +1,350 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, googleProvider, db } from '../config/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
-// 역할 및 권한 정의
+export const useAuth = () => useContext(AuthContext);
+
 const ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
-  EDITOR: 'editor',
   USER: 'user'
 };
 
-const PERMISSIONS = {
-  DASHBOARD_ACCESS: 'dashboard:access',
-  ARTICLE_CREATE: 'article:create',
-  ARTICLE_EDIT: 'article:edit',
-  ARTICLE_DELETE: 'article:delete',
-  CATEGORY_MANAGE: 'category:manage',
-  USER_MANAGE: 'user:manage'
-};
-
-// 역할별 권한 매핑
-const rolePermissions = {
-  [ROLES.SUPER_ADMIN]: [
-    PERMISSIONS.DASHBOARD_ACCESS,
-    PERMISSIONS.ARTICLE_CREATE,
-    PERMISSIONS.ARTICLE_EDIT,
-    PERMISSIONS.ARTICLE_DELETE,
-    PERMISSIONS.CATEGORY_MANAGE,
-    PERMISSIONS.USER_MANAGE
-  ],
-  [ROLES.ADMIN]: [
-    PERMISSIONS.DASHBOARD_ACCESS,
-    PERMISSIONS.ARTICLE_CREATE,
-    PERMISSIONS.ARTICLE_EDIT,
-    PERMISSIONS.ARTICLE_DELETE,
-    PERMISSIONS.CATEGORY_MANAGE
-  ],
-  [ROLES.EDITOR]: [
-    PERMISSIONS.ARTICLE_CREATE,
-    PERMISSIONS.ARTICLE_EDIT
-  ],
-  [ROLES.USER]: []
-};
-
-// 관리자 계정들 (실제 환경에서는 데이터베이스에 저장)
 const adminAccounts = [
   {
     id: 'admin_001',
     email: 'admin@marlang.com',
     password: 'admin123',
-    name: 'MarLang 관리자',
+    name: 'MarLang Super Admin',
     role: ROLES.SUPER_ADMIN,
-    picture: 'https://ui-avatars.com/api/?name=Admin&background=1976d2&color=fff',
-    provider: 'admin',
-    createdAt: '2024-01-01T00:00:00.000Z'
-  },
-  {
-    id: 'admin_002', 
-    email: 'manager@marlang.com',
-    password: 'Manager2024!@#',
-    name: 'MarLang 매니저',
-    role: ROLES.ADMIN,
-    picture: 'https://ui-avatars.com/api/?name=Manager&background=28a745&color=fff',
-    provider: 'admin',
-    createdAt: '2024-01-01T00:00:00.000Z'
   }
 ];
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    console.warn('useAuth used outside of AuthProvider, returning default values');
-    return {
-      user: null,
-      isLoading: false,
-      error: null,
-      signInWithGoogle: () => {},
-      signInWithEmail: () => {},
-      signUpWithEmail: () => {},
-      signInWithNaver: () => {},
-      resetPassword: () => {},
-      changePassword: () => {},
-      signOut: () => {},
-      signInAsGuest: () => {},
-      updateUserProfile: () => {},
-      isAuthenticated: false,
-      isGuest: false,
-      isModalOpen: false,
-      setIsModalOpen: () => {},
-      hasPermission: () => false,
-      isAdmin: false,
-      isSuperAdmin: false
-    };
-  }
-  return context;
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 권한 확인 함수
-  const hasPermission = (permission) => {
-    if (!user || !user.role) return false;
-    return rolePermissions[user.role]?.includes(permission) || false;
-  };
-
-  // 관리자 여부 확인
-  const isAdmin = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_ADMIN;
-  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
-
-  // 초기화 - 로컬 스토리지에서 사용자 정보 로드
   useEffect(() => {
-    console.log('🔄 AuthContext 초기화');
+    console.log('🔄 AuthContext 초기화 시작...');
+    console.log('🔥 Firebase Auth 인스턴스:', auth);
+    console.log('🌐 현재 도메인:', window.location.origin);
     
-    try {
-      const storedUser = localStorage.getItem('marlang_user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        console.log('📋 저장된 사용자:', userData.name, '권한:', userData.role);
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('❌ 사용자 정보 로드 실패:', error);
-      localStorage.removeItem('marlang_user');
-    }
-    
-    // 관리자 계정들을 로컬 사용자 목록에 추가 (초기 설정)
-    try {
-      const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      let hasUpdates = false;
-      
-      adminAccounts.forEach(adminAccount => {
-        const existingAdmin = storedUsers.find(u => u.email === adminAccount.email);
-        if (!existingAdmin) {
-          storedUsers.push(adminAccount);
-          hasUpdates = true;
-          console.log('👑 관리자 계정 추가:', adminAccount.email);
+    // 1. 리디렉션 결과 처리
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          console.log('✅ 리디렉션 결과 있음:', result.user?.email);
+          console.log('🔑 인증 토큰:', result.credential);
+          const firebaseUser = result.user;
+          await handleUser(firebaseUser);
+        } else {
+          console.log('ℹ️ 리디렉션 결과 없음');
         }
+      })
+      .catch((err) => {
+        console.error("🚨 리디렉션 결과 처리 오류:", err);
+        console.error("🚨 에러 상세 정보:", {
+          code: err.code,
+          message: err.message,
+          customData: err.customData,
+          stack: err.stack
+        });
+        
+        // 구체적인 에러 메시지 설정
+        let errorMessage = '';
+        switch(err.code) {
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Google 로그인이 활성화되지 않았습니다. 관리자에게 문의하세요.';
+            break;
+          case 'auth/unauthorized-domain':
+            errorMessage = '허용되지 않은 도메인입니다. 관리자에게 문의하세요.';
+            break;
+          case 'auth/popup-blocked':
+            errorMessage = '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도하세요.';
+            break;
+          default:
+            errorMessage = `인증 오류: ${err.message} (${err.code})`;
+        }
+        setError(errorMessage);
+      })
+      .finally(() => {
+        // 2. 인증 상태 리스너 설정
+        console.log('👂 인증 상태 리스너 설정...');
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          console.log('🔍 인증 상태 변경:', firebaseUser?.email || 'null');
+          if (firebaseUser) {
+            handleUser(firebaseUser);
+          } else {
+            const storedUser = JSON.parse(localStorage.getItem('marlang_user') || 'null');
+            if (storedUser && storedUser.provider === 'admin') {
+              console.log('📋 로컬 관리자 계정 복원:', storedUser.email);
+              setUser(storedUser);
+            } else {
+              setUser(null);
+              localStorage.removeItem('marlang_user');
+            }
+          }
+          setIsLoading(false);
+        });
+        return unsubscribe;
       });
-      
-      if (hasUpdates) {
-        localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
-      }
-    } catch (error) {
-      console.error('❌ 관리자 계정 설정 실패:', error);
-    }
-    
-    // 로딩 상태 해제
-    setIsLoading(false);
-    console.log('✅ AuthContext 초기화 완료');
   }, []);
 
-  // 이메일 로그인 (관리자 계정 지원)
-  const signInWithEmail = async (email, password, rememberMe = false) => {
-    console.log('📧 이메일 로그인 시도:', email);
-    setError(null);
-    setIsLoading(true);
+  const handleUser = async (firebaseUser) => {
+    if (!firebaseUser) return;
     
     try {
-      // 실제 구현에서는 API 호출
-      // 현재는 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 관리자 계정 확인
-      const adminAccount = adminAccounts.find(admin => 
-        admin.email === email && admin.password === password
-      );
-      
-      if (adminAccount) {
-        const loginUser = {
-          ...adminAccount,
-          loginTime: new Date().toISOString(),
-          rememberMe
-        };
-        
-        setUser(loginUser);
-        localStorage.setItem('marlang_user', JSON.stringify(loginUser));
-        
-        console.log('👑 관리자 로그인 성공:', loginUser.name, '권한:', loginUser.role);
-        return;
-      }
-      
-      // 테스트용 계정 추가
-      if (email === 'test@test.com' && password === 'test123') {
-        const testUser = {
-          id: 'test_user',
-          name: '테스트 사용자',
-          email: 'test@test.com',
-          role: ROLES.USER,
-          picture: 'https://ui-avatars.com/api/?name=Test&background=1976d2&color=fff',
-          provider: 'email',
-          createdAt: new Date().toISOString(),
-          loginTime: new Date().toISOString(),
-          rememberMe
-        };
-        
-        setUser(testUser);
-        localStorage.setItem('marlang_user', JSON.stringify(testUser));
-        
-        console.log('✅ 테스트 로그인 성공:', testUser.name);
-        return;
-      }
-      
-      // 저장된 사용자 정보 확인 (시뮬레이션)
-      const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      const foundUser = storedUsers.find(u => u.email === email);
-      
-      if (!foundUser) {
-        throw new Error('등록되지 않은 이메일입니다.\n\n관리자 계정:\n- admin@marlang.com / admin123\n- manager@marlang.com / Manager2024!@#\n\n일반 사용자:\n- test@test.com / test123');
-      }
-      
-      if (foundUser.password !== password) {
-        throw new Error('비밀번호가 일치하지 않습니다.');
-      }
-      
-      const loginUser = {
-        ...foundUser,
-        loginTime: new Date().toISOString(),
-        rememberMe
+      console.log('👤 사용자 정보 처리 시작:', firebaseUser.email);
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      const role = userDoc.exists() ? userDoc.data().role : 'user';
+
+      const marlangUser = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: firebaseUser.displayName,
+        picture: firebaseUser.photoURL,
+        provider: 'google',
+        role: role,
       };
       
-      setUser(loginUser);
-      localStorage.setItem('marlang_user', JSON.stringify(loginUser));
+      console.log('💾 Firestore에 사용자 정보 저장...');
+      await upsertUserInFirestore(marlangUser);
       
-      console.log('✅ 이메일 로그인 성공:', loginUser.name, '권한:', loginUser.role || ROLES.USER);
-    } catch (error) {
-      console.error('❌ 이메일 로그인 실패:', error.message);
-      setError(error.message);
-      throw error;
-    } finally {
-      setIsLoading(false);
+      console.log('✅ 사용자 정보 설정 완료:', marlangUser.email);
+      setUser(marlangUser);
+      localStorage.setItem('marlang_user', JSON.stringify(marlangUser));
+    } catch (err) {
+      console.error('🚨 사용자 정보 처리 오류:', err);
+      setError(`사용자 정보 처리 오류: ${err.message}`);
     }
   };
 
-  // 회원가입 (일반 사용자만)
-  const signUpWithEmail = async (signupData) => {
-    console.log('📝 회원가입 시도:', signupData.email);
-    setError(null);
-    setIsLoading(true);
-    
+  const upsertUserInFirestore = async (userData) => {
     try {
-      // 실제 구현에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // 기존 사용자 확인
-      const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      const existingUser = storedUsers.find(u => u.email === signupData.email);
-      
-      if (existingUser) {
-        throw new Error('이미 가입된 이메일입니다.');
-      }
-      
-      // 비밀번호 유효성 검사
-      if (signupData.password.length < 8) {
-        throw new Error('비밀번호는 8자 이상이어야 합니다.');
-      }
-      
-      // 새 사용자 생성 (일반 사용자 권한)
-      const newUser = {
-        id: 'user_' + Date.now(),
-        name: signupData.name,
-        email: signupData.email,
-        password: signupData.password, // 실제로는 해시화 필요
-        role: ROLES.USER, // 기본적으로 일반 사용자
-        picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(signupData.name)}&background=1976d2&color=fff`,
-        provider: 'email',
-        createdAt: new Date().toISOString(),
-        emailVerified: false
+      const userDocRef = doc(db, "users", userData.id);
+      const dataToSave = {
+        uid: userData.id,
+        email: userData.email,
+        name: userData.name,
+        picture: userData.picture,
+        provider: userData.provider,
+        role: userData.role || 'user',
+        lastLogin: serverTimestamp(),
       };
-      
-      // 사용자 목록에 추가
-      storedUsers.push(newUser);
-      localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
-      
-      // 회원가입 후 자동 로그인
-      setUser(newUser);
-      localStorage.setItem('marlang_user', JSON.stringify(newUser));
-      
-      console.log('✅ 회원가입 및 자동 로그인 완료:', newUser.email);
-    } catch (error) {
-      console.error('❌ 회원가입 실패:', error.message);
-      throw error;
-    } finally {
-      setIsLoading(false);
+      await setDoc(userDocRef, dataToSave, { merge: true });
+      console.log('✅ Firestore 저장 완료');
+    } catch (err) {
+      console.error('🚨 Firestore 저장 오류:', err);
+      throw err;
     }
   };
 
-  // 네이버 로그인
-  const signInWithNaver = async () => {
-    console.log('🟢 네이버 로그인 시도');
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      // 실제 구현에서는 네이버 OAuth API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const naverUser = {
-        id: 'naver_' + Date.now(),
-        email: 'user@naver.com',
-        name: '네이버 사용자',
-        role: ROLES.USER,
-        picture: 'https://ssl.pstatic.net/static/pwe/address/img_profile.png',
-        provider: 'naver',
-        loginTime: new Date().toISOString()
-      };
-      
-      setUser(naverUser);
-      localStorage.setItem('marlang_user', JSON.stringify(naverUser));
-      
-      console.log('✅ 네이버 로그인 성공:', naverUser.name);
-    } catch (error) {
-      console.error('❌ 네이버 로그인 실패:', error.message);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 비밀번호 재설정
-  const resetPassword = async (email) => {
-    console.log('🔄 비밀번호 재설정 요청:', email);
-    setError(null);
-    
-    try {
-      // 실제 구현에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      const userIndex = storedUsers.findIndex(u => u.email === email);
-      
-      if (userIndex === -1) {
-        throw new Error('등록되지 않은 이메일입니다.');
-      }
-      
-      // 임시 비밀번호 생성 (8자리)
-      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
-      
-      // 사용자 비밀번호 업데이트
-      storedUsers[userIndex].password = tempPassword;
-      storedUsers[userIndex].tempPassword = true; // 임시 비밀번호 플래그
-      localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
-      
-      // 실제로는 이메일 발송, 여기서는 alert로 임시 비밀번호 표시
-      setTimeout(() => {
-        alert(`임시 비밀번호가 생성되었습니다: ${tempPassword}\n\n로그인 후 반드시 비밀번호를 변경해주세요.`);
-      }, 500);
-      
-      console.log('📧 비밀번호 재설정 완료 - 임시 비밀번호:', tempPassword);
-    } catch (error) {
-      console.error('❌ 비밀번호 재설정 실패:', error.message);
-      throw error;
-    }
-  };
-
-  // 비밀번호 변경
-  const changePassword = async (currentPassword, newPassword) => {
-    console.log('🔒 비밀번호 변경 시도');
-    setError(null);
-    
-    try {
-      if (!user) {
-        throw new Error('로그인이 필요합니다.');
-      }
-      
-      // 실제 구현에서는 API 호출
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 현재 비밀번호 확인 (시뮬레이션)
-      const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-      const userIndex = storedUsers.findIndex(u => u.id === user.id);
-      
-      if (userIndex === -1 || storedUsers[userIndex].password !== currentPassword) {
-        throw new Error('현재 비밀번호가 일치하지 않습니다.');
-      }
-      
-      // 비밀번호 업데이트
-      storedUsers[userIndex].password = newPassword;
-      localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
-      
-      console.log('✅ 비밀번호 변경 완료');
-    } catch (error) {
-      console.error('❌ 비밀번호 변경 실패:', error.message);
-      throw error;
-    }
-  };
-
-  // 간단한 Google 로그인 (기존 유지)
   const signInWithGoogle = async () => {
-    console.log('🚀 Google 로그인 (임시 모드)');
-    
-    setError(null);
     setIsLoading(true);
-    
+    setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🚀 Google 로그인 시작...');
+      console.log('🔧 Google Provider 설정:', googleProvider);
+      console.log('🌐 Auth 도메인:', auth.config.authDomain);
       
-      const testUser = {
-        id: 'google_' + Date.now(),
-        email: 'test@gmail.com',
-        name: 'Google 사용자',
-        role: ROLES.USER,
-        picture: 'https://images.unsplash.com/photo-1494790108755-2616b612b5e5?w=150',
-        given_name: 'Google',
-        family_name: '사용자',
-        loginTime: new Date().toISOString(),
-        provider: 'google'
-      };
+      // 팝업 방식으로 먼저 시도
+      try {
+        console.log('🪟 팝업 방식으로 시도 중...');
+        const result = await signInWithPopup(auth, googleProvider);
+        console.log('✅ 팝업 로그인 성공:', result.user.email);
+        await handleUser(result.user);
+      } catch (popupError) {
+        console.log('❌ 팝업 실패, 리디렉션 방식으로 시도:', popupError.code);
+        
+        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user') {
+          console.log('🔄 리디렉션 방식으로 전환...');
+          await signInWithRedirect(auth, googleProvider);
+        } else {
+          throw popupError;
+        }
+      }
+    } catch (err) {
+      console.error('🚨 Google sign-in error:', err);
+      console.error('🚨 Google 로그인 에러 상세:', {
+        code: err.code,
+        message: err.message,
+        credential: err.credential,
+        customData: err.customData
+      });
       
-      setUser(testUser);
-      localStorage.setItem('marlang_user', JSON.stringify(testUser));
+      // 구체적인 에러 메시지 설정
+      let errorMessage = '';
+      switch(err.code) {
+        case 'auth/operation-not-allowed':
+          errorMessage = 'Google 로그인이 Firebase에서 활성화되지 않았습니다.';
+          break;
+        case 'auth/unauthorized-domain':
+          errorMessage = '현재 도메인이 OAuth 설정에서 허용되지 않았습니다.';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도하세요.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = '네트워크 오류입니다. 인터넷 연결을 확인하고 다시 시도하세요.';
+          break;
+        default:
+          errorMessage = `Google 로그인 오류: ${err.message} (${err.code})`;
+      }
+      setError(errorMessage);
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email, password) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. 먼저 로컬 관리자 계정 확인
+      const adminAccount = adminAccounts.find(a => a.email === email && a.password === password);
+      if (adminAccount) {
+        console.log('👤 로컬 관리자 로그인 성공');
+        const adminUser = { ...adminAccount, provider: 'admin' };
+        await upsertUserInFirestore(adminUser);
+        setUser(adminUser);
+        localStorage.setItem('marlang_user', JSON.stringify(adminUser));
+        return;
+      }
+
+      // 2. Firebase 이메일/비밀번호 로그인 시도
+      console.log('🔥 Firebase 이메일 로그인 시도...');
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Firebase 이메일 로그인 성공:', result.user.email);
+      await handleUser(result.user);
       
-      console.log('✅ Google 로그인 완료:', testUser.name);
-    } catch (error) {
-      console.error('❌ Google 로그인 실패:', error.message);
-      throw error;
+    } catch (err) {
+      console.error('🚨 이메일 로그인 오류:', err);
+      
+      let errorMessage = '';
+      switch(err.code) {
+        case 'auth/user-not-found':
+          errorMessage = '등록되지 않은 이메일입니다.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = '비밀번호가 올바르지 않습니다.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = '이메일 형식이 올바르지 않습니다.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도하세요.';
+          break;
+        default:
+          errorMessage = err.message || "관리자 정보가 일치하지 않습니다.";
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 로그아웃
-  const signOut = () => {
-    console.log('🚪 로그아웃');
+  // Firebase 이메일 회원가입 함수 추가
+  const signUpWithEmail = async (email, password, displayName) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('📝 Firebase 이메일 회원가입 시도...');
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // 사용자 프로필 업데이트
+      const userData = {
+        id: result.user.uid,
+        email: result.user.email,
+        name: displayName || 'User',
+        picture: null,
+        provider: 'email',
+        role: 'user',
+      };
+      
+      await upsertUserInFirestore(userData);
+      setUser(userData);
+      localStorage.setItem('marlang_user', JSON.stringify(userData));
+      
+      console.log('✅ Firebase 이메일 회원가입 성공:', result.user.email);
+    } catch (err) {
+      console.error('🚨 이메일 회원가입 오류:', err);
+      
+      let errorMessage = '';
+      switch(err.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = '이미 사용 중인 이메일입니다.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = '비밀번호가 너무 약합니다. 6자 이상 입력하세요.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = '이메일 형식이 올바르지 않습니다.';
+          break;
+        default:
+          errorMessage = err.message || "회원가입 중 오류가 발생했습니다.";
+      }
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    setIsLoading(true);
     setUser(null);
     localStorage.removeItem('marlang_user');
-  };
-
-  // 게스트 로그인 (제거됨 - 더 이상 사용하지 않음)
-  const signInAsGuest = () => {
-    console.log('👤 게스트 로그인 (deprecated)');
-    // 게스트 로그인은 더 이상 지원하지 않음
-  };
-
-  // 사용자 활동 시간 업데이트
-  const updateLastActivity = () => {
-    if (!user) return;
-
-    const currentTime = new Date().toISOString();
-    const updatedUser = { ...user, lastActivity: currentTime };
-    setUser(updatedUser);
-    localStorage.setItem('marlang_user', JSON.stringify(updatedUser));
-    
-    // 사용자별 데이터에도 저장
-    const userKey = `marlang_user_${user.id}`;
     try {
-      const userData = JSON.parse(localStorage.getItem(userKey) || '{}');
-      userData.lastActivity = currentTime;
-      localStorage.setItem(userKey, JSON.stringify(userData));
-    } catch (error) {
-      console.error('Error updating user activity:', error);
+      await firebaseSignOut(auth);
+    } catch (err) {
+      console.error("Firebase 로그아웃 실패:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 사용자 프로필 업데이트
-  const updateUserProfile = (updates) => {
-    if (!user) return;
+  // 모든 사용자 조회
+  const getAllUsers = async () => {
+    try {
+      const usersCol = collection(db, 'users');
+      const userSnapshot = await getDocs(usersCol);
+      const userList = userSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      return userList;
+    } catch (error) {
+      console.error('사용자 목록 조회 실패:', error);
+      return [];
+    }
+  };
 
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('marlang_user', JSON.stringify(updatedUser));
-    
-    // 사용자 목록도 업데이트
-    const storedUsers = JSON.parse(localStorage.getItem('marlang_users') || '[]');
-    const userIndex = storedUsers.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      storedUsers[userIndex] = { ...storedUsers[userIndex], ...updates };
-      localStorage.setItem('marlang_users', JSON.stringify(storedUsers));
+  // 사용자 정보 업데이트
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await updateDoc(userDocRef, { role: newRole });
+      console.log('사용자 권한 변경 성공:', userId, newRole);
+      return true;
+    } catch (error) {
+      console.error('사용자 권한 변경 실패:', error);
+      return false;
+    }
+  };
+
+  // 사용자 삭제
+  const deleteUser = async (userId) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await deleteDoc(userDocRef);
+      console.log('사용자 삭제 성공:', userId);
+      return true;
+    } catch (error) {
+      console.error('사용자 삭제 실패:', error);
+      return false;
     }
   };
 
@@ -480,23 +355,12 @@ export const AuthProvider = ({ children }) => {
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
-    signInWithNaver,
-    resetPassword,
-    changePassword,
     signOut,
-    signInAsGuest, // deprecated
-    updateUserProfile,
-    updateLastActivity,
     isAuthenticated: !!user,
-    isGuest: user?.isGuest || false,
-    isModalOpen,
-    setIsModalOpen,
-    // 새로운 권한 관련 함수들
-    hasPermission,
-    isAdmin,
-    isSuperAdmin,
-    ROLES,
-    PERMISSIONS
+    isAdmin: user?.role === 'admin' || user?.role === 'super_admin',
+    getAllUsers,
+    updateUserRole,
+    deleteUser,
   };
 
   return (

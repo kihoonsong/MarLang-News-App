@@ -50,7 +50,7 @@ export default defineConfig({
     // 압축 설정
     terserOptions: {
       compress: {
-        drop_console: true, // console.log 제거
+        drop_console: false, // 디버깅을 위해 console.log 보존
         drop_debugger: true // debugger 제거
       }
     }

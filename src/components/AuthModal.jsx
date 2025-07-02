@@ -1,591 +1,155 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
-  Dialog,
-  DialogContent,
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Divider,
-  IconButton,
-  Tab,
-  Tabs,
-  Alert,
-  Link,
-  InputAdornment,
-  Checkbox,
-  FormControlLabel,
-  CircularProgress
+  Dialog, DialogContent, Box, Typography, Button, Divider, IconButton, Alert, CircularProgress,
+  TextField, Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import EmailIcon from '@mui/icons-material/Email';
-import LockIcon from '@mui/icons-material/Lock';
-import PersonIcon from '@mui/icons-material/Person';
-import PhoneIcon from '@mui/icons-material/Phone';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 
 const AuthModal = ({ open, onClose }) => {
-  const [tabValue, setTabValue] = useState(0); // 0: 로그인, 1: 회원가입, 2: 비밀번호 찾기
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
-  // 로그인 폼 상태
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
-  });
-  
-  // 회원가입 폼 상태
-  const [signupForm, setSignupForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    agreeTerms: false,
-    agreePrivacy: false
-  });
-  
-  // 비밀번호 찾기 폼 상태
-  const [resetForm, setResetForm] = useState({
-    email: ''
-  });
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [signUpName, setSignUpName] = useState('');
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, isAuthenticated } = useAuth();
 
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, signInWithNaver, isAuthenticated } = useAuth();
-
-  // 로그인 성공 시 자동으로 팝업 닫기
   useEffect(() => {
     if (isAuthenticated && open) {
-      console.log('✅ 로그인 성공으로 인한 자동 팝업 닫기');
-      setTimeout(() => {
-        // 폼 상태 초기화
-        setTabValue(0);
-        setError('');
-        setSuccess('');
-        setLoginForm({ email: '', password: '', rememberMe: false });
-        setSignupForm({ name: '', email: '', password: '', confirmPassword: '', agreeTerms: false, agreePrivacy: false });
-        setResetForm({ email: '' });
-        onClose();
-      }, 500); // 0.5초 후 닫기 (사용자가 성공을 확인할 수 있도록)
+      setTimeout(onClose, 500);
     }
   }, [isAuthenticated, open, onClose]);
 
-  const handleClose = () => {
-    setTabValue(0);
-    setError('');
-    setSuccess('');
-    setLoginForm({ email: '', password: '', rememberMe: false });
-    setSignupForm({ name: '', email: '', password: '', confirmPassword: '', agreeTerms: false, agreePrivacy: false });
-    setResetForm({ email: '' });
-    onClose();
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-    setError('');
-    setSuccess('');
-  };
-
-  // 로그인 처리
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      await signInWithEmail(loginForm.email, loginForm.password, loginForm.rememberMe);
-      setSuccess('로그인 성공! 환영합니다.');
-      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
-    } catch (error) {
-      setError(error.message || '로그인에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 회원가입 처리
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    // 유효성 검사
-    if (signupForm.password !== signupForm.confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
-      setLoading(false);
-      return;
-    }
-    
-    if (!signupForm.agreeTerms || !signupForm.agreePrivacy) {
-      setError('이용약관과 개인정보처리방침에 동의해주세요.');
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      await signUpWithEmail(signupForm);
-      setSuccess('회원가입이 완료되었습니다! 자동으로 로그인됩니다.');
-      // 회원가입 성공 시 자동 로그인으로 인해 useEffect에서 팝업이 닫힘
-    } catch (error) {
-      setError(error.message || '회원가입에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 비밀번호 찾기 처리
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      await resetPassword(resetForm.email);
-      setSuccess('비밀번호 재설정 이메일을 발송했습니다.');
-    } catch (error) {
-      setError(error.message || '비밀번호 재설정에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Google 로그인
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-    
-    try {
-      await signInWithGoogle();
-      setSuccess('Google 로그인 성공! 환영합니다.');
-      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
-    } catch (error) {
-      setError(error.message || 'Google 로그인에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
+    // signInWithRedirect는 페이지를 이동시키므로, 별도의 에러 처리가 필요 없음
+    await signInWithGoogle();
   };
 
-  // 네이버 로그인
-  const handleNaverLogin = async () => {
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
-    
     try {
-      await signInWithNaver();
-      setSuccess('네이버 로그인 성공! 환영합니다.');
-      // 로그인 성공 시 useEffect에서 자동으로 팝업이 닫힘
-    } catch (error) {
-      setError(error.message || '네이버 로그인에 실패했습니다.');
+      if (showSignUp) {
+        await signUpWithEmail(adminEmail, adminPassword, signUpName);
+      } else {
+        await signInWithEmail(adminEmail, adminPassword);
+      }
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          minHeight: '500px'
-        }
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ position: 'relative' }}>
-          {/* 닫기 버튼 */}
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              zIndex: 1,
-              bgcolor: 'rgba(0,0,0,0.04)',
-              '&:hover': { bgcolor: 'rgba(0,0,0,0.08)' }
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-
-          {/* 헤더 */}
-          <Box sx={{ textAlign: 'center', pt: 3, pb: 2 }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}>
-              MarLang
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              영어 뉴스와 함께 학습하세요
-            </Typography>
+        <Box sx={{ position: 'relative', p: 4 }}>
+          <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>MarLang</Typography>
+            <Typography variant="body1" color="text.secondary">Eng News</Typography>
           </Box>
+          
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-          {/* 탭 메뉴 */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mx: 3 }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              sx={{
-                '& .MuiTab-root': {
-                  fontWeight: 'medium'
-                }
-              }}
-            >
-              <Tab label="로그인" />
-              <Tab label="회원가입" />
-              <Tab label="비밀번호 찾기" />
-            </Tabs>
-          </Box>
+          <SocialButton fullWidth variant="outlined" startIcon={<GoogleIcon />} onClick={handleGoogleLogin} disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : 'Google 계정으로 시작하기'}
+          </SocialButton>
 
-          {/* 에러/성공 메시지 */}
-          {error && (
-            <Alert severity="error" sx={{ mx: 3, mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" sx={{ mx: 3, mt: 2 }}>
-              {success}
-            </Alert>
-          )}
+          <Divider sx={{ my: 3 }}><Typography variant="caption" color="text.secondary">또는</Typography></Divider>
 
-          <Box sx={{ p: 3 }}>
-            {/* 로그인 탭 */}
-            {tabValue === 0 && (
-              <Box component="form" onSubmit={handleLogin}>
+          <Accordion sx={{ mb: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AdminPanelSettingsIcon />
+                <Typography variant="body2">{showSignUp ? '회원가입' : '이메일 로그인'}</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box component="form" onSubmit={handleAdminLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {showSignUp && (
+                  <TextField
+                    size="small"
+                    label="이름"
+                    value={signUpName}
+                    onChange={(e) => setSignUpName(e.target.value)}
+                    placeholder="홍길동"
+                    required
+                  />
+                )}
                 <TextField
-                  fullWidth
+                  size="small"
                   label="이메일"
                   type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder={showSignUp ? "your@email.com" : "admin@marlang.com"}
                   required
                 />
-                
                 <TextField
-                  fullWidth
+                  size="small"
                   label="비밀번호"
-                  type={showPassword ? 'text' : 'password'}
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder={showSignUp ? "6자 이상" : "admin123"}
                   required
                 />
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={loginForm.rememberMe}
-                        onChange={(e) => setLoginForm({...loginForm, rememberMe: e.target.checked})}
-                      />
-                    }
-                    label="로그인 상태 유지"
-                  />
-                  <Link
-                    component="button"
-                    type="button"
-                    onClick={() => setTabValue(2)}
-                    sx={{ fontSize: '0.875rem' }}
-                  >
-                    비밀번호 찾기
-                  </Link>
-                </Box>
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  size="small"
                   disabled={loading}
-                  sx={{ mb: 2, py: 1.5 }}
+                  startIcon={loading ? <CircularProgress size={16} /> : <AdminPanelSettingsIcon />}
                 >
-                  {loading ? <CircularProgress size={24} /> : '로그인'}
+                  {loading ? (showSignUp ? '가입 중...' : '로그인 중...') : (showSignUp ? '회원가입' : '로그인')}
                 </Button>
-
-                <Divider sx={{ my: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    또는
-                  </Typography>
-                </Divider>
-
-                {/* 소셜 로그인 버튼들 */}
-                <SocialButton
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<GoogleIcon />}
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  sx={{ mb: 1 }}
+                <Button 
+                  type="button"
+                  variant="text" 
+                  size="small"
+                  onClick={() => {
+                    setShowSignUp(!showSignUp);
+                    setError('');
+                  }}
                 >
-                  Google로 로그인
-                </SocialButton>
-
-                <NaverButton
-                  fullWidth
-                  variant="outlined"
-                  onClick={handleNaverLogin}
-                  disabled={loading}
-                >
-                  <NaverIcon>N</NaverIcon>
-                  네이버로 로그인
-                </NaverButton>
-              </Box>
-            )}
-
-            {/* 회원가입 탭 */}
-            {tabValue === 1 && (
-              <Box component="form" onSubmit={handleSignup}>
-                <TextField
-                  fullWidth
-                  label="이름"
-                  value={signupForm.name}
-                  onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
-                  required
-                />
-
-                <TextField
-                  fullWidth
-                  label="이메일"
-                  type="email"
-                  value={signupForm.email}
-                  onChange={(e) => setSignupForm({...signupForm, email: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
-                  required
-                />
-
-                <TextField
-                  fullWidth
-                  label="비밀번호"
-                  type={showPassword ? 'text' : 'password'}
-                  value={signupForm.password}
-                  onChange={(e) => setSignupForm({...signupForm, password: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
-                  helperText="8자 이상, 영문/숫자/특수문자 포함"
-                  required
-                />
-
-                <TextField
-                  fullWidth
-                  label="비밀번호 확인"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={signupForm.confirmPassword}
-                  onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
-                          {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 2 }}
-                  error={signupForm.confirmPassword && signupForm.password !== signupForm.confirmPassword}
-                  helperText={signupForm.confirmPassword && signupForm.password !== signupForm.confirmPassword ? '비밀번호가 일치하지 않습니다' : ''}
-                  required
-                />
-
-                <Box sx={{ mb: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={signupForm.agreeTerms}
-                        onChange={(e) => setSignupForm({...signupForm, agreeTerms: e.target.checked})}
-                      />
-                    }
-                    label={
-                      <Typography variant="body2">
-                        <Link href="#" onClick={(e) => e.preventDefault()}>이용약관</Link>에 동의합니다 (필수)
-                      </Typography>
-                    }
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={signupForm.agreePrivacy}
-                        onChange={(e) => setSignupForm({...signupForm, agreePrivacy: e.target.checked})}
-                      />
-                    }
-                    label={
-                      <Typography variant="body2">
-                        <Link href="#" onClick={(e) => e.preventDefault()}>개인정보처리방침</Link>에 동의합니다 (필수)
-                      </Typography>
-                    }
-                  />
-                </Box>
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  disabled={loading}
-                  sx={{ py: 1.5 }}
-                >
-                  {loading ? <CircularProgress size={24} /> : '회원가입'}
+                  {showSignUp ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
                 </Button>
               </Box>
-            )}
+            </AccordionDetails>
+          </Accordion>
 
-            {/* 비밀번호 찾기 탭 */}
-            {tabValue === 2 && (
-              <Box component="form" onSubmit={handleResetPassword}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  가입하신 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.
-                </Typography>
-
-                <TextField
-                  fullWidth
-                  label="이메일"
-                  type="email"
-                  value={resetForm.email}
-                  onChange={(e) => setResetForm({...resetForm, email: e.target.value})}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon color="action" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ mb: 3 }}
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  disabled={loading}
-                  sx={{ mb: 2, py: 1.5 }}
-                >
-                  {loading ? <CircularProgress size={24} /> : '비밀번호 재설정 이메일 발송'}
-                </Button>
-
-                <Button
-                  fullWidth
-                  variant="text"
-                  onClick={() => setTabValue(0)}
-                >
-                  로그인으로 돌아가기
-                </Button>
-              </Box>
-            )}
-          </Box>
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.
+          </Typography>
         </Box>
       </DialogContent>
     </Dialog>
   );
 };
 
+AuthModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
 const SocialButton = styled(Button)`
   padding: 12px 24px !important;
-  border: 2px solid #dadce0 !important;
+  border: 1px solid #dadce0 !important;
   color: #3c4043 !important;
   font-weight: 500 !important;
   text-transform: none !important;
   border-radius: 8px !important;
-  
-  &:hover {
-    border-color: #1976d2 !important;
-    background-color: #f8f9fa !important;
-  }
 `;
 
-const NaverButton = styled(Button)`
-  padding: 12px 24px !important;
-  border: 2px solid #03c75a !important;
-  color: #03c75a !important;
-  font-weight: 500 !important;
-  text-transform: none !important;
-  border-radius: 8px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  
-  &:hover {
-    background-color: #03c75a !important;
-    color: white !important;
-  }
-`;
-
-const NaverIcon = styled.div`
-  width: 20px;
-  height: 20px;
-  background: #03c75a;
-  color: white;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 14px;
-`;
-
-export default AuthModal; 
+export default AuthModal;

@@ -10,7 +10,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -27,6 +27,7 @@ import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
 const Home = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, signOut } = useAuth() || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -41,56 +42,45 @@ const Home = () => {
     return saved ? JSON.parse(saved).filter(notice => notice.active) : [];
   });
   
-  // 동적 카테고리 관리
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('marlang_categories');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [
-          { id: 'recent', name: 'Recent', type: 'recent' },
-          { id: 'technology', name: 'Technology', type: 'category' },
-          { id: 'science', name: 'Science', type: 'category' },
-          { id: 'business', name: 'Business', type: 'category' },
-          { id: 'culture', name: 'Culture', type: 'category' },
-          { id: 'society', name: 'Society', type: 'category' },
-          { id: 'popular', name: 'Popular', type: 'popular' }
-        ];
-      }
-    }
-    return [
-      { id: 'recent', name: 'Recent', type: 'recent' },
-      { id: 'technology', name: 'Technology', type: 'category' },
-      { id: 'science', name: 'Science', type: 'category' },
-      { id: 'business', name: 'Business', type: 'category' },
-      { id: 'culture', name: 'Culture', type: 'category' },
-      { id: 'society', name: 'Society', type: 'category' },
-      { id: 'popular', name: 'Popular', type: 'popular' }
-    ];
-  });
+  // 기본 카테고리 정의
+  const defaultCategories = [
+    { id: 'recent', name: 'Recent', type: 'recent' },
+    { id: 'technology', name: 'Technology', type: 'category' },
+    { id: 'science', name: 'Science', type: 'category' },
+    { id: 'business', name: 'Business', type: 'category' },
+    { id: 'culture', name: 'Culture', type: 'category' },
+    { id: 'society', name: 'Society', type: 'category' },
+    { id: 'popular', name: 'Popular', type: 'popular' }
+  ];
+
+  // 동적 카테고리 관리 - ArticlesContext에서 가져오기
+  const [localCategories, setLocalCategories] = useState(defaultCategories);
   
   // Use shared articles context
   const { 
     loading, 
     error, 
+    categories: contextCategories,
     getRecentArticles, 
     getPopularArticles, 
     getArticlesByCategory, 
     refreshArticles 
   } = useArticles();
 
-  // 카테고리 변경 감지 및 로컬스토리지 동기화
+  // 카테고리 동기화
+  const categories = Array.isArray(contextCategories) && contextCategories.length > 0 
+    ? contextCategories 
+    : localCategories;
+
+  // 카테고리 변경 감지 및 동기화
   useEffect(() => {
-    const handleCategoryUpdate = () => {
-      const saved = localStorage.getItem('marlang_categories');
-      if (saved) {
-        try {
-          const newCategories = JSON.parse(saved);
-          setCategories(newCategories);
-        } catch (e) {
-          console.error('Failed to parse categories:', e);
-        }
+    const handleCategoryUpdate = (event) => {
+      console.log('🏠 Home 컴포넌트: 카테고리 업데이트 이벤트 수신', event.detail);
+      if (event.detail && Array.isArray(event.detail.categories)) {
+        setLocalCategories(event.detail.categories);
+        toast.info('카테고리가 업데이트되었습니다!');
+        // 새로운 카테고리 기반으로 기사 데이터 다시 로드
+        refreshArticles();
       }
     };
 
@@ -126,21 +116,27 @@ const Home = () => {
     };
   }, [refreshArticles, toast]);
 
-  // Load category data from context
+  // Load category data from context with proper guards
   useEffect(() => {
-    if (!loading) {
+    if (!loading && Array.isArray(categories)) {
       const categoryData = {};
 
-      categoryData.recent = getRecentArticles(10);
-      categoryData.popular = getPopularArticles(10);
+      // 안전한 기사 데이터 로드
+      try {
+        categoryData.recent = getRecentArticles(10) || [];
+        categoryData.popular = getPopularArticles(10) || [];
 
-      categories.forEach((category) => {
-        if (category.type === 'category') {
-          categoryData[category.id] = getArticlesByCategory(category.name, 5);
-        }
-      });
+        categories.forEach((category) => {
+          if (category && category.type === 'category' && category.id && category.name) {
+            categoryData[category.id] = getArticlesByCategory(category.name, 5) || [];
+          }
+        });
 
-      setAllNewsData(categoryData);
+        setAllNewsData(categoryData);
+      } catch (error) {
+        console.error('기사 데이터 로드 중 오류:', error);
+        setAllNewsData({});
+      }
     }
   }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
   const handleCategoryClick = (category) => {
@@ -186,10 +182,10 @@ const Home = () => {
               }
             }}
           >
-            {categories.map((category) => (
+            {Array.isArray(categories) && categories.map((category) => (
               <Tab 
-                key={category.id} 
-                label={category.name}
+                key={category?.id || 'unknown'} 
+                label={category?.name || 'Unknown'}
                 onClick={() => handleCategoryClick(category)}
                 sx={{ 
                   fontWeight: 'medium',
@@ -233,56 +229,70 @@ const Home = () => {
             {/* 공지사항 영역 */}
             {notices.length > 0 && (
               <NoticeSection>
-                {notices.map((notice, index) => (
-                  <Alert 
-                    key={notice.id || index}
-                    severity={notice.type || 'info'} 
-                    sx={{ mb: 1 }}
-                    onClose={() => {
-                      const updatedNotices = notices.filter((_, i) => i !== index);
-                      setNotices(updatedNotices);
-                      
-                      // 로컬스토리지 업데이트
-                      const allNotices = JSON.parse(localStorage.getItem('marlang_notices') || '[]');
-                      const noticeToUpdate = allNotices.find(n => n.id === notice.id);
-                      if (noticeToUpdate) {
-                        noticeToUpdate.active = false;
-                        localStorage.setItem('marlang_notices', JSON.stringify(allNotices));
-                      }
-                    }}
-                  >
-                    {notice.message}
-                  </Alert>
-                ))}
+                {Array.isArray(notices) && notices.map((notice, index) => {
+                  if (!notice) return null;
+                  return (
+                    <Alert 
+                      key={notice.id || index}
+                      severity={notice.type || 'info'} 
+                      sx={{ mb: 1 }}
+                      onClose={() => {
+                        const updatedNotices = notices.filter((_, i) => i !== index);
+                        setNotices(updatedNotices);
+                        
+                        // 로컬스토리지 업데이트
+                        try {
+                          const allNotices = JSON.parse(localStorage.getItem('marlang_notices') || '[]');
+                          const noticeToUpdate = allNotices.find(n => n.id === notice.id);
+                          if (noticeToUpdate) {
+                            noticeToUpdate.active = false;
+                            localStorage.setItem('marlang_notices', JSON.stringify(allNotices));
+                          }
+                        } catch (error) {
+                          console.error('공지사항 업데이트 중 오류:', error);
+                        }
+                      }}
+                    >
+                      {notice.message}
+                    </Alert>
+                  );
+                })}
               </NoticeSection>
             )}
 
-            {categories.map((category) => (
-              <CategorySection key={category.id} id={`category-${category.id}`}>
-                <CategoryHeader>
-                  <CategoryTitle onClick={() => handleCategoryTitleClick(category)} style={{ cursor: 'pointer' }}>
-                    {category.name}
-                  </CategoryTitle>
-                </CategoryHeader>
-                
-                <HorizontalScrollContainer id={`scroll-${category.id}`}>
-                  <ArticleRow>
-                    {allNewsData[category.id]?.map(article => (
-                      <ArticleCardWrapper key={article.id}>
-                        <ArticleCard {...article} navigate={navigate} />
-                      </ArticleCardWrapper>
-                    ))}
-                    {(!allNewsData[category.id] || allNewsData[category.id].length === 0) && (
-                      <EmptyCategory>
-                        <Typography variant="body2" color="text.secondary">
-                          No {category.name.toLowerCase()} articles available
-                        </Typography>
-                      </EmptyCategory>
-                    )}
-                  </ArticleRow>
-                </HorizontalScrollContainer>
-              </CategorySection>
-            ))}
+            {Array.isArray(categories) && categories.map((category) => {
+              if (!category || !category.id || !category.name) return null;
+              
+              return (
+                <CategorySection key={category.id} id={`category-${category.id}`}>
+                  <CategoryHeader>
+                    <CategoryTitle onClick={() => handleCategoryTitleClick(category)} style={{ cursor: 'pointer' }}>
+                      {category.name}
+                    </CategoryTitle>
+                  </CategoryHeader>
+                  
+                  <HorizontalScrollContainer id={`scroll-${category.id}`}>
+                    <ArticleRow>
+                      {Array.isArray(allNewsData[category.id]) && allNewsData[category.id].map(article => {
+                        if (!article || !article.id) return null;
+                        return (
+                          <ArticleCardWrapper key={article.id}>
+                            <ArticleCard {...article} navigate={navigate} />
+                          </ArticleCardWrapper>
+                        );
+                      })}
+                      {(!Array.isArray(allNewsData[category.id]) || allNewsData[category.id].length === 0) && (
+                        <EmptyCategory>
+                          <Typography variant="body2" color="text.secondary">
+                            No {category.name.toLowerCase()} articles available
+                          </Typography>
+                        </EmptyCategory>
+                      )}
+                    </ArticleRow>
+                  </HorizontalScrollContainer>
+                </CategorySection>
+              );
+            })}
           </ContentContainer>
         )}
       </MobileContentWrapper>

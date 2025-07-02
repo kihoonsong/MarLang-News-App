@@ -1,6 +1,6 @@
 // Member Management Component
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography, Grid, Box, Card, CardContent, Button, TextField, 
   Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody,
@@ -48,13 +48,17 @@ const SUBSCRIPTION_PLANS = {
 };
 
 const MemberManagement = ({ 
-  getMembers,
+  getAllUsers,
+  updateUserRole,
+  deleteUser,
   setSnackbar 
 }) => {
   // 회원 관리 상태
   const [memberDialog, setMemberDialog] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [roleChangeDialog, setRoleChangeDialog] = useState({ open: false, member: null, newRole: '' });
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [memberForm, setMemberForm] = useState({
     name: '',
     email: '',
@@ -89,6 +93,25 @@ const MemberManagement = ({
     });
     setEditingMember(null);
   };
+
+  // 사용자 목록 로드
+  const loadMembers = async () => {
+    setLoading(true);
+    try {
+      const userList = await getAllUsers();
+      setMembers(userList);
+    } catch (error) {
+      console.error('회원 목록 로딩 실패:', error);
+      setSnackbar({ open: true, message: '회원 목록을 불러오는데 실패했습니다.', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 사용자 목록 로드
+  useEffect(() => {
+    loadMembers();
+  }, []);
 
   // 새 회원 추가
   const handleAddMember = () => {
@@ -179,25 +202,28 @@ const MemberManagement = ({
   };
 
   // 권한 변경 확정
-  const confirmRoleChange = () => {
+  const confirmRoleChange = async () => {
     const { member, newRole } = roleChangeDialog;
     
     try {
-      const updatedMember = {
-        ...member,
-        role: newRole,
-        lastModified: new Date().toISOString()
-      };
-
-      localStorage.setItem(`marlang_user_${member.id}`, JSON.stringify(updatedMember));
+      const success = await updateUserRole(member.id, newRole);
       
-      setSnackbar({ 
-        open: true, 
-        message: `${member.name}님의 권한이 ${newRole}으로 변경되었습니다.`, 
-        severity: 'success' 
-      });
-      
-      setRoleChangeDialog({ open: false, member: null, newRole: '' });
+      if (success) {
+        // 로컬 상태 업데이트
+        setMembers(prev => prev.map(m => 
+          m.id === member.id ? { ...m, role: newRole } : m
+        ));
+        
+        setSnackbar({ 
+          open: true, 
+          message: `${member.name}님의 권한이 ${newRole}으로 변경되었습니다.`, 
+          severity: 'success' 
+        });
+        
+        setRoleChangeDialog({ open: false, member: null, newRole: '' });
+      } else {
+        setSnackbar({ open: true, message: '권한 변경 중 오류가 발생했습니다.', severity: 'error' });
+      }
     } catch (error) {
       console.error('Error changing role:', error);
       setSnackbar({ open: true, message: '권한 변경 중 오류가 발생했습니다.', severity: 'error' });
@@ -241,28 +267,39 @@ const MemberManagement = ({
   };
 
   // 회원 삭제
-  const handleDeleteMember = (memberId) => {
+  const handleDeleteMember = async (memberId) => {
     try {
-      localStorage.removeItem(`marlang_user_${memberId}`);
-      localStorage.removeItem(`marlang_liked_articles_${memberId}`);
-      localStorage.removeItem(`marlang_saved_words_${memberId}`);
-      setSnackbar({ open: true, message: '회원이 삭제되었습니다.', severity: 'success' });
+      const success = await deleteUser(memberId);
+      
+      if (success) {
+        // 로컬 상태에서 제거
+        setMembers(prev => prev.filter(m => m.id !== memberId));
+        setSnackbar({ open: true, message: '회원이 삭제되었습니다.', severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: '회원 삭제 중 오류가 발생했습니다.', severity: 'error' });
+      }
     } catch (error) {
       console.error('Error deleting member:', error);
       setSnackbar({ open: true, message: '회원 삭제 중 오류가 발생했습니다.', severity: 'error' });
     }
   };
 
-  const members = getMembers();
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" sx={{ py: 4 }}>
+        <Typography>회원 목록을 불러오는 중...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       {/* 액션 버튼 */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <ActionButton onClick={() => { resetMemberForm(); setMemberDialog(true); }}>
-            <PersonAdd fontSize="large" />
-            <Typography variant="h6" sx={{ mt: 1 }}>새 회원 추가</Typography>
+          <ActionButton onClick={loadMembers}>
+            <People fontSize="large" />
+            <Typography variant="h6" sx={{ mt: 1 }}>회원 목록 새로고침</Typography>
           </ActionButton>
         </Grid>
       </Grid>
@@ -326,19 +363,19 @@ const MemberManagement = ({
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
-                          📖 {member.readArticles}개
+                          📖 {member.readArticles || 0}개
                         </Typography>
                         <Typography variant="body2">
-                          📝 {member.savedWords.length}단어
+                          📝 {(member.savedWords || []).length}단어
                         </Typography>
                         <Typography variant="body2">
-                          ❤️ {member.likedArticles.length}개
+                          ❤️ {(member.likedArticles || []).length}개
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {new Date(member.joinDate).toLocaleDateString()}
+                        {member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -464,7 +501,7 @@ const MemberManagement = ({
                   >
                     {Object.entries(SUBSCRIPTION_PLANS).map(([key, plan]) => (
                       <MenuItem key={key} value={key}>
-                        {plan.name} {plan.price > 0 && `(₩${plan.price.toLocaleString()}/월)`}
+                        {plan.name} {plan.price > 0 && `(₩${(plan.price || 0).toLocaleString()}/월)`}
                       </MenuItem>
                     ))}
                   </Select>

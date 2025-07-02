@@ -29,7 +29,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, signOut } = useAuth() || {};
+  const { user, isAuthenticated, isAdmin, signOut } = useAuth() || {};
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -356,10 +356,24 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                   </ListItemText>
                 </MenuItem>
                 
+                {isAdmin && (
+                  <MenuItem onClick={() => {
+                    if (typeof window.globalStopTTS === 'function') {
+                      window.globalStopTTS();
+                    }
+                    setAnchorEl(null);
+                    navigate('/dashboard');
+                  }}>
+                    <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Dashboard</ListItemText>
+                  </MenuItem>
+                )}
+                
                 <MenuItem onClick={() => {
                   if (typeof window.globalStopTTS === 'function') {
                     window.globalStopTTS();
                   }
+                  setAnchorEl(null);
                   navigate('/settings');
                 }}>
                   <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>

@@ -16,7 +16,20 @@
       "Bash(find:*)",
       "Bash(mv:*)",
       "Bash(npx playwright:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(firebase auth:export:*)",
+      "Bash(firebase apps:sdkconfig:*)",
+      "Bash(firebase setup:web:*)",
+      "WebFetch(domain:marlang-app.web.app)",
+      "Bash(firebase hosting:sites:*)",
+      "Bash(firebase hosting:deployments:*)",
+      "Bash(firebase hosting:releases:list:*)",
+      "Bash(firebase hosting:channel:list:*)",
+      "Bash(rm:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase hosting:channel:deploy:*)",
+      "Bash(rg:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

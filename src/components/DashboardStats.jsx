@@ -12,17 +12,43 @@ import {
 
 const DashboardStats = ({ 
   user, 
-  stats, 
-  categoryStats,
-  userAnalytics,
-  lastUpdate 
+  stats = {}, 
+  categoryStats = [],
+  userAnalytics = {},
+  lastUpdate = new Date()
 }) => {
+  // 기본값 설정
+  const defaultStats = {
+    totalArticles: 0,
+    totalViews: 0,
+    totalLikes: 0,
+    totalMembers: 0,
+    todayArticles: 0,
+    todayMembers: 0,
+    currentUsers: 0,
+    categories: 0,
+    totalWords: 0,
+    avgReadArticles: 0,
+    avgSavedWords: 0,
+    ...stats
+  };
+
+  const defaultUserAnalytics = {
+    usersByReadingFrequency: { high: 0, medium: 0, low: 0 },
+    usersByLearningActivity: { active: 0, moderate: 0, passive: 0 },
+    ...userAnalytics
+  };
+
   const formatTime = (date) => {
-    return new Intl.DateTimeFormat('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(date);
+    try {
+      return new Intl.DateTimeFormat('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(new Date(date));
+    } catch (error) {
+      return new Date().toLocaleTimeString('ko-KR');
+    }
   };
 
   return (
@@ -66,7 +92,7 @@ const DashboardStats = ({
           <StatCard>
             <StatIcon>📰</StatIcon>
             <StatInfo>
-              <StatNumber>{stats.totalArticles}</StatNumber>
+              <StatNumber>{defaultStats.totalArticles}</StatNumber>
               <StatLabel>총 기사 수</StatLabel>
             </StatInfo>
           </StatCard>
@@ -76,7 +102,7 @@ const DashboardStats = ({
           <StatCard>
             <StatIcon>👀</StatIcon>
             <StatInfo>
-              <StatNumber>{stats.totalViews.toLocaleString()}</StatNumber>
+              <StatNumber>{defaultStats.totalViews.toLocaleString()}</StatNumber>
               <StatLabel>총 조회수</StatLabel>
             </StatInfo>
           </StatCard>
@@ -86,7 +112,7 @@ const DashboardStats = ({
           <StatCard>
             <StatIcon>❤️</StatIcon>
             <StatInfo>
-              <StatNumber>{stats.totalLikes.toLocaleString()}</StatNumber>
+              <StatNumber>{defaultStats.totalLikes.toLocaleString()}</StatNumber>
               <StatLabel>총 좋아요</StatLabel>
             </StatInfo>
           </StatCard>
@@ -96,7 +122,7 @@ const DashboardStats = ({
           <StatCard>
             <StatIcon>👥</StatIcon>
             <StatInfo>
-              <StatNumber>{stats.totalMembers}</StatNumber>
+              <StatNumber>{defaultStats.totalMembers}</StatNumber>
               <StatLabel>총 회원 수</StatLabel>
             </StatInfo>
           </StatCard>
@@ -114,7 +140,7 @@ const DashboardStats = ({
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="primary">
-                    {stats.todayArticles}
+                    {defaultStats.todayArticles}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     새 기사
@@ -124,7 +150,7 @@ const DashboardStats = ({
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="success.main">
-                    {stats.todayMembers}
+                    {defaultStats.todayMembers}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     신규 회원
@@ -144,7 +170,7 @@ const DashboardStats = ({
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="warning.main">
-                    {stats.currentUsers}
+                    {defaultStats.currentUsers}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     접속자
@@ -154,7 +180,7 @@ const DashboardStats = ({
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="info.main">
-                    {stats.categories}
+                    {defaultStats.categories}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     카테고리
@@ -179,7 +205,7 @@ const DashboardStats = ({
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
                 <Typography variant="h4" fontWeight="bold" color="primary">
-                  {stats.totalWords}
+                  {defaultStats.totalWords}
                 </Typography>
                 <Chip label="words" size="small" color="primary" />
               </Box>
@@ -191,7 +217,7 @@ const DashboardStats = ({
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
                 <Typography variant="h4" fontWeight="bold" color="success.main">
-                  {stats.avgReadArticles}
+                  {defaultStats.avgReadArticles}
                 </Typography>
                 <Chip label="articles" size="small" color="success" />
               </Box>
@@ -203,7 +229,7 @@ const DashboardStats = ({
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>
                 <Typography variant="h4" fontWeight="bold" color="warning.main">
-                  {stats.avgSavedWords}
+                  {defaultStats.avgSavedWords}
                 </Typography>
                 <Chip label="words/user" size="small" color="warning" />
               </Box>
@@ -225,12 +251,12 @@ const DashboardStats = ({
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="body2">높음 (15+ 기사)</Typography>
                   <Typography variant="body2" fontWeight="bold" color="success.main">
-                    {userAnalytics.usersByReadingFrequency.high}명
+                    {defaultUserAnalytics.usersByReadingFrequency.high}명
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(userAnalytics.usersByReadingFrequency.high / stats.totalMembers) * 100}
+                  value={defaultStats.totalMembers > 0 ? (defaultUserAnalytics.usersByReadingFrequency.high / defaultStats.totalMembers) * 100 : 0}
                   color="success"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -240,12 +266,12 @@ const DashboardStats = ({
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="body2">보통 (5-14 기사)</Typography>
                   <Typography variant="body2" fontWeight="bold" color="warning.main">
-                    {userAnalytics.usersByReadingFrequency.medium}명
+                    {defaultUserAnalytics.usersByReadingFrequency.medium}명
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(userAnalytics.usersByReadingFrequency.medium / stats.totalMembers) * 100}
+                  value={defaultStats.totalMembers > 0 ? (defaultUserAnalytics.usersByReadingFrequency.medium / defaultStats.totalMembers) * 100 : 0}
                   color="warning"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -255,12 +281,12 @@ const DashboardStats = ({
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="body2">낮음 (5개 미만)</Typography>
                   <Typography variant="body2" fontWeight="bold" color="error.main">
-                    {userAnalytics.usersByReadingFrequency.low}명
+                    {defaultUserAnalytics.usersByReadingFrequency.low}명
                   </Typography>
                 </Box>
                 <LinearProgress 
                   variant="determinate" 
-                  value={(userAnalytics.usersByReadingFrequency.low / stats.totalMembers) * 100}
+                  value={defaultStats.totalMembers > 0 ? (defaultUserAnalytics.usersByReadingFrequency.low / defaultStats.totalMembers) * 100 : 0}
                   color="error"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -273,17 +299,17 @@ const DashboardStats = ({
               </Typography>
               <Box display="flex" gap={1} flexWrap="wrap">
                 <Chip 
-                  label={`활발: ${userAnalytics.usersByLearningActivity.active}명`}
+                  label={`활발: ${defaultUserAnalytics.usersByLearningActivity.active}명`}
                   color="success" 
                   size="small"
                 />
                 <Chip 
-                  label={`보통: ${userAnalytics.usersByLearningActivity.moderate}명`}
+                  label={`보통: ${defaultUserAnalytics.usersByLearningActivity.moderate}명`}
                   color="warning" 
                   size="small"
                 />
                 <Chip 
-                  label={`소극적: ${userAnalytics.usersByLearningActivity.passive}명`}
+                  label={`소극적: ${defaultUserAnalytics.usersByLearningActivity.passive}명`}
                   color="default" 
                   size="small"
                 />
@@ -299,7 +325,7 @@ const DashboardStats = ({
           📂 카테고리별 성과
         </Typography>
         <Grid container spacing={2}>
-          {categoryStats.map((category, index) => (
+          {categoryStats.length > 0 ? categoryStats.map((category, index) => (
             <Grid item xs={12} sm={6} md={4} key={category.id}>
               <Card 
                 sx={{ 
@@ -318,23 +344,29 @@ const DashboardStats = ({
                 </Box>
                 <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">조회수</Typography>
-                  <Typography variant="body2" fontWeight="bold">{category.totalViews.toLocaleString()}</Typography>
+                  <Typography variant="body2" fontWeight="bold">{(category.totalViews || 0).toLocaleString()}</Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">좋아요</Typography>
-                  <Typography variant="body2" fontWeight="bold">{category.totalLikes.toLocaleString()}</Typography>
+                  <Typography variant="body2" fontWeight="bold">{(category.totalLikes || 0).toLocaleString()}</Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="body2" color="text.secondary">참여율</Typography>
                   <Chip 
-                    label={`${category.avgEngagement}%`}
+                    label={`${category.avgEngagement || 0}%`}
                     size="small"
-                    color={category.avgEngagement > 5 ? 'success' : category.avgEngagement > 2 ? 'warning' : 'default'}
+                    color={(category.avgEngagement || 0) > 5 ? 'success' : (category.avgEngagement || 0) > 2 ? 'warning' : 'default'}
                   />
                 </Box>
               </Card>
             </Grid>
-          ))}
+          )) : (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                카테고리 데이터가 없습니다.
+              </Typography>
+            </Grid>
+          )}
         </Grid>
       </Card>
     </Box>
