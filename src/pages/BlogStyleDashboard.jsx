@@ -62,6 +62,25 @@ const BlogStyleDashboard = () => {
     .filter(cat => cat.type === 'category')
     .map(cat => cat.name);
 
+  // 페이지네이션 상태 추가
+  const [currentPage, setCurrentPage] = useState(1);
+  const articlesPerPage = 10;
+
+  // 현재 페이지에 표시할 기사들 계산
+  const getCurrentPageArticles = () => {
+    const startIndex = (currentPage - 1) * articlesPerPage;
+    const endIndex = startIndex + articlesPerPage;
+    return allArticles.slice(startIndex, endIndex);
+  };
+
+  // 전체 페이지 수 계산
+  const totalPages = Math.ceil(allArticles.length / articlesPerPage);
+
+  // 페이지 변경 함수
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   // 실시간 통계 업데이트 (30초마다)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -318,12 +337,51 @@ const BlogStyleDashboard = () => {
 
   // 기사 삭제 핸들러
   const handleDeleteArticle = (articleId) => {
-    deleteArticle(articleId);
-    setSnackbar({ 
-      open: true, 
-      message: '기사가 삭제되었습니다.', 
-      severity: 'success' 
-    });
+    if (window.confirm('정말로 이 기사를 삭제하시겠습니까?')) {
+      const updatedArticles = allArticles.filter(article => article.id !== articleId);
+      setAllArticles(updatedArticles);
+      localStorage.setItem('marlang_articles', JSON.stringify(updatedArticles));
+
+      // 현재 페이지가 마지막 페이지이고 해당 페이지에 기사가 하나뿐이었다면 이전 페이지로 이동
+      const newTotalPages = Math.ceil(updatedArticles.length / articlesPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
+
+      toast.success('기사가 삭제되었습니다');
+      
+      // 브라우저 이벤트 발송
+    window.dispatchEvent(new CustomEvent('articleUpdated', {
+        detail: { type: 'delete', article: { id: articleId } }
+      }));
+    }
+  };
+
+  // handleAddArticle 함수 수정
+  const handleAddArticle = () => {
+    // ... existing validation code ...
+
+    const newArticle = {
+      id: Date.now(),
+      title: newArticleData.title,
+      summary: newArticleData.summary,
+      category: newArticleData.category,
+      image: newArticleData.image,
+      content: newArticleData.content || newArticleData.summary,
+      publishedAt: newArticleData.publishTime ? new Date(newArticleData.publishTime).toISOString() : new Date().toISOString(),
+      date: newArticleData.publishTime ? new Date(newArticleData.publishTime).toISOString() : new Date().toISOString(),
+      status: newArticleData.publishType === 'immediate' ? 'published' : 'scheduled',
+      views: 0
+    };
+
+    const updatedArticles = [newArticle, ...allArticles];
+    setAllArticles(updatedArticles);
+    localStorage.setItem('marlang_articles', JSON.stringify(updatedArticles));
+
+    // 새 기사 추가 후 첫 번째 페이지로 이동
+    setCurrentPage(1);
+    
+    // ... rest of the function ...
   };
 
   const stats = getAdvancedStats();
