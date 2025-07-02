@@ -29,7 +29,9 @@
       "Bash(firebase deploy:*)",
       "Bash(firebase hosting:channel:deploy:*)",
       "Bash(rg:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

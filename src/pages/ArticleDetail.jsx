@@ -160,22 +160,22 @@ const ArticleDetail = () => {
         setArticleData(transformedArticle);
         
         // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
-        if (user?.id) {
-          addViewRecord(foundArticle.id);
+        if (user?.uid) {
+          addViewRecord(foundArticle);
           updateActivityTime && updateActivityTime();
         }
       }
     }
-  }, [articlesLoading, allArticles, id, user?.id]);
+  }, [articlesLoading, allArticles, id, user?.uid]);
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
-    if (isArticleLiked && articleData && user?.id) {
+    if (isArticleLiked && articleData && user?.uid) {
       const likedStatus = isArticleLiked(articleData.id);
       console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
       setIsLiked(likedStatus);
     }
-  }, [isArticleLiked, articleData?.id, user?.id]);
+  }, [isArticleLiked, articleData?.id, user?.uid]);
 
   // userSettings 변경 시 언어 설정 동기화
   useEffect(() => {
@@ -184,21 +184,18 @@ const ArticleDetail = () => {
     }
   }, [userSettings?.translationLanguage]);
 
-  // 하이라이트된 단어들을 로컬스토리지에서 로드
+  // 하이라이트된 단어들을 사용자 단어장에서 로드
   useEffect(() => {
-    if (articleData) {
-      const highlightKey = `marlang_highlights_${articleData.id}`;
-      try {
-        const stored = localStorage.getItem(highlightKey);
-        if (stored) {
-          const highlights = JSON.parse(stored);
-          setHighlightedWords(new Set(highlights));
-        }
-      } catch (error) {
-        console.error('Error loading highlights:', error);
-      }
+    if (articleData && savedWords) {
+      // 현재 기사에 해당하는 저장된 단어들로 하이라이트 설정
+      const articleWords = savedWords
+        .filter(word => word.articleId === articleData.id)
+        .map(word => word.word.toLowerCase());
+      
+      setHighlightedWords(new Set(articleWords));
+      console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
     }
-  }, [articleData?.id]);
+  }, [articleData?.id, savedWords]);
 
   // 단어장과 하이라이트 초기 동기화 (한 번만 실행)
   useEffect(() => {
@@ -219,37 +216,23 @@ const ArticleDetail = () => {
     }
   }, [articleData?.id]); // savedWords 제거하여 무한 루프 방지
 
-  // localStorage 변경 감지 (다른 탭/창에서 단어장 변경 시)
+  // Firebase 데이터 변경 감지 (다른 디바이스에서 단어장 변경 시 자동 동기화)
   useEffect(() => {
     if (!articleData) return;
 
-    const handleStorageChange = (event) => {
-      const highlightKey = `marlang_highlights_${articleData.id}`;
-      if (event.key === highlightKey && event.newValue !== event.oldValue) {
-        try {
-          const highlights = event.newValue ? JSON.parse(event.newValue) : [];
-          setHighlightedWords(new Set(highlights));
-        } catch (error) {
-          console.error('Error parsing highlights from storage:', error);
-        }
+    const handleWordUpdated = (event) => {
+      if (event.detail && event.detail.articleId === articleData.id) {
+        // 현재 기사에 해당하는 단어들로 하이라이트 업데이트
+        const updatedWords = savedWords
+          .filter(word => word.articleId === articleData.id)
+          .map(word => word.word.toLowerCase());
+        setHighlightedWords(new Set(updatedWords));
       }
     };
 
-    // 같은 탭 내에서 하이라이트 변경 감지
-    const handleHighlightUpdate = (event) => {
-      if (event.detail.articleId === articleData.id) {
-        setHighlightedWords(new Set(event.detail.highlights));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('highlightUpdated', handleHighlightUpdate);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('highlightUpdated', handleHighlightUpdate);
-    };
-  }, [articleData?.id]);
+    window.addEventListener('wordUpdated', handleWordUpdated);
+    return () => window.removeEventListener('wordUpdated', handleWordUpdated);
+  }, [articleData?.id, savedWords]);
 
   // 하이라이트 상태 변경 시 DOM 업데이트
   useEffect(() => {
@@ -273,17 +256,7 @@ const ArticleDetail = () => {
     }
   }, [highlightedWords, articleData?.id, userSettings?.highlightSavedWords]);
 
-  // 하이라이트된 단어들을 로컬스토리지에 저장
-  const saveHighlights = (highlights) => {
-    if (articleData) {
-      const highlightKey = `marlang_highlights_${articleData.id}`;
-      try {
-        localStorage.setItem(highlightKey, JSON.stringify([...highlights]));
-      } catch (error) {
-        console.error('Error saving highlights:', error);
-      }
-    }
-  };
+  // saveHighlights 함수 제거 - 이제 Firebase에서 단어장 데이터로 하이라이트 관리
 
   // ArticleDetail 전용 TTS 설정
   useEffect(() => {
@@ -846,14 +819,14 @@ const ArticleDetail = () => {
       
       console.log('💾 단어 저장:', wordPopup.word);
       
-      // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
-      const newHighlights = new Set([...highlightedWords, wordPopup.word]);
+      // 하이라이트된 단어 목록에 추가 (단어장 동기화는 위에서 자동 처리)
+      const cleanWord = wordPopup.word.toLowerCase();
+      const newHighlights = new Set([...highlightedWords, cleanWord]);
       setHighlightedWords(newHighlights);
-      saveHighlights(newHighlights);
       
-      // 같은 탭 내에서 하이라이트 변경 알림
-      window.dispatchEvent(new CustomEvent('highlightUpdated', {
-        detail: { articleId: articleData.id, highlights: [...newHighlights] }
+      // 단어 업데이트 이벤트 발생
+      window.dispatchEvent(new CustomEvent('wordUpdated', {
+        detail: { type: 'add', articleId: articleData.id, word: cleanWord }
       }));
       
       // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가 (설정이 켜져 있을 때만)
@@ -923,13 +896,12 @@ const ArticleDetail = () => {
     
     console.log('🗑️ 단어 삭제:', cleanWord);
     
-    // 하이라이트된 단어 목록에서 제거하고 로컬스토리지에 저장
+    // 하이라이트된 단어 목록에서 제거
     const newHighlights = new Set([...highlightedWords]);
     newHighlights.delete(cleanWord);
     setHighlightedWords(newHighlights);
-    saveHighlights(newHighlights);
     
-    // 단어장에서도 해당 단어 삭제
+    // 단어장에서 해당 단어 삭제
     const wordToRemove = savedWords.find(w => w.word.toLowerCase() === cleanWord && w.articleId === articleData.id);
     if (wordToRemove) {
       console.log('📚 단어장에서 삭제:', wordToRemove);
@@ -939,9 +911,9 @@ const ArticleDetail = () => {
     // 활동 시간 업데이트
     updateActivityTime && updateActivityTime();
     
-    // 같은 탭 내에서 하이라이트 변경 알림
-    window.dispatchEvent(new CustomEvent('highlightUpdated', {
-      detail: { articleId: articleData.id, highlights: [...newHighlights] }
+    // 단어 업데이트 이벤트 발생
+    window.dispatchEvent(new CustomEvent('wordUpdated', {
+      detail: { type: 'remove', articleId: articleData.id, word: cleanWord }
     }));
     
     // DOM에서 해당 단어의 모든 인스턴스에서 하이라이트 클래스 제거

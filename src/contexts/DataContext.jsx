@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { db } from '../config/firebase';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const DataContext = createContext();
 
@@ -13,9 +15,13 @@ export const useData = () => {
       likedArticles: [],
       userSettings: {},
       viewRecords: [],
+      isLoading: false,
+      syncError: null,
+      isOnline: true,
       addWord: () => false,
       removeWord: () => {},
       sortWords: () => {},
+      isWordSaved: () => false,
       toggleLike: () => false,
       isArticleLiked: () => false,
       addLikedArticle: () => false,
@@ -43,6 +49,11 @@ export const DataProvider = ({ children }) => {
   // 조회 기록 상태 추가
   const [viewRecords, setViewRecords] = useState([]);
   
+  // 동기화 상태 관리
+  const [isLoading, setIsLoading] = useState(true);
+  const [syncError, setSyncError] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  
   // 사용자 설정
   const [userSettings, setUserSettings] = useState({
     language: 'en',
@@ -55,478 +66,473 @@ export const DataProvider = ({ children }) => {
     lastActivityTime: new Date().toISOString()
   });
 
-  // 사용자별 localStorage 키 생성
-  const getUserKey = (baseKey) => {
-    if (!user?.id) return null;
-    return `${baseKey}_${user.id}`;
-  };
-
-  // 사용자가 변경될 때마다 해당 사용자의 데이터 로드
-  useEffect(() => {
-    const loadFromStorage = (key, setter) => {
-      try {
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          setter(JSON.parse(stored));
-        } else {
-          setter([]); // 데이터가 없으면 빈 배열로 초기화
-        }
-      } catch (error) {
-        console.error(`Error loading ${key} from localStorage:`, error);
-        setter([]); // 오류 발생시 빈 배열로 초기화
-      }
-    };
-
-    const currentUser = user || window.tempUser;
+  // Firebase에서 사용자 데이터 로드
+  const loadUserData = async () => {
+    setIsLoading(true);
+    setSyncError(null);
     
-    if (currentUser?.id || window.enableGuestMode) {
-      // 로그인한 사용자 또는 게스트 모드의 데이터 로드
-      const userLabel = user?.name || 'Guest User';
-      console.log('👤 사용자별 데이터 로드:', userLabel);
-      
-      const wordsKey = currentUser?.id 
-        ? `marlang_saved_words_${currentUser.id}`
-        : 'marlang_saved_words_guest';
-      const likedKey = currentUser?.id 
-        ? `marlang_liked_articles_${currentUser.id}`
-        : 'marlang_liked_articles_guest';
-      const settingsKey = currentUser?.id 
-        ? `marlang_user_settings_${currentUser.id}`
-        : 'marlang_user_settings_guest';
-      const viewRecordsKey = currentUser?.id 
-        ? `marlang_view_records_${currentUser.id}`
-        : 'marlang_view_records_guest';
-      
-      loadFromStorage(wordsKey, setSavedWords);
-      loadFromStorage(likedKey, setLikedArticles);
-      loadFromStorage(settingsKey, setUserSettings);
-      loadFromStorage(viewRecordsKey, setViewRecords);
-    } else {
-      // 로그아웃 상태일 때 모든 데이터 초기화
-      console.log('🚪 로그아웃 - 데이터 초기화');
-      setSavedWords([]);
-      setLikedArticles([]);
-      setViewRecords([]);
-      setUserSettings({
-        language: 'en',
-        translationLanguage: 'ko',
-        ttsSpeed: 0.8,
-        autoSaveWords: true,
-        autoPlay: false,
-        highlightSavedWords: true,
-        lastVisited: new Date().toISOString(),
-        lastActivityTime: new Date().toISOString()
-      });
+    if (!user?.uid) {
+      console.log('사용자가 로그인하지 않음 - 로컬 데이터 사용');
+      loadLocalData();
+      setIsLoading(false);
+      return;
     }
-  }, [user?.id, user?.name, window.enableGuestMode]);
 
-  // 로컬 스토리지에 데이터 저장
-  const saveToStorage = (key, data) => {
-    if (!key) return; // 키가 없으면 저장하지 않음
-    
     try {
-      localStorage.setItem(key, JSON.stringify(data));
-      console.log('💾 localStorage 저장:', key, data.length || 'object');
+      console.log('🔥 Firebase에서 사용자 데이터 로드 중...', user.uid);
+      
+      // 단어장 데이터 로드
+      const savedWordsRef = doc(db, 'users', user.uid, 'data', 'savedWords');
+      const savedWordsSnap = await getDoc(savedWordsRef);
+      if (savedWordsSnap.exists()) {
+        const data = savedWordsSnap.data();
+        setSavedWords(data.words || []);
+        console.log('✅ 단어장 데이터 로드됨:', data.words?.length || 0, '개');
+      } else {
+        setSavedWords([]);
+      }
+
+      // 좋아요 데이터 로드
+      const likedArticlesRef = doc(db, 'users', user.uid, 'data', 'likedArticles');
+      const likedArticlesSnap = await getDoc(likedArticlesRef);
+      if (likedArticlesSnap.exists()) {
+        const data = likedArticlesSnap.data();
+        setLikedArticles(data.articles || []);
+        console.log('✅ 좋아요 데이터 로드됨:', data.articles?.length || 0, '개');
+      } else {
+        setLikedArticles([]);
+      }
+
+      // 사용자 설정 로드
+      const settingsRef = doc(db, 'users', user.uid, 'data', 'settings');
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        const data = settingsSnap.data();
+        setUserSettings(prev => ({
+          ...prev,
+          ...data.settings
+        }));
+        console.log('✅ 사용자 설정 로드됨');
+      }
+
+      // 조회 기록 로드
+      const viewRecordsRef = doc(db, 'users', user.uid, 'data', 'viewRecords');
+      const viewRecordsSnap = await getDoc(viewRecordsRef);
+      if (viewRecordsSnap.exists()) {
+        const data = viewRecordsSnap.data();
+        setViewRecords(data.records || []);
+        console.log('✅ 조회 기록 로드됨:', data.records?.length || 0, '개');
+      } else {
+        setViewRecords([]);
+      }
+
+      setIsLoading(false);
+      console.log('✅ 모든 사용자 데이터 로드 완료');
+      
     } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
+      console.error('❌ Firebase 데이터 로드 실패:', error);
+      setSyncError(`데이터 동기화 실패: ${error.message}`);
+      setIsOnline(false);
+      
+      // 오류 시 로컬 데이터로 폴백
+      console.log('🔄 로컬 데이터로 폴백...');
+      loadLocalData();
+      setIsLoading(false);
     }
   };
 
-  // 단어 추가 - 뜻, 번역, 예문을 모두 저장
-  const addWord = (word, definition, articleId, articleTitle, translation = null, example = null, partOfSpeech = null) => {
-    // 게스트 모드 또는 로그인 상태 확인
-    const currentUser = user || window.tempUser;
-    if (!currentUser?.id && !window.enableGuestMode) {
-      console.warn('로그인이 필요합니다');
-      return false;
+  // 로컬 스토리지에서 데이터 로드 (게스트 모드 또는 오류 시)
+  const loadLocalData = () => {
+    try {
+      const userKey = user?.uid || 'guest';
+      
+      const savedWordsKey = `marlang_saved_words_${userKey}`;
+      const storedWords = localStorage.getItem(savedWordsKey);
+      if (storedWords) {
+        setSavedWords(JSON.parse(storedWords));
+      }
+
+      const likedArticlesKey = `marlang_liked_articles_${userKey}`;
+      const storedLiked = localStorage.getItem(likedArticlesKey);
+      if (storedLiked) {
+        setLikedArticles(JSON.parse(storedLiked));
+      }
+
+      const settingsKey = `marlang_user_settings_${userKey}`;
+      const storedSettings = localStorage.getItem(settingsKey);
+      if (storedSettings) {
+        setUserSettings(prev => ({
+          ...prev,
+          ...JSON.parse(storedSettings)
+        }));
+      }
+
+      const viewRecordsKey = `marlang_view_records_${userKey}`;
+      const storedRecords = localStorage.getItem(viewRecordsKey);
+      if (storedRecords) {
+        setViewRecords(JSON.parse(storedRecords));
+      }
+    } catch (error) {
+      console.error('❌ 로컬 데이터 로드 실패:', error);
+    }
+  };
+
+  // Firebase에 단어장 저장
+  const saveSavedWordsToFirebase = async (words) => {
+    if (!user?.uid) {
+      // 게스트 모드는 로컬 저장
+      localStorage.setItem(`marlang_saved_words_guest`, JSON.stringify(words));
+      return;
     }
 
-    const newWord = {
-      id: Date.now(),
-      word: word.toLowerCase(),
-      definition, // 영어 정의
-      meaning: definition, // 호환성을 위해 meaning 필드도 추가
-      translation, // 번역된 뜻 (선택사항)
-      example, // 예문 추가
-      partOfSpeech, // 품사 추가
-      articleId,
-      articleTitle,
-      addedAt: new Date().toISOString(),
-      savedDate: new Date().toISOString(), // 호환성을 위해 savedDate도 추가
-      savedAt: new Date().toISOString() // Wordbook에서 사용하는 필드
-    };
-    
-    // 이미 존재하는 단어인지 확인
-    const exists = savedWords.some(w => w.word === newWord.word && w.articleId === articleId);
-    if (!exists) {
+    try {
+      const savedWordsRef = doc(db, 'users', user.uid, 'data', 'savedWords');
+      await setDoc(savedWordsRef, {
+        words: words,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ 단어장 Firebase 저장 완료');
+      setIsOnline(true);
+      setSyncError(null);
+    } catch (error) {
+      console.error('❌ 단어장 Firebase 저장 실패:', error);
+      setSyncError('단어장 동기화 실패');
+      setIsOnline(false);
+      // 오류 시 로컬 저장으로 폴백
+      localStorage.setItem(`marlang_saved_words_${user.uid}`, JSON.stringify(words));
+    }
+  };
+
+  // Firebase에 좋아요 저장
+  const saveLikedArticlesToFirebase = async (articles) => {
+    if (!user?.uid) {
+      // 게스트 모드는 로컬 저장
+      localStorage.setItem(`marlang_liked_articles_guest`, JSON.stringify(articles));
+      return;
+    }
+
+    try {
+      const likedArticlesRef = doc(db, 'users', user.uid, 'data', 'likedArticles');
+      await setDoc(likedArticlesRef, {
+        articles: articles,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ 좋아요 Firebase 저장 완료');
+    } catch (error) {
+      console.error('❌ 좋아요 Firebase 저장 실패:', error);
+      // 오류 시 로컬 저장으로 폴백
+      localStorage.setItem(`marlang_liked_articles_${user.uid}`, JSON.stringify(articles));
+    }
+  };
+
+  // Firebase에 사용자 설정 저장
+  const saveSettingsToFirebase = async (settings) => {
+    if (!user?.uid) {
+      // 게스트 모드는 로컬 저장
+      localStorage.setItem(`marlang_user_settings_guest`, JSON.stringify(settings));
+      return;
+    }
+
+    try {
+      const settingsRef = doc(db, 'users', user.uid, 'data', 'settings');
+      await setDoc(settingsRef, {
+        settings: settings,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ 사용자 설정 Firebase 저장 완료');
+    } catch (error) {
+      console.error('❌ 사용자 설정 Firebase 저장 실패:', error);
+      // 오류 시 로컬 저장으로 폴백
+      localStorage.setItem(`marlang_user_settings_${user.uid}`, JSON.stringify(settings));
+    }
+  };
+
+  // Firebase에 조회 기록 저장
+  const saveViewRecordsToFirebase = async (records) => {
+    if (!user?.uid) {
+      // 게스트 모드는 로컬 저장
+      localStorage.setItem(`marlang_view_records_guest`, JSON.stringify(records));
+      return;
+    }
+
+    try {
+      const viewRecordsRef = doc(db, 'users', user.uid, 'data', 'viewRecords');
+      await setDoc(viewRecordsRef, {
+        records: records,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ 조회 기록 Firebase 저장 완료');
+    } catch (error) {
+      console.error('❌ 조회 기록 Firebase 저장 실패:', error);
+      // 오류 시 로컬 저장으로 폴백
+      localStorage.setItem(`marlang_view_records_${user.uid}`, JSON.stringify(records));
+    }
+  };
+
+  // 사용자 변경 시 데이터 로드
+  useEffect(() => {
+    loadUserData();
+  }, [user?.uid]);
+
+  // 단어 저장 여부 확인
+  const isWordSaved = (word) => {
+    if (!word) return false;
+    return savedWords.some(savedWord => 
+      savedWord.word?.toLowerCase() === word.toLowerCase()
+    );
+  };
+
+  // 단어 추가 (ArticleDetail에서 사용하는 시그니처)
+  const addWord = async (word, definition, articleId, articleTitle, secondaryDefinition, example, partOfSpeech) => {
+    try {
+      // 기존 단어 체크
+      const wordExists = savedWords.find(w => 
+        w.word?.toLowerCase() === word?.toLowerCase()
+      );
+      
+      if (wordExists) {
+        console.log('단어가 이미 존재합니다:', word);
+        return false;
+      }
+
+      const newWord = {
+        id: `word_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        word: word,
+        definition: definition,
+        secondaryDefinition: secondaryDefinition || '',
+        example: example || '',
+        partOfSpeech: partOfSpeech || '',
+        articleId: articleId,
+        articleTitle: articleTitle,
+        addedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+
       const updatedWords = [...savedWords, newWord];
       setSavedWords(updatedWords);
+      await saveSavedWordsToFirebase(updatedWords);
       
-      // 게스트 모드일 경우 임시 키 사용
-      const storageKey = currentUser?.id 
-        ? `marlang_saved_words_${currentUser.id}`
-        : 'marlang_saved_words_guest';
-      
-      saveToStorage(storageKey, updatedWords);
-      
-      console.log('✅ 단어 저장 성공:', newWord.word, '(게스트 모드:', !!window.enableGuestMode, ')');
+      console.log('✅ 단어 추가 완료:', newWord.word);
       return true;
-    }
-    
-    console.log('⚠️ 이미 저장된 단어:', newWord.word);
-    return false;
-  };
-
-  // 단어 삭제
-  const removeWord = (wordId) => {
-    const currentUser = user || window.tempUser;
-    if (!currentUser?.id && !window.enableGuestMode) return;
-
-    // 삭제할 단어 찾기
-    const wordToRemove = savedWords.find(w => w.id === wordId);
-    
-    if (wordToRemove) {
-      console.log('🗑️ 단어 삭제:', wordToRemove.word);
-      
-      // 해당 기사의 하이라이트에서도 제거
-      const highlightKey = `marlang_highlights_${wordToRemove.articleId}`;
-      try {
-        const stored = localStorage.getItem(highlightKey);
-        if (stored) {
-          const highlights = JSON.parse(stored);
-          const updatedHighlights = highlights.filter(word => word !== wordToRemove.word);
-          localStorage.setItem(highlightKey, JSON.stringify(updatedHighlights));
-          
-          // 같은 탭 내에서 하이라이트 변경 알림
-          window.dispatchEvent(new CustomEvent('highlightUpdated', {
-            detail: { articleId: wordToRemove.articleId, highlights: updatedHighlights }
-          }));
-        }
-      } catch (error) {
-        console.error('Error removing highlight:', error);
-      }
-    }
-    
-    const updatedWords = savedWords.filter(w => w.id !== wordId);
-    setSavedWords(updatedWords);
-    
-    // 게스트 모드일 경우 임시 키 사용
-    const storageKey = currentUser?.id 
-      ? `marlang_saved_words_${currentUser.id}`
-      : 'marlang_saved_words_guest';
-    
-    saveToStorage(storageKey, updatedWords);
-  };
-
-  // 단어가 저장되었는지 확인
-  const isWordSaved = (word, articleId = null) => {
-    if (articleId) {
-      return savedWords.some(w => w.word.toLowerCase() === word.toLowerCase() && w.articleId === articleId);
-    }
-    return savedWords.some(w => w.word.toLowerCase() === word.toLowerCase());
-  };
-
-  // 기사 좋아요 토글
-  const toggleLike = (article) => {
-    if (!user?.id) {
-      console.warn('좋아요는 로그인 후 이용 가능합니다');
+    } catch (error) {
+      console.error('❌ 단어 추가 실패:', error);
       return false;
     }
-
-    console.log('🔄 좋아요 토글:', article.id, article.title);
-
-    const isLiked = likedArticles.some(a => a.id === article.id);
-    let updatedLikes;
-    
-    if (isLiked) {
-      updatedLikes = likedArticles.filter(a => a.id !== article.id);
-      console.log('💔 좋아요 제거:', article.id);
-    } else {
-      // 간단하고 일관된 데이터 구조로 저장
-      const likedArticle = {
-        id: article.id,
-        title: article.title,
-        summary: article.summary || '',
-        image: article.image,
-        category: article.category,
-        publishedAt: article.publishedAt || article.date || new Date().toISOString(),
-        likedAt: new Date().toISOString()
-      };
-      updatedLikes = [...likedArticles, likedArticle];
-      console.log('❤️ 좋아요 추가:', article.id, likedArticle);
-    }
-    
-    setLikedArticles(updatedLikes);
-    
-    const storageKey = getUserKey('marlang_liked_articles');
-    saveToStorage(storageKey, updatedLikes);
-    
-    console.log('💾 좋아요 목록 저장됨:', updatedLikes.length, '개', updatedLikes);
-    
-    return !isLiked;
   };
 
-  // 기사가 좋아요되었는지 확인
-  const isArticleLiked = (articleId) => {
-    if (!user?.id) return false;
-    return likedArticles.some(a => a.id === articleId);
-  };
-
-  // 좋아요 추가 (toggleLike와 별도로)
-  const addLikedArticle = (article) => {
-    if (!user?.id) return false;
-    
-    const isAlreadyLiked = likedArticles.some(a => a.id === article.id);
-    if (!isAlreadyLiked) {
-      const likedArticle = {
-        ...article,
-        likedAt: new Date().toISOString()
-      };
-      const updatedLikes = [...likedArticles, likedArticle];
-      setLikedArticles(updatedLikes);
-      saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
-      return true;
-    }
-    return false;
-  };
-
-  // 좋아요 제거 (toggleLike와 별도로)
-  const removeLikedArticle = (articleId) => {
-    if (!user?.id) return false;
-    
-    const updatedLikes = likedArticles.filter(a => a.id !== articleId);
-    setLikedArticles(updatedLikes);
-    saveToStorage(getUserKey('marlang_liked_articles'), updatedLikes);
-    return true;
-  };
-
-  // 조회 기록 추가
-  const addViewRecord = (articleId) => {
-    if (!user?.id) return;
-    
-    const viewRecord = {
-      articleId,
-      viewedAt: new Date().toISOString(),
-      userId: user.id
-    };
-    
-    // 중복 방지 - 최근 1시간 내 같은 기사 조회는 기록하지 않음
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
-    
-    const recentView = viewRecords.find(record => 
-      record.articleId === articleId && 
-      new Date(record.viewedAt) > oneHourAgo
-    );
-    
-    if (!recentView) {
-      const updatedRecords = [...viewRecords, viewRecord];
-      setViewRecords(updatedRecords);
-      saveToStorage(getUserKey('marlang_view_records'), updatedRecords);
+  // 단어 제거
+  const removeWord = async (wordId) => {
+    try {
+      const updatedWords = savedWords.filter(word => word.id !== wordId);
+      setSavedWords(updatedWords);
+      await saveSavedWordsToFirebase(updatedWords);
+      console.log('✅ 단어 제거 완료');
+    } catch (error) {
+      console.error('❌ 단어 제거 실패:', error);
     }
   };
 
-  // 활동 시간 업데이트
-  const updateActivityTime = () => {
-    if (!user?.id) return;
-    
-    const updatedSettings = {
-      ...userSettings,
-      lastActivityTime: new Date().toISOString()
-    };
-    setUserSettings(updatedSettings);
-    saveToStorage(getUserKey('marlang_user_settings'), updatedSettings);
-  };
-
-  // 기사 ID로 기사 찾기 (만약 allArticles가 전역에서 접근 가능하다면)
-  const getArticleById = (articleId) => {
-    // 이 함수는 실제로는 ArticlesContext에서 제공되어야 하지만
-    // 임시로 여기에 추가합니다
-    console.warn('getArticleById should be provided by ArticlesContext');
-    return null;
-  };
-
-  // 사용자 설정 업데이트
-  const updateSettings = (newSettings) => {
-    if (!user?.id) return;
-
-    const updated = { ...userSettings, ...newSettings };
-    setUserSettings(updated);
-    saveToStorage(getUserKey('marlang_user_settings'), updated);
-  };
-
-  // 단어장 정렬
-  const sortWords = (sortBy) => {
+  // 단어 정렬
+  const sortWords = (sortBy = 'addedAt', order = 'desc') => {
     const sorted = [...savedWords].sort((a, b) => {
-      switch (sortBy) {
-        case 'alphabetical':
-          return a.word.localeCompare(b.word);
-        case 'recent':
-          return new Date(b.addedAt) - new Date(a.addedAt);
-        case 'article':
-          return a.articleTitle.localeCompare(b.articleTitle);
-        default:
-          return 0;
+      if (order === 'desc') {
+        return new Date(b[sortBy]) - new Date(a[sortBy]);
+      } else {
+        return new Date(a[sortBy]) - new Date(b[sortBy]);
       }
     });
     setSavedWords(sorted);
   };
 
+  // 좋아요 토글
+  const toggleLike = async (article) => {
+    try {
+      const isLiked = likedArticles.some(liked => liked.id === article.id);
+      
+      if (isLiked) {
+        await removeLikedArticle(article.id);
+        return false;
+      } else {
+        await addLikedArticle(article);
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ 좋아요 토글 실패:', error);
+      return false;
+    }
+  };
+
+  // 기사 좋아요 여부 확인
+  const isArticleLiked = (articleId) => {
+    return likedArticles.some(article => article.id === articleId);
+  };
+
+  // 좋아요 기사 추가
+  const addLikedArticle = async (article) => {
+    try {
+      const alreadyLiked = likedArticles.find(liked => liked.id === article.id);
+      if (alreadyLiked) {
+        console.log('이미 좋아요한 기사입니다:', article.id);
+        return false;
+      }
+
+      const likedArticle = {
+        ...article,
+        likedAt: new Date().toISOString()
+      };
+
+      const updatedLiked = [...likedArticles, likedArticle];
+      setLikedArticles(updatedLiked);
+      await saveLikedArticlesToFirebase(updatedLiked);
+      
+      console.log('✅ 좋아요 추가 완료:', article.title);
+      return true;
+    } catch (error) {
+      console.error('❌ 좋아요 추가 실패:', error);
+      return false;
+    }
+  };
+
+  // 좋아요 기사 제거
+  const removeLikedArticle = async (articleId) => {
+    try {
+      const updatedLiked = likedArticles.filter(article => article.id !== articleId);
+      setLikedArticles(updatedLiked);
+      await saveLikedArticlesToFirebase(updatedLiked);
+      console.log('✅ 좋아요 제거 완료');
+    } catch (error) {
+      console.error('❌ 좋아요 제거 실패:', error);
+    }
+  };
+
   // 좋아요 기사 정렬
-  const sortLikedArticles = (sortBy) => {
+  const sortLikedArticles = (sortBy = 'likedAt', order = 'desc') => {
     const sorted = [...likedArticles].sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.likedAt) - new Date(a.likedAt);
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'category':
-          return a.category.localeCompare(b.category);
-        default:
-          return 0;
+      if (order === 'desc') {
+        return new Date(b[sortBy]) - new Date(a[sortBy]);
+      } else {
+        return new Date(a[sortBy]) - new Date(b[sortBy]);
       }
     });
     setLikedArticles(sorted);
   };
 
-  // 학습 통계 계산
-  const getStats = () => {
-    return {
-      totalWords: savedWords.length,
-      totalLikedArticles: likedArticles.length,
-      wordsThisWeek: savedWords.filter(w => {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return new Date(w.addedAt) > weekAgo;
-      }).length,
-      favoriteCategory: likedArticles.length > 0 
-        ? likedArticles.reduce((acc, article) => {
-            acc[article.category] = (acc[article.category] || 0) + 1;
-            return acc;
-          }, {})
-        : {}
-    };
-  };
-
-  // 데이터 내보내기 (JSON)
-  const exportData = () => {
-    if (!user?.id) return null;
-    
-    const exportData = {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email
-      },
-      savedWords,
-      likedArticles,
-      userSettings,
-      viewRecords,
-      exportedAt: new Date().toISOString(),
-      version: '1.0'
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `marlang_data_${user.name}_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    return true;
-  };
-
-  // 모든 데이터 삭제
-  const clearAllData = () => {
-    if (!user?.id) return false;
-    
+  // 조회 기록 추가
+  const addViewRecord = async (articleData) => {
     try {
-      // 상태 초기화
-      setSavedWords([]);
-      setLikedArticles([]);
-      setViewRecords([]);
-      setUserSettings({
-        language: 'en',
-        translationLanguage: 'ko',
-        ttsSpeed: 0.8,
-        autoSaveWords: true,
-        autoPlay: false,
-        highlightSavedWords: true,
-        lastVisited: new Date().toISOString(),
-        lastActivityTime: new Date().toISOString()
-      });
-      
-      // localStorage에서 모든 사용자 데이터 삭제
-      const keysToRemove = [
-        `marlang_saved_words_${user.id}`,
-        `marlang_liked_articles_${user.id}`,
-        `marlang_user_settings_${user.id}`,
-        `marlang_view_records_${user.id}`
-      ];
-      
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // 하이라이트 데이터도 삭제 (패턴 매칭으로)
-      const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
-        if (key.startsWith('marlang_highlights_')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      console.log('🗑️ 모든 데이터 삭제 완료');
-      return true;
+      const viewRecord = {
+        articleId: articleData.id,
+        title: articleData.title,
+        category: articleData.category,
+        viewedAt: new Date().toISOString(),
+        summary: articleData.summary
+      };
+
+      // 중복 제거 (같은 기사의 최근 조회 기록만 유지)
+      const filteredRecords = viewRecords.filter(record => record.articleId !== articleData.id);
+      const updatedRecords = [viewRecord, ...filteredRecords].slice(0, 100); // 최대 100개 유지
+
+      setViewRecords(updatedRecords);
+      await saveViewRecordsToFirebase(updatedRecords);
+      console.log('✅ 조회 기록 추가 완료');
     } catch (error) {
-      console.error('데이터 삭제 중 오류:', error);
-      return false;
+      console.error('❌ 조회 기록 추가 실패:', error);
     }
   };
 
+  // 활동 시간 업데이트
+  const updateActivityTime = async () => {
+    try {
+      const updatedSettings = {
+        ...userSettings,
+        lastActivityTime: new Date().toISOString()
+      };
+      setUserSettings(updatedSettings);
+      await saveSettingsToFirebase(updatedSettings);
+    } catch (error) {
+      console.error('❌ 활동 시간 업데이트 실패:', error);
+    }
+  };
+
+  // ID로 기사 찾기 (조회 기록에서)
+  const getArticleById = (articleId) => {
+    return viewRecords.find(record => record.articleId === articleId) || null;
+  };
+
+  // 설정 업데이트
+  const updateSettings = async (newSettings) => {
+    try {
+      const updatedSettings = {
+        ...userSettings,
+        ...newSettings,
+        lastUpdated: new Date().toISOString()
+      };
+      setUserSettings(updatedSettings);
+      await saveSettingsToFirebase(updatedSettings);
+      console.log('✅ 설정 업데이트 완료');
+    } catch (error) {
+      console.error('❌ 설정 업데이트 실패:', error);
+    }
+  };
+
+  // 통계 데이터 계산
+  const getStats = () => {
+    const totalWords = savedWords.length;
+    const totalLikedArticles = likedArticles.length;
+    
+    // 이번 주에 추가된 단어 수
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const wordsThisWeek = savedWords.filter(word => 
+      new Date(word.addedAt) > weekAgo
+    ).length;
+
+    // 선호 카테고리 계산
+    const categoryCount = {};
+    likedArticles.forEach(article => {
+      if (article.category) {
+        categoryCount[article.category] = (categoryCount[article.category] || 0) + 1;
+      }
+    });
+    
+    const favoriteCategory = Object.keys(categoryCount).reduce((a, b) => 
+      categoryCount[a] > categoryCount[b] ? a : b, 
+      Object.keys(categoryCount)[0] || ''
+    );
+
+    return {
+      totalWords,
+      totalLikedArticles,
+      wordsThisWeek,
+      favoriteCategory: {
+        name: favoriteCategory,
+        count: categoryCount[favoriteCategory] || 0
+      }
+    };
+  };
+
   const value = {
-    // 상태
     savedWords,
     likedArticles,
     userSettings,
     viewRecords,
-    
-    // 단어 관련 함수
+    isLoading,
+    syncError,
+    isOnline,
     addWord,
     removeWord,
-    isWordSaved,
     sortWords,
-    
-    // 좋아요 관련 함수
+    isWordSaved,
     toggleLike,
     isArticleLiked,
     addLikedArticle,
     removeLikedArticle,
     sortLikedArticles,
-    
-    // 조회 기록 관련 함수
     addViewRecord,
-    
-    // 활동 시간 관련 함수
     updateActivityTime,
-    
-    // 기사 관련 함수
     getArticleById,
-    
-    // 설정 관련 함수
     updateSettings,
-    
-    // 통계 함수
-    getStats,
-
-    // 데이터 내보내기 (JSON)
-    exportData,
-
-    // 모든 데이터 삭제
-    clearAllData
+    getStats
   };
 
   return (
@@ -535,5 +541,3 @@ export const DataProvider = ({ children }) => {
     </DataContext.Provider>
   );
 };
-
-export default DataContext; 

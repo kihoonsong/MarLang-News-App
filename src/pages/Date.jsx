@@ -22,16 +22,26 @@ const monthNames = [
 ];
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// 날짜별로 기사를 그룹핑하는 함수
+// 날짜별로 기사를 그룹핑하는 함수 (안전한 버전)
 const groupArticlesByDate = (articles) => {
+  if (!Array.isArray(articles)) return {};
+  
   const grouped = {};
   articles.forEach(article => {
-    const date = new Date(article.publishedAt);
-    const dateStr = date.toISOString().split('T')[0];
-    if (!grouped[dateStr]) {
-      grouped[dateStr] = [];
+    if (!article || !article.publishedAt) return;
+    
+    try {
+      const date = new Date(article.publishedAt);
+      if (isNaN(date.getTime())) return; // 유효하지 않은 날짜 건너뛰기
+      
+      const dateStr = date.toISOString().split('T')[0];
+      if (!grouped[dateStr]) {
+        grouped[dateStr] = [];
+      }
+      grouped[dateStr].push(article);
+    } catch (error) {
+      console.warn('날짜 파싱 오류:', article.publishedAt, error);
     }
-    grouped[dateStr].push(article);
   });
   return grouped;
 };
@@ -49,34 +59,35 @@ const DatePage = () => {
   // 기사 데이터 가져오기
   const { 
     allArticles, 
-    loading: articlesLoading, 
-    getArticlesByDate 
+    loading: articlesLoading
   } = useArticles();
   const [articlesByDate, setArticlesByDate] = useState({});
 
   // 기사 데이터가 로드되면 날짜별로 그룹핑
   useEffect(() => {
-    if (!articlesLoading && allArticles && allArticles.length > 0) {
-      const grouped = getArticlesByDate();
+    if (!articlesLoading && Array.isArray(allArticles) && allArticles.length > 0) {
+      const grouped = groupArticlesByDate(allArticles);
       setArticlesByDate(grouped);
       
       // 기사가 있는 가장 최근 날짜를 기본 선택
-      const dates = Object.keys(grouped).sort().reverse();
+      const dates = Object.keys(grouped || {}).sort().reverse();
       if (dates.length > 0) {
         setSelectedDate(dates[0]);
         setCurrentArticles(grouped[dates[0]]);
       }
     }
-  }, [articlesLoading, allArticles, getArticlesByDate]);
+  }, [articlesLoading, allArticles]);
   
-  // 선택된 날짜의 기사 필터링
+  // 선택된 날짜의 기사 필터링 (안전한 버전)
   useEffect(() => {
-    if (selectedDate && articlesByDate[selectedDate]) {
+    if (selectedDate && articlesByDate[selectedDate] && Array.isArray(articlesByDate[selectedDate])) {
       let filtered = articlesByDate[selectedDate];
       if (selectedCategory !== 'All') {
-        filtered = filtered.filter(article => article.category === selectedCategory);
+        filtered = (filtered || []).filter(article => article && article.category === selectedCategory);
       }
-      setCurrentArticles(filtered);
+      setCurrentArticles(filtered || []);
+    } else {
+      setCurrentArticles([]);
     }
   }, [selectedDate, selectedCategory, articlesByDate]);
   
@@ -259,7 +270,7 @@ const DatePage = () => {
                       label="Category"
                       onChange={(e) => setSelectedCategory(e.target.value)}
                     >
-                      {categories.map(category => (
+                      {(categories || []).map(category => (
                         <MenuItem key={category} value={category}>
                           {category}
                         </MenuItem>
@@ -271,14 +282,17 @@ const DatePage = () => {
 
               {currentArticles.length > 0 ? (
                 <ArticleGrid>
-                  {currentArticles.map(article => (
-                    <ArticleCardWrapper key={article.id}>
-                      <ArticleCard 
-                        {...article}
-                        publishedAt={article.publishedAt}
-                      />
-                    </ArticleCardWrapper>
-                  ))}
+                  {(currentArticles || []).map(article => {
+                    if (!article || !article.id) return null;
+                    return (
+                      <ArticleCardWrapper key={article.id}>
+                        <ArticleCard 
+                          {...article}
+                          publishedAt={article.publishedAt}
+                        />
+                      </ArticleCardWrapper>
+                    );
+                  }).filter(Boolean)}
                 </ArticleGrid>
               ) : (
                 <EmptyState>
