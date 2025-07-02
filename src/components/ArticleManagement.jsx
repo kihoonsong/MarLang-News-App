@@ -13,7 +13,12 @@ import {
 import { ActionButton } from './DashboardStyles';
 
 const ArticleManagement = ({ 
-  allArticles, 
+  articles,
+  allArticles,
+  totalArticles,
+  currentPage,
+  totalPages,
+  onPageChange,
   onUpdateArticles, 
   onDeleteArticle,
   onRefreshArticles,
@@ -226,7 +231,7 @@ const ArticleManagement = ({
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">
-              📰 기사 관리 ({allArticles.length}개)
+              📰 기사 관리 ({totalArticles}개)
             </Typography>
             <Button onClick={onRefreshArticles} startIcon={<Article />} variant="outlined">
               새로고침
@@ -247,7 +252,7 @@ const ArticleManagement = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {allArticles.slice(0, 10).map((article) => (
+                {articles.map((article) => (
                   <TableRow key={article.id} hover>
                     <TableCell>
                       <Box sx={{ maxWidth: 200 }}>
@@ -311,11 +316,37 @@ const ArticleManagement = ({
             </Table>
           </TableContainer>
           
-          {allArticles.length > 10 && (
-            <Box textAlign="center" sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                총 {allArticles.length}개 기사 중 10개만 표시됩니다.
-              </Typography>
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" alignItems="center" gap={1} sx={{ mt: 3 }}>
+              {/* 이전 */}
+              <Button 
+                variant="outlined" 
+                size="small" 
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+              >
+                ← 이전
+              </Button>
+              {/* 페이지 번호 */}
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
+                <Button 
+                  key={page}
+                  variant={currentPage === page ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => onPageChange(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+              {/* 다음 */}
+              <Button 
+                variant="outlined" 
+                size="small" 
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+              >
+                다음 →
+              </Button>
             </Box>
           )}
         </CardContent>

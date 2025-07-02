@@ -404,12 +404,17 @@ const BlogStyleDashboard = () => {
       case 1:
         return (
           <ArticleManagement
-            allArticles={allArticles}
+            articles={getCurrentPageArticles()}
+            totalArticles={allArticles.length}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
             onUpdateArticles={updateArticles}
             onDeleteArticle={handleDeleteArticle}
             onRefreshArticles={refreshArticles}
             editableCategories={editableCategories}
             setSnackbar={setSnackbar}
+            allArticles={allArticles}
           />
         );
       case 2:
