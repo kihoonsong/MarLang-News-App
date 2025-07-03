@@ -469,16 +469,13 @@ const ArticleDetail = () => {
     const handleEnd = () => {
       if (swipeState.isDragging) {
         const threshold = 80;
-        const dragDistance = Math.abs(swipeState.dragOffset);
+        const direction = swipeState.dragOffset > threshold ? -1 : swipeState.dragOffset < -threshold ? 1 : 0;
         
-        if (dragDistance > threshold) {
-          const direction = swipeState.dragOffset > 0 ? -1 : 1;
+        if (direction !== 0) {
           let newLevel = selectedLevel + direction;
           if (newLevel > 3) newLevel = 1;
           if (newLevel < 1) newLevel = 3;
           handleLevelChange(newLevel);
-        } else {
-          // 드래그 거리가 짧으면 탭으로 간주 (아무것도 안 함)
         }
 
         setSwipeState(prev => ({
