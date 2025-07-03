@@ -90,7 +90,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
   const [newsService, setNewsService] = useState(null);
   
   useEffect(() => {
-    import('../services/newsApi.js').then(module => {
+    import('../services/enhancedNewsApi.js').then(module => {
       setNewsService(module.default);
     });
   }, []);
@@ -183,7 +183,7 @@ export const useSearch = () => {
   const [newsService, setNewsService] = useState(null);
   
   useEffect(() => {
-    import('../services/newsApi.js').then(module => {
+    import('../services/enhancedNewsApi.js').then(module => {
       setNewsService(module.default);
     });
   }, []);
@@ -213,7 +213,7 @@ export const useArticle = (articleId) => {
   const [newsService, setNewsService] = useState(null);
   
   useEffect(() => {
-    import('../services/newsApi.js').then(module => {
+    import('../services/enhancedNewsApi.js').then(module => {
       setNewsService(module.default);
     });
   }, []);
@@ -231,7 +231,7 @@ export const useTrending = (limit = 10) => {
   const [newsService, setNewsService] = useState(null);
   
   useEffect(() => {
-    import('../services/newsApi.js').then(module => {
+    import('../services/enhancedNewsApi.js').then(module => {
       setNewsService(module.default);
     });
   }, []);

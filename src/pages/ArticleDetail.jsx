@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Button, Chip,
@@ -67,6 +67,21 @@ const generateLevelsFromContent = (article) => {
   }
 };
 
+
+const WordSpan = memo(({ word, isHighlighted, onWordClick }) => {
+  return (
+    <StyledWordSpan
+      $isHighlighted={isHighlighted}
+      onClick={(e) => {
+        e.stopPropagation();
+        onWordClick(e, word, isHighlighted);
+      }}
+      className={`clickable-word-span ${isHighlighted ? 'highlighted-word' : ''}`}
+    >
+      {word}{' '}
+    </StyledWordSpan>
+  );
+});
 
 const ArticleDetail = () => {
   const { id } = useParams();
@@ -594,6 +609,41 @@ const ArticleDetail = () => {
     }
   };
 
+  const onWordClick = useCallback(async (event, word, isHighlighted) => {
+    if (isHighlighted) {
+      handleRemoveWord(event, word);
+      return;
+    }
+
+    const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
+    if (cleanWord.length > 2) {
+      setWordPopup({
+        open: true,
+        anchorEl: event.currentTarget,
+        word: cleanWord,
+        isLoading: true,
+        error: null,
+      });
+
+      try {
+        const wordData = await fetchWordDefinitionAndTranslation(cleanWord, selectedLanguage);
+        if (wordData.error) {
+          setWordPopup(prev => ({ ...prev, isLoading: false, error: wordData.error }));
+        } else {
+          setWordPopup(prev => ({ ...prev, isLoading: false, ...wordData }));
+          if (userSettings?.autoSaveWords !== false) {
+            await autoSaveWord(cleanWord, wordData);
+          }
+          if (userSettings?.autoPlay && wordData.audio) {
+            new Audio(wordData.audio).play().catch(e => console.error("Audio play failed", e));
+          }
+        }
+      } catch (error) {
+        setWordPopup(prev => ({ ...prev, isLoading: false, error: 'Failed to fetch definition' }));
+      }
+    }
+  }, [selectedLanguage, userSettings, articleData]);
+
   const handleWordClick = async (event, word) => {
     const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
     if (cleanWord.length > 2) {
@@ -891,7 +941,7 @@ const ArticleDetail = () => {
     });
   };
 
-  const handleRemoveWord = (event, word) => {
+  const handleRemoveWord = useCallback((event, word) => {
     event.preventDefault();
     event.stopPropagation();
     const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
@@ -926,7 +976,7 @@ const ArticleDetail = () => {
         element.classList.remove('highlighted-word');
       }
     });
-  };
+  }, [highlightedWords, savedWords, articleData, removeWord, updateActivityTime]);
 
   // 단어 팝업에서 언어 변경 처리
   const handlePopupLanguageChange = async (newLanguage) => {
@@ -1158,9 +1208,29 @@ const ArticleDetail = () => {
                 $isActive={isActive}
                 onClick={(e) => handleCardClick(e, level)}
               >
-                <ContentTitle>
-                  Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
-                </ContentTitle>
+                <ContentHeader>
+                  <LevelChangeButton 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
+                    }}
+                    title="Previous Level"
+                  >
+                    <ArrowBackIosIcon fontSize="inherit" />
+                  </LevelChangeButton>
+                  <ContentTitle>
+                    Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
+                  </ContentTitle>
+                  <LevelChangeButton 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
+                    }}
+                    title="Next Level"
+                  >
+                    <ArrowForwardIosIcon fontSize="inherit" />
+                  </LevelChangeButton>
+                </ContentHeader>
           <ContentText>
             {(() => {
                     const content = articleData.levels[level].content;
@@ -1181,19 +1251,10 @@ const ArticleDetail = () => {
                       return (
                         <WordSpan 
                           key={`${sentenceIdx}-${wordIdx}`}
-                          $isHighlighted={isHighlighted}
-                          onClick={(e) => {
-                                  e.stopPropagation();
-                            if (isHighlighted) {
-                              handleRemoveWord(e, word);
-                            } else {
-                              handleWordClick(e, word);
-                            }
-                          }}
-                          className={`clickable-word-span ${isHighlighted ? 'highlighted-word' : ''}`}
-                        >
-                          {word}{' '}
-                        </WordSpan>
+                          word={word}
+                          isHighlighted={isHighlighted}
+                          onWordClick={onWordClick}
+                        />
                       );
                     })}
                     {sentenceIdx < sentences.length - 1 && '. '}
@@ -1581,7 +1642,7 @@ const ContentCard = styled.div`
   padding: 2rem;
 `;
 
-const WordSpan = styled.span`
+const StyledWordSpan = styled.span`
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: 3px;
@@ -1601,14 +1662,41 @@ const WordSpan = styled.span`
 
 
 
+const ContentHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e3f2fd;
+`;
+
+const LevelChangeButton = styled.button`
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: #1976d2;
+    background: rgba(25, 118, 210, 0.08);
+  }
+`;
+
 const ContentTitle = styled.h3`
   font-size: 1.3rem;
   font-weight: bold;
-  margin-bottom: 1.5rem;
   color: #1976d2;
   text-align: center;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e3f2fd;
+  margin: 0;
+  flex-grow: 1;
 `;
 
 const ContentText = styled.div`

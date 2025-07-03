@@ -55,7 +55,7 @@ const Wordbook = () => {
       case 'alphabetical':
         return wordsCopy.sort((a, b) => a.word.localeCompare(b.word));
       case 'recent':
-        return wordsCopy.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+        return wordsCopy.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
       case 'article':
         return wordsCopy.sort((a, b) => a.articleTitle.localeCompare(b.articleTitle));
       default:
