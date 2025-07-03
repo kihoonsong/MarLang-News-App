@@ -208,8 +208,7 @@ const ArticleDetail = () => {
       if (articleWords.length > 0) {
         console.log('🔄 단어장 동기화:', articleWords);
         setHighlightedWords(prev => {
-          const newHighlights = new Set([...prev, ...articleWords]);
-          saveHighlights(newHighlights);
+          // saveHighlights(newHighlights);
           return newHighlights;
         });
       }
@@ -733,7 +732,7 @@ const ArticleDetail = () => {
       // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
       const newHighlights = new Set([...highlightedWords, cleanWord]);
       setHighlightedWords(newHighlights);
-      saveHighlights(newHighlights);
+      // saveHighlights(newHighlights);
       
       // 같은 탭 내에서 하이라이트 변경 알림
       window.dispatchEvent(new CustomEvent('highlightUpdated', {

@@ -267,7 +267,7 @@ export const InputGroup = styled.div`
   margin-bottom: ${designTokens.spacing.md};
 `;
 
-export const InputLabel = styled.label`
+export const GroupInputLabel = styled.label`
   font-weight: 500;
   color: ${getColor('text.primary')};
   font-size: 0.9rem;

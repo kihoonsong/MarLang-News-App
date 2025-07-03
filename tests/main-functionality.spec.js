@@ -1,6 +1,50 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('MarLang Eng News', () => {
+const TEST_USER = {
+  email: 'test@test.com',
+  password: 'test123'
+};
+
+test.describe('MarLang Eng News - Core Functionality', () => {
+
+  // 각 테스트가 독립적으로 실행되도록 보장
+  test.beforeEach(async ({ page }) => {
+    // 1. 테스트 시작 전 로컬 스토리지 완전 초기화
+    await page.goto('/'); // 페이지에 먼저 방문해야 로컬 스토리지에 접근 가능
+    await page.evaluate(() => window.localStorage.clear());
+    console.log('[Test Setup] Local storage cleared.');
+
+    // 2. UI를 통해 로그인 수행
+    await page.goto('/');
+    
+    // 혹시 이미 로그인된 상태일 수 있으니, 프로필 버튼이 보이면 로그아웃부터 실행
+    const profileButton = page.locator('a[href="/profile"]');
+    if (await profileButton.isVisible()) {
+      await profileButton.click();
+      await page.waitForURL('**/profile');
+      const logoutButton = page.locator('button:has-text("Logout")');
+      if (await logoutButton.isVisible()) {
+        await logoutButton.click();
+        await page.waitForURL('**/'); // 홈으로 돌아올 때까지 대기
+        console.log('[Test Setup] Existing session found. Logged out.');
+      }
+    }
+
+    // 3. 깨끗한 상태에서 로그인
+    await page.goto('/');
+    await page.click('button:has-text("Login")');
+    await page.waitForSelector('input[type="email"]');
+    
+    await page.fill('input[type="email"]', TEST_USER.email);
+    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.click('button[type="submit"]');
+    
+    // 로그인이 성공적으로 완료되었는지 확인 (Profile 링크가 보일 때까지 대기)
+    await expect(page.locator('a[href="/profile"]')).toBeVisible({ timeout: 10000 });
+    console.log('[Test Setup] Logged in successfully.');
+  });
+
+
   test('메인 페이지 로드 및 기본 요소 확인', async ({ page }) => {
     await page.goto('/');
     

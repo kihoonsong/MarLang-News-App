@@ -1,29 +1,42 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import globals from "globals";
+import pluginJs from "@eslint/js";
+import pluginReactConfig from "eslint-plugin-react/configs/recommended.js";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 
-export default defineConfig([
-  globalIgnores(['dist']),
+export default [
   {
-    files: ['**/*.{js,jsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs['recommended-latest'],
-      reactRefresh.configs.vite,
-    ],
+    ignores: ["dist/**", "src/pages/BlogStyleDashboard_Old.jsx", "src/pages/BlogStyleDashboard_Backup.jsx"],
+  },
+  {
+    files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx}"],
     languageOptions: {
-      ecmaVersion: 2020,
       globals: globals.browser,
       parserOptions: {
-        ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
-        sourceType: 'module',
       },
     },
+  },
+  pluginJs.configs.recommended,
+  pluginReactConfig,
+  {
+    files: ["**/*.{js,jsx}"],
+    plugins: {
+      "react-hooks": reactHooks,
+      "react-refresh": reactRefresh,
+    },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      ...reactHooks.configs.recommended.rules,
+      "react-refresh/only-export-components": "warn",
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off",
+      "no-unused-vars": ["warn", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }]
     },
   },
-])
+  {
+    files: ["*.js", "*.cjs", "*.config.js"],
+    languageOptions: {
+      globals: globals.node,
+    }
+  }
+];
