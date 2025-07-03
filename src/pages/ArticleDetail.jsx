@@ -494,14 +494,13 @@ const ArticleDetail = () => {
     return {
       // 터치 이벤트
       onTouchStart: (e) => {
-        e.preventDefault();
         handleStart(e, e.touches[0].clientX);
       },
       onTouchMove: (e) => {
-        e.preventDefault();
         if (swipeState.isDragging) {
+          e.preventDefault();
           handleMove(e.touches[0].clientX);
-              }
+        }
       },
       onTouchEnd: (e) => {
         e.preventDefault();
