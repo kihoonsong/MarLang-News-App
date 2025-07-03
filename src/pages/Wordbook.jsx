@@ -25,43 +25,53 @@ const Wordbook = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [sortBy, setSortBy] = useState('recent');
+  const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
 
-  // 인증되지 않은 경우 AuthGuard 표시
-  if (!isAuthenticated) {
-    return (
-      <AuthGuard feature="your wordbook">
-        <MobileNavigation />
-        <MobileContentWrapper>
-          <PageContainer>
-            <EmptyAuthState>
-              <EmptyIcon>📚</EmptyIcon>
-              <EmptyText>Please sign in to access your wordbook</EmptyText>
-              <EmptySubtext>Save words from articles and build your vocabulary!</EmptySubtext>
-            </EmptyAuthState>
-          </PageContainer>
-        </MobileContentWrapper>
-      </AuthGuard>
-    );
-  }
+  useEffect(() => {
+    if (savedWords) {
+      const wordsCopy = [...savedWords];
+      
+      // 어떤 형태의 타임스탬프든 안전하게 Date 객체로 변환하는 강화된 함수
+      const toDate = (timestamp) => {
+        if (!timestamp) return new Date(0); // null 또는 undefined 처리
 
-  // 정렬된 단어 목록 가져오기
-  const getSortedWords = () => {
-    if (!savedWords || savedWords.length === 0) return [];
-    
-    const wordsCopy = [...savedWords];
-    
-    switch (sortBy) {
-      case 'alphabetical':
-        return wordsCopy.sort((a, b) => a.word.localeCompare(b.word));
-      case 'recent':
-        return wordsCopy.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
-      case 'article':
-        return wordsCopy.sort((a, b) => a.articleTitle.localeCompare(b.articleTitle));
-      default:
-        return wordsCopy;
+        // Firestore Timestamp 객체 직접 처리
+        if (typeof timestamp.toDate === 'function') {
+          return timestamp.toDate();
+        }
+
+        // JSON 직렬화된 Timestamp 객체 처리 (seconds, nanoseconds)
+        if (typeof timestamp === 'object' && timestamp.seconds !== undefined && timestamp.nanoseconds !== undefined) {
+          return new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
+        }
+
+        // ISO 문자열 및 기타 날짜 형식 처리
+        const d = new Date(timestamp);
+        if (!isNaN(d.getTime())) {
+          return d;
+        }
+
+        // 모든 변환 실패 시 기본값 반환
+        return new Date(0);
+      };
+
+      switch (sortBy) {
+        case 'alphabetical':
+          wordsCopy.sort((a, b) => a.word.localeCompare(b.word));
+          break;
+        case 'recent':
+          wordsCopy.sort((a, b) => toDate(b.addedAt) - toDate(a.addedAt));
+          break;
+        case 'article':
+          wordsCopy.sort((a, b) => (a.articleTitle || '').localeCompare(b.articleTitle || ''));
+          break;
+        default:
+          break;
+      }
+      setSortedWords(wordsCopy);
     }
-  };
+  }, [savedWords, sortBy]);
 
   // 단어 발음 재생
   const handlePlayWord = async (word, wordId) => {
@@ -96,8 +106,6 @@ const Wordbook = () => {
   const handleGoToArticle = (articleId) => {
     navigate(`/article/${articleId}`);
   };
-
-  const sortedWords = getSortedWords();
 
   return (
     <>
