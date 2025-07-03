@@ -470,19 +470,13 @@ const FilterContainer = styled.div`
 `;
 
 const ArticleGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 `;
 
 const ArticleCardWrapper = styled.div`
-  flex: 1 1 calc(33.33% - 1rem);
-  @media (max-width: 768px) {
-    flex: 1 1 calc(50% - 0.5rem);
-  }
-  @media (max-width: 480px) {
-    flex: 1 1 100%;
-  }
+  /* 이 Wrapper는 이제 그리드 아이템 역할을 하므로 별도 스타일이 필요 없습니다. */
 `;
 
 const NewsCard = styled(Card)`
