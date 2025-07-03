@@ -24,7 +24,46 @@ import ArticleCard from '../components/ArticleCard';
 import AdCard from '../components/AdCard';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
+import { useAdInjector } from '../hooks/useAdInjector';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
+
+const CategoryDisplay = ({ category, articles, navigate }) => {
+  const itemsToRender = useAdInjector(articles);
+
+  return (
+    <CategorySection id={`category-${category.id}`}>
+      <CategoryHeader>
+        <CategoryTitle onClick={() => {
+          if (category.type === 'category' && isValidCategory(category)) {
+            const categoryUrl = getCategoryPageUrl(category);
+            if (categoryUrl) {
+              navigate(categoryUrl);
+            }
+          }
+        }} style={{ cursor: 'pointer' }}>
+          {category.name}
+        </CategoryTitle>
+      </CategoryHeader>
+      
+      <HorizontalScrollContainer id={`scroll-${category.id}`}>
+        <ArticleRow>
+          {itemsToRender.length > 0 ? itemsToRender.map(item => {
+            if (item.type === 'ad') {
+              return <ArticleCardWrapper key={item.id}><AdCard /></ArticleCardWrapper>;
+            }
+            return <ArticleCardWrapper key={item.id}><ArticleCard {...item} navigate={navigate} /></ArticleCardWrapper>;
+          }) : (
+            <EmptyCategory>
+              <Typography variant="body2" color="text.secondary">
+                No {category.name.toLowerCase()} articles available
+              </Typography>
+            </EmptyCategory>
+          )}
+        </ArticleRow>
+      </HorizontalScrollContainer>
+    </CategorySection>
+  );
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -263,36 +302,8 @@ const Home = () => {
 
             {Array.isArray(categories) && categories.map((category) => {
               if (!category || !category.id || !category.name) return null;
-              
-              return (
-                <CategorySection key={category.id} id={`category-${category.id}`}>
-                  <CategoryHeader>
-                    <CategoryTitle onClick={() => handleCategoryTitleClick(category)} style={{ cursor: 'pointer' }}>
-                      {category.name}
-                    </CategoryTitle>
-                  </CategoryHeader>
-                  
-                  <HorizontalScrollContainer id={`scroll-${category.id}`}>
-                    <ArticleRow>
-                      {Array.isArray(allNewsData[category.id]) && allNewsData[category.id].flatMap((article, index) => {
-                        if (!article || !article.id) return [];
-                        const items = [<ArticleCardWrapper key={article.id}><ArticleCard {...article} navigate={navigate} /></ArticleCardWrapper>];
-                        if ((index + 1) % 5 === 0) {
-                          items.push(<ArticleCardWrapper key={`ad-${index}`}><AdCard /></ArticleCardWrapper>);
-                        }
-                        return items;
-                      })}
-                      {(!Array.isArray(allNewsData[category.id]) || allNewsData[category.id].length === 0) && (
-                        <EmptyCategory>
-                          <Typography variant="body2" color="text.secondary">
-                            No {category.name.toLowerCase()} articles available
-                          </Typography>
-                        </EmptyCategory>
-                      )}
-                    </ArticleRow>
-                  </HorizontalScrollContainer>
-                </CategorySection>
-              );
+              const articles = allNewsData[category.id] || [];
+              return <CategoryDisplay key={category.id} category={category} articles={articles} navigate={navigate} />;
             })}
           </ContentContainer>
         )}

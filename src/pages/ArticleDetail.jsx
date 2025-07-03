@@ -26,6 +26,7 @@ import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../uti
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
+import PremiumContentGuard from '../components/PremiumContentGuard';
 
 
 
@@ -1121,157 +1122,159 @@ const ArticleDetail = () => {
 
       {/* 기사 상세 내용 */}
       <PageContainer>
-        {/* 썸네일 이미지 */}
-        <ThumbnailImage 
-          src={articleData.image} 
-          alt={articleData.title}
-          onError={(e) => {
-            e.target.onerror = null; 
-            e.target.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
-          }} 
-        />
-        
-        {/* 메타 정보 */}
-        <MetaInfo>
-          <Chip label={articleData.category} color="primary" size="small" />
-          <DateText>{articleData.date}</DateText>
-        </MetaInfo>
-
-        {/* 제목 */}
-        <Title>{articleData.title}</Title>
-
-        {/* 새로운 컨트롤 레이아웃 */}
-        <ControlsSection>
-          <PlaybackControls>
-            <PlayButton onClick={handleTTS} $isPlaying={isTTSPlaying}>
-              {isTTSPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-            </PlayButton>
-            
-            <SpeedControlGroup>
-              <SpeedButton 
-                onClick={() => handleSpeedChange(Math.max(0.5, ttsSpeed - 0.1))}
-                disabled={ttsSpeed <= 0.5}
-                title="Slower"
-              >
-                -
-              </SpeedButton>
-              <SpeedDisplay>{ttsSpeed.toFixed(1)}x</SpeedDisplay>
-              <SpeedButton 
-                onClick={() => handleSpeedChange(Math.min(2.0, ttsSpeed + 0.1))}
-                disabled={ttsSpeed >= 2.0}
-                title="Faster"
-              >
-                +
-              </SpeedButton>
-            </SpeedControlGroup>
-          </PlaybackControls>
-            
-          <ActionButtons>
-            <ActionButton onClick={handleLike} $isLiked={isLiked} title="좋아요">
-              {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-            </ActionButton>
-            <ActionButton onClick={handleShare} title="공유">
-              <ShareIcon />
-            </ActionButton>
-          </ActionButtons>
-        </ControlsSection>
-
-
-
-        {/* 스와이프 카드 시스템 */}
-        <SwipeCardContainer {...swipeHandlers}>
-          {[1, 2, 3].map(level => {
-            // 순환 구조를 위한 position 계산 (3→1→2→3)
-            let position = level - selectedLevel;
-            
-            // 순환 로직: 1번 카드 좌측에 3번 카드가 보이도록
-            if (selectedLevel === 1 && level === 3) {
-              position = -1; // 3번 카드를 왼쪽에 표시
-            } else if (selectedLevel === 2 && level === 1) {
-              position = -1; // 1번 카드를 왼쪽에 표시
-            } else if (selectedLevel === 3 && level === 2) {
-              position = -1; // 2번 카드를 왼쪽에 표시
-            } else if (selectedLevel === 1 && level === 2) {
-              position = 1; // 2번 카드를 오른쪽에 표시
-            } else if (selectedLevel === 2 && level === 3) {
-              position = 1; // 3번 카드를 오른쪽에 표시
-            } else if (selectedLevel === 3 && level === 1) {
-              position = 1; // 1번 카드를 오른쪽에 표시
-            }
-            
-            const isActive = level === selectedLevel;
-            
-            return (
-              <SwipeCard
-                key={level}
-                $position={position}
-                $isDragging={swipeState.isDragging}
-                $dragOffset={swipeState.dragOffset}
-                $isTransitioning={swipeState.isTransitioning}
-                $isActive={isActive}
-                onClick={(e) => !isMobile && handleCardClick(e, level)}
-              >
-                <ContentHeader>
-                  <LevelChangeButton 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
-                    }}
-                    title="Previous Level"
-                  >
-                    <ArrowBackIosIcon fontSize="inherit" />
-                  </LevelChangeButton>
-                  <ContentTitle>
-                    Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
-                  </ContentTitle>
-                  <LevelChangeButton 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
-                    }}
-                    title="Next Level"
-                  >
-                    <ArrowForwardIosIcon fontSize="inherit" />
-                  </LevelChangeButton>
-                </ContentHeader>
-          <ContentText>
-            {(() => {
-                    const content = articleData.levels[level].content;
-              const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-              
-              return sentences.map((sentence, sentenceIdx) => {
-                      const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive;
-                
-                return (
-                  <SentenceSpan 
-                    key={sentenceIdx}
-                    $isActive={isCurrentSentence}
-                  >
-                    {sentence.trim().split(' ').map((word, wordIdx) => {
-                      const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
-                                                          const isHighlighted = (userSettings?.highlightSavedWords !== false) && highlightedWords.has(cleanWord);
-                      
-                      return (
-                        <WordSpan 
-                          key={`${sentenceIdx}-${wordIdx}`}
-                          word={word}
-                          isHighlighted={isHighlighted}
-                          onWordClick={onWordClick}
-                        />
-                      );
-                    })}
-                    {sentenceIdx < sentences.length - 1 && '. '}
-                  </SentenceSpan>
-                );
-              });
-            })()}
-          </ContentText>
-              </SwipeCard>
-            );
-          })}
+        <PremiumContentGuard>
+          {/* 썸네일 이미지 */}
+          <ThumbnailImage 
+            src={articleData.image} 
+            alt={articleData.title}
+            onError={(e) => {
+              e.target.onerror = null; 
+              e.target.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
+            }} 
+          />
           
+          {/* 메타 정보 */}
+          <MetaInfo>
+            <Chip label={articleData.category} color="primary" size="small" />
+            <DateText>{articleData.date}</DateText>
+          </MetaInfo>
 
-        </SwipeCardContainer>
+          {/* 제목 */}
+          <Title>{articleData.title}</Title>
+
+          {/* 새로운 컨트롤 레이아웃 */}
+          <ControlsSection>
+            <PlaybackControls>
+              <PlayButton onClick={handleTTS} $isPlaying={isTTSPlaying}>
+                {isTTSPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+              </PlayButton>
+              
+              <SpeedControlGroup>
+                <SpeedButton 
+                  onClick={() => handleSpeedChange(Math.max(0.5, ttsSpeed - 0.1))}
+                  disabled={ttsSpeed <= 0.5}
+                  title="Slower"
+                >
+                  -
+                </SpeedButton>
+                <SpeedDisplay>{ttsSpeed.toFixed(1)}x</SpeedDisplay>
+                <SpeedButton 
+                  onClick={() => handleSpeedChange(Math.min(2.0, ttsSpeed + 0.1))}
+                  disabled={ttsSpeed >= 2.0}
+                  title="Faster"
+                >
+                  +
+                </SpeedButton>
+              </SpeedControlGroup>
+            </PlaybackControls>
+              
+            <ActionButtons>
+              <ActionButton onClick={handleLike} $isLiked={isLiked} title="좋아요">
+                {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              </ActionButton>
+              <ActionButton onClick={handleShare} title="공유">
+                <ShareIcon />
+              </ActionButton>
+            </ActionButtons>
+          </ControlsSection>
+
+
+
+          {/* 스와이프 카드 시스템 */}
+          <SwipeCardContainer {...swipeHandlers}>
+            {[1, 2, 3].map(level => {
+              // 순환 구조를 위한 position 계산 (3→1→2→3)
+              let position = level - selectedLevel;
+              
+              // 순환 로직: 1번 카드 좌측에 3번 카드가 보이도록
+              if (selectedLevel === 1 && level === 3) {
+                position = -1; // 3번 카드를 왼쪽에 표시
+              } else if (selectedLevel === 2 && level === 1) {
+                position = -1; // 1번 카드를 왼쪽에 표시
+              } else if (selectedLevel === 3 && level === 2) {
+                position = -1; // 2번 카드를 왼쪽에 표시
+              } else if (selectedLevel === 1 && level === 2) {
+                position = 1; // 2번 카드를 오른쪽에 표시
+              } else if (selectedLevel === 2 && level === 3) {
+                position = 1; // 3번 카드를 오른쪽에 표시
+              } else if (selectedLevel === 3 && level === 1) {
+                position = 1; // 1번 카드를 오른쪽에 표시
+              }
+              
+              const isActive = level === selectedLevel;
+              
+              return (
+                <SwipeCard
+                  key={level}
+                  $position={position}
+                  $isDragging={swipeState.isDragging}
+                  $dragOffset={swipeState.dragOffset}
+                  $isTransitioning={swipeState.isTransitioning}
+                  $isActive={isActive}
+                  onClick={(e) => !isMobile && handleCardClick(e, level)}
+                >
+                  <ContentHeader>
+                    <LevelChangeButton 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
+                      }}
+                      title="Previous Level"
+                    >
+                      <ArrowBackIosIcon fontSize="inherit" />
+                    </LevelChangeButton>
+                    <ContentTitle>
+                      Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
+                    </ContentTitle>
+                    <LevelChangeButton 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
+                      }}
+                      title="Next Level"
+                    >
+                      <ArrowForwardIosIcon fontSize="inherit" />
+                    </LevelChangeButton>
+                  </ContentHeader>
+            <ContentText>
+              {(() => {
+                      const content = articleData.levels[level].content;
+                const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                
+                return sentences.map((sentence, sentenceIdx) => {
+                        const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive;
+                  
+                  return (
+                    <SentenceSpan 
+                      key={sentenceIdx}
+                      $isActive={isCurrentSentence}
+                    >
+                      {sentence.trim().split(' ').map((word, wordIdx) => {
+                        const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
+                                                            const isHighlighted = (userSettings?.highlightSavedWords !== false) && highlightedWords.has(cleanWord);
+                        
+                        return (
+                          <WordSpan 
+                            key={`${sentenceIdx}-${wordIdx}`}
+                            word={word}
+                            isHighlighted={isHighlighted}
+                            onWordClick={onWordClick}
+                          />
+                        );
+                      })}
+                      {sentenceIdx < sentences.length - 1 && '. '}
+                    </SentenceSpan>
+                  );
+                });
+              })()}
+            </ContentText>
+                </SwipeCard>
+              );
+            })}
+            
+
+          </SwipeCardContainer>
+        </PremiumContentGuard>
       </PageContainer>
 
       {/* 단어 팝업 */}
