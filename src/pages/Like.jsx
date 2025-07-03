@@ -240,23 +240,12 @@ const SortControls = styled.div`
 
 const ArticleGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-  margin-top: 24px;
-  
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
 `;
 
 const ArticleGridItem = styled.div`
-  /* 그리드 아이템이므로 별도 스타일 없음 */
+  /* 이 Wrapper는 이제 그리드 아이템 역할을 하므로 별도 스타일이 필요 없습니다. */
 `;
 
 const EmptyState = styled.div`

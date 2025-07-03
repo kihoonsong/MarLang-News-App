@@ -131,27 +131,32 @@ const PublishDate = styled.span`
   color: ${getColor('text.secondary')};
 `;
 
-const CardTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: bold;
-  margin: 0 0 ${designTokens.spacing.xs} 0;
-  line-height: 1.4;
+const Title = styled.h2`
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  color: ${getColor('text.primary')};
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
-const CardSummary = styled.p`
-  font-size: 0.875rem;
-  color: ${getColor('text.secondary')};
-  line-height: 1.5;
-  margin: 0;
+const Summary = styled.p`
+  font-size: 0.9rem;
+  color: #666;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    -webkit-line-clamp: 2;
+    margin-bottom: 0.25rem;
+  }
 `;
 
 export default ArticleCard; 
