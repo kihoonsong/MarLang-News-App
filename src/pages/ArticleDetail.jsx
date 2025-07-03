@@ -441,7 +441,12 @@ const ArticleDetail = () => {
 
   // 스와이프 핸들러 추가
   const createSwipeHandlers = () => {
-    const handleStart = (clientX) => {
+    const handleStart = (e, clientX) => {
+      // 단어 자체를 클릭했을 때는 스와이프를 시작하지 않음
+      if (e.target.classList.contains('clickable-word-span')) {
+        return;
+      }
+      
       setSwipeState(prev => ({
         ...prev,
         isDragging: true,
@@ -490,7 +495,7 @@ const ArticleDetail = () => {
       // 터치 이벤트
       onTouchStart: (e) => {
         e.preventDefault();
-        handleStart(e.touches[0].clientX);
+        handleStart(e, e.touches[0].clientX);
       },
       onTouchMove: (e) => {
         e.preventDefault();
@@ -506,7 +511,7 @@ const ArticleDetail = () => {
       // 마우스 이벤트
       onMouseDown: (e) => {
         e.preventDefault();
-        handleStart(e.clientX);
+        handleStart(e, e.clientX);
       },
       onMouseMove: (e) => {
         if (swipeState.isDragging) {
@@ -1183,7 +1188,7 @@ const ArticleDetail = () => {
                               handleWordClick(e, word);
                             }
                           }}
-                          className={isHighlighted ? 'highlighted-word' : ''}
+                          className={`clickable-word-span ${isHighlighted ? 'highlighted-word' : ''}`}
                         >
                           {word}{' '}
                         </WordSpan>

@@ -156,6 +156,39 @@ export const DataProvider = ({ children }) => {
     await saveData('settings', updatedSettings);
   };
 
+  const getStats = () => {
+    const totalWords = savedWords.length;
+    const totalLikedArticles = likedArticles.length;
+    
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const wordsThisWeek = savedWords.filter(word => 
+      new Date(word.addedAt) > weekAgo
+    ).length;
+
+    const categoryCount = {};
+    likedArticles.forEach(article => {
+      if (article.category) {
+        categoryCount[article.category] = (categoryCount[article.category] || 0) + 1;
+      }
+    });
+    
+    const favoriteCategory = Object.keys(categoryCount).reduce((a, b) => 
+      categoryCount[a] > categoryCount[b] ? a : b, 
+      Object.keys(categoryCount)[0] || ''
+    );
+
+    return {
+      totalWords,
+      totalLikedArticles,
+      wordsThisWeek,
+      favoriteCategory: {
+        name: favoriteCategory,
+        count: categoryCount[favoriteCategory] || 0
+      }
+    };
+  };
+
   const value = {
     savedWords,
     likedArticles,
@@ -170,6 +203,7 @@ export const DataProvider = ({ children }) => {
     isArticleLiked: (articleId) => likedArticles.some(a => a.id === articleId),
     addViewRecord,
     updateSettings,
+    getStats,
     // 복원된 다른 함수들 (필요 시 여기에 추가)
     updateActivityTime: () => updateSettings({ lastActivityTime: new Date().toISOString() }),
     getArticleById: (articleId) => viewRecords.find(r => r.articleId === articleId) || null,
