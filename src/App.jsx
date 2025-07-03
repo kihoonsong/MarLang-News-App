@@ -32,6 +32,7 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
@@ -376,8 +377,16 @@ function App() {
                         </AuthGuard>
                       } 
                     />
+                    <Route 
+                      path="/privacy" 
+                      element={
+                        <PageWrapper pageName="Privacy Policy">
+                          <PrivacyPolicy />
+                        </PageWrapper>
+                      } 
+                    />
                     
-                    {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}
+                    {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방�� */}
                     <Route 
                       path="/:categorySlug" 
                       element={

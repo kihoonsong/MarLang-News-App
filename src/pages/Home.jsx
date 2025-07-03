@@ -21,6 +21,7 @@ import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
+import AdCard from '../components/AdCard';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
@@ -273,13 +274,13 @@ const Home = () => {
                   
                   <HorizontalScrollContainer id={`scroll-${category.id}`}>
                     <ArticleRow>
-                      {Array.isArray(allNewsData[category.id]) && allNewsData[category.id].map(article => {
-                        if (!article || !article.id) return null;
-                        return (
-                          <ArticleCardWrapper key={article.id}>
-                            <ArticleCard {...article} navigate={navigate} />
-                          </ArticleCardWrapper>
-                        );
+                      {Array.isArray(allNewsData[category.id]) && allNewsData[category.id].flatMap((article, index) => {
+                        if (!article || !article.id) return [];
+                        const items = [<ArticleCardWrapper key={article.id}><ArticleCard {...article} navigate={navigate} /></ArticleCardWrapper>];
+                        if ((index + 1) % 5 === 0) {
+                          items.push(<ArticleCardWrapper key={`ad-${index}`}><AdCard /></ArticleCardWrapper>);
+                        }
+                        return items;
                       })}
                       {(!Array.isArray(allNewsData[category.id]) || allNewsData[category.id].length === 0) && (
                         <EmptyCategory>
