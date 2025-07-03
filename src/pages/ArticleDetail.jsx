@@ -454,6 +454,9 @@ const ArticleDetail = () => {
     setSelectedLevel(level);
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   // 스와이프 핸들러 추가
   const createSwipeHandlers = () => {
     const handleStart = (e, clientX) => {
@@ -540,7 +543,7 @@ const ArticleDetail = () => {
     };
   };
 
-  const swipeHandlers = createSwipeHandlers();
+  const swipeHandlers = !isMobile ? createSwipeHandlers() : {};
 
   // 카드 클릭 핸들러
   const handleCardClick = (e, level) => {
@@ -1111,7 +1114,7 @@ const ArticleDetail = () => {
       {/* 통합 네비게이션 */}
       <MobileNavigation 
         showBackButton={true}
-        title="MarLang Eng News"
+        searchCompact={false}
       />
       
       <MobileContentWrapper>
@@ -1206,7 +1209,7 @@ const ArticleDetail = () => {
                 $dragOffset={swipeState.dragOffset}
                 $isTransitioning={swipeState.isTransitioning}
                 $isActive={isActive}
-                onClick={(e) => handleCardClick(e, level)}
+                onClick={(e) => !isMobile && handleCardClick(e, level)}
               >
                 <ContentHeader>
                   <LevelChangeButton 
@@ -1837,37 +1840,46 @@ const PopupActions = styled.div`
 const SwipeCardContainer = styled.div`
   position: relative;
   width: 100%;
-  height: 700px;
-  overflow: visible;
-  border-radius: 16px;
   margin-bottom: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
+
+  /* Desktop styles */
+  height: 700px;
+  overflow: visible;
+
+  /* Mobile styles */
+  @media (max-width: 768px) {
+    min-height: 500px;
+    height: auto;
+    overflow: hidden;
+  }
 `;
 
 const SwipeCard = styled.div`
   position: absolute;
   top: 0;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  
+  /* Desktop styles */
   width: ${props => props.$isActive ? '80%' : '70%'};
   height: 100%;
   padding: 2rem;
-  background: white;
-  border-radius: 16px;
   box-shadow: ${props => props.$isActive 
     ? '0 8px 32px rgba(0,0,0,0.15)' 
     : '0 4px 16px rgba(0,0,0,0.1)'};
   cursor: ${props => props.$isActive ? 'default' : 'pointer'};
-  display: flex;
-  flex-direction: column;
   opacity: ${props => props.$isActive ? 1 : 0.7};
   transform: ${props => {
-    // 간소화된 position 기반 변환
-    const baseTransform = props.$position === 0 ? '-50%' :   // 중앙 (메인 카드)
-                         props.$position === -1 ? '-85%' :   // 왼쪽 (이전 카드)
-                         props.$position === 1 ? '-15%' :    // 오른쪽 (다음 카드)
-                         '-50%';                              // 기본값
+    const baseTransform = props.$position === 0 ? '-50%' :
+                         props.$position === -1 ? '-85%' :
+                         props.$position === 1 ? '-15%' :
+                         '-50%';
     
     const dragOffset = props.$isDragging ? props.$dragOffset : 0;
     const scaleTransform = props.$isActive ? 'scale(1)' : 'scale(0.9)';
@@ -1887,6 +1899,29 @@ const SwipeCard = styled.div`
                   props.$position === 1 ? '-17%' : 
                   '-50%'} + ${props.$isDragging ? props.$dragOffset : 0}px)) scale(0.92);
     `}
+  }
+
+  /* Mobile styles */
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    cursor: default;
+    opacity: ${props => props.$isActive ? 1 : 0};
+    transform: translateX(${props => props.$isActive ? '0' : (props.$position < 0 ? '-100%' : '100%')});
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    z-index: ${props => props.$isActive ? 10 : 5};
+    left: 0;
+    filter: none;
+
+    &:hover {
+      opacity: ${props => props.$isActive ? 1 : 0};
+      transform: translateX(${props => props.$isActive ? '0' : (props.$position < 0 ? '-100%' : '100%')});
+    }
+  }
+
+  @media (max-width: 600px) {
+    padding: 1rem;
   }
 `;
 

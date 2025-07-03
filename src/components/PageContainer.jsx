@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
-  padding: 0 1rem 2rem 1rem;
+  padding: 0 0.5rem 2rem 0.5rem;
   width: 100%;
   box-sizing: border-box;
   

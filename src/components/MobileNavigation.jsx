@@ -24,7 +24,7 @@ import { designTokens, getColor, getShadow } from '../utils/designTokens';
 
 const navigationTabs = ['Home', 'Date', 'Wordbook', 'Like', 'Profile'];
 
-const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = false, children }) => {
+const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = false, children, searchCompact = true }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -186,7 +186,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
         
         <SearchDropdown 
           placeholder="Search articles..."
-          compact={true}
+          compact={searchCompact}
           style={{ 
             flexGrow: 1,
             marginRight: '16px',
