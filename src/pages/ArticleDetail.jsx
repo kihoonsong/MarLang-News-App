@@ -207,10 +207,7 @@ const ArticleDetail = () => {
       
       if (articleWords.length > 0) {
         console.log('🔄 단어장 동기화:', articleWords);
-        setHighlightedWords(prev => {
-          // saveHighlights(newHighlights);
-          return newHighlights;
-        });
+        setHighlightedWords(new Set(articleWords));
       }
     }
   }, [articleData?.id]); // savedWords 제거하여 무한 루프 방지
@@ -732,7 +729,6 @@ const ArticleDetail = () => {
       // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
       const newHighlights = new Set([...highlightedWords, cleanWord]);
       setHighlightedWords(newHighlights);
-      // saveHighlights(newHighlights);
       
       // 같은 탭 내에서 하이라이트 변경 알림
       window.dispatchEvent(new CustomEvent('highlightUpdated', {
@@ -1066,7 +1062,14 @@ const ArticleDetail = () => {
       {/* 기사 상세 내용 */}
       <PageContainer>
         {/* 썸네일 이미지 */}
-        <ThumbnailImage src={articleData.image} alt={articleData.title} />
+        <ThumbnailImage 
+          src={articleData.image} 
+          alt={articleData.title}
+          onError={(e) => {
+            e.target.onerror = null; 
+            e.target.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
+          }} 
+        />
         
         {/* 메타 정보 */}
         <MetaInfo>
