@@ -1,31 +1,109 @@
 import { useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { membershipConfig } from '../config/membershipConfig';
+import { getAdsenseConfig } from '../config/adsenseConfig';
 
 export const useAdInjector = (items) => {
-  const { user } = useAuth(); // 지금은 user 존재 여부만으로 광고를 제어 (로그인 시 광고 없음)
+  const { user } = useAuth();
+  const adsenseConfig = getAdsenseConfig();
   
-  const isPremium = false; // TODO: 나중에 실제 구독 상태로 교체
-
-  const itemsWithAds = useMemo(() => {
-    if (isPremium) {
-      return items;
+  // TODO: 나중에 실제 구독 상태로 교체
+  const isPremium = false;
+  
+  // 광고 표시 여부 결정
+  const shouldShowAds = useMemo(() => {
+    // 애드센스가 비활성화된 경우
+    if (!adsenseConfig.enabled) return false;
+    
+    // 프리미엄 사용자에게 광고 표시 안함
+    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) {
+      return false;
     }
     
-    if (!items || items.length === 0) {
-      return [];
+    // 로그인 사용자에게 광고 표시 여부 확인
+    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) {
+      return false;
+    }
+    
+    return true;
+  }, [user, isPremium, adsenseConfig]);
+
+  const itemsWithAds = useMemo(() => {
+    if (!shouldShowAds || !items || items.length === 0) {
+      return items || [];
     }
 
     const newItems = [];
-    items.forEach((item, index) => {
-      newItems.push(item);
-      if ((index + 1) % membershipConfig.ads.frequency === 0) {
-        newItems.push({ type: 'ad', id: `ad-${index}` });
-      }
-    });
+    const config = membershipConfig.ads;
+    
+    if (config.randomPlacement) {
+      // 랜덤 배치 로직
+      const { minGap, maxGap } = config;
+      let nextAdPosition = Math.floor(Math.random() * (maxGap - minGap + 1)) + minGap;
+      let adCount = 0;
+      
+      items.forEach((item, index) => {
+        newItems.push(item);
+        
+        // 다음 광고 위치에 도달하고 충분한 기사가 있는 경우
+        if (index + 1 === nextAdPosition && index < items.length - 1) {
+          newItems.push({ 
+            type: 'ad', 
+            id: `ad-${adCount}`,
+            adSlot: 'articleBanner',
+            position: index + 1
+          });
+          adCount++;
+          
+          // 다음 광고 위치 계산
+          nextAdPosition = index + 1 + Math.floor(Math.random() * (maxGap - minGap + 1)) + minGap;
+        }
+      });
+    } else {
+      // 기존 고정 빈도 배치 로직
+      const frequency = config.frequency;
+      
+      items.forEach((item, index) => {
+        newItems.push(item);
+        
+        if ((index + 1) % frequency === 0) {
+          newItems.push({ 
+            type: 'ad', 
+            id: `ad-${index}`,
+            adSlot: 'articleBanner',
+            position: index + 1
+          });
+        }
+      });
+    }
+    
     return newItems;
+  }, [items, shouldShowAds]);
 
-  }, [items, isPremium]);
+  return {
+    itemsWithAds,
+    shouldShowAds,
+    adsConfig: adsenseConfig
+  };
+};
 
-  return itemsWithAds;
+// 특정 위치에 광고 삽입을 위한 훅
+export const useAdPlacement = (position = 'articleBanner') => {
+  const { user } = useAuth();
+  const adsenseConfig = getAdsenseConfig();
+  const isPremium = false; // TODO: 실제 구독 상태로 교체
+  
+  const shouldShowAd = useMemo(() => {
+    if (!adsenseConfig.enabled) return false;
+    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) return false;
+    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) return false;
+    
+    return true;
+  }, [user, isPremium, adsenseConfig]);
+  
+  return {
+    shouldShowAd,
+    adSlot: position,
+    adsConfig: adsenseConfig
+  };
 };
