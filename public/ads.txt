@@ -2,7 +2,7 @@
 # 이 파일은 광고 사기를 방지하고 애드센스 승인을 도와줍니다.
 
 google.com, pub-6930662244421305, DIRECT, f08c47fec0942fa0
-
+ 
 # 이 파일은 다음 위치에서 접근 가능해야 합니다:
 # https://yourdomain.com/ads.txt
 # 

@@ -11,7 +11,6 @@ import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ShareIcon from '@mui/icons-material/Share';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
@@ -232,6 +231,30 @@ const ArticleDetail = () => {
       }
     }
   }, [articleData?.id]); // savedWords 제거하여 무한 루프 방지
+
+  // 키보드 이벤트 핸들러 (화살표 키로 레벨 변경)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 팝업이 열려있거나 input/textarea에 포커스가 있을 때는 키보드 이벤트 무시
+      if (wordPopup.open || 
+          document.activeElement.tagName === 'INPUT' || 
+          document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedLevel, wordPopup.open]);
 
   // Firebase 데이터 변경 감지 (다른 디바이스에서 단어장 변경 시 자동 동기화)
   useEffect(() => {
@@ -1262,7 +1285,9 @@ const ArticleDetail = () => {
                         e.stopPropagation();
                         handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
                       }}
-                      title="Previous Level"
+                      title="Previous Level (Left Arrow Key)"
+                      aria-label="Previous Level"
+                      tabIndex={0}
                     >
                       <ArrowBackIosIcon fontSize="inherit" />
                     </LevelChangeButton>
@@ -1274,7 +1299,9 @@ const ArticleDetail = () => {
                         e.stopPropagation();
                         handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
                       }}
-                      title="Next Level"
+                      title="Next Level (Right Arrow Key)"
+                      aria-label="Next Level"
+                      tabIndex={0}
                     >
                       <ArrowForwardIosIcon fontSize="inherit" />
                     </LevelChangeButton>
@@ -1708,10 +1735,22 @@ const LevelChangeButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
   
   &:hover {
     color: #1976d2;
     background: rgba(25, 118, 210, 0.08);
+    transform: scale(1.1);
+  }
+  
+  &:focus {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+  }
+  
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
