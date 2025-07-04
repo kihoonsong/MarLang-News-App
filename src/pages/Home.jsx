@@ -28,7 +28,7 @@ import { useAdInjector } from '../hooks/useAdInjector';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
 const CategoryDisplay = ({ category, articles, navigate }) => {
-  const itemsToRender = useAdInjector(articles);
+  const { itemsWithAds, shouldShowAds } = useAdInjector(articles);
 
   return (
     <CategorySection id={`category-${category.id}`}>
@@ -47,9 +47,17 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
       
       <HorizontalScrollContainer id={`scroll-${category.id}`}>
         <ArticleRow>
-          {itemsToRender.length > 0 ? itemsToRender.map(item => {
+          {itemsWithAds.length > 0 ? itemsWithAds.map(item => {
             if (item.type === 'ad') {
-              return <ArticleCardWrapper key={item.id}><AdCard /></ArticleCardWrapper>;
+              return (
+                <ArticleCardWrapper key={item.id}>
+                  <AdCard 
+                    adSlot={item.adSlot || 'articleBanner'}
+                    minHeight="200px"
+                    showLabel={true}
+                  />
+                </ArticleCardWrapper>
+              );
             }
             return <ArticleCardWrapper key={item.id}><ArticleCard {...item} navigate={navigate} /></ArticleCardWrapper>;
           }) : (

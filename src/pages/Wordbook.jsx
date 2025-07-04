@@ -14,6 +14,8 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthGuard from '../components/AuthGuard';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import AdCard from '../components/AdCard';
+import { useAdInjector } from '../hooks/useAdInjector';
 import { speakWord, isSpeechSynthesisSupported, getCurrentPlayingStatus, stopCurrentSpeech } from '../utils/speechUtils';
 import { designTokens, getColor, getBorderRadius } from '../utils/designTokens';
 
@@ -27,6 +29,9 @@ const Wordbook = () => {
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
+
+  // 광고가 포함된 단어 목록 생성
+  const { itemsWithAds, shouldShowAds } = useAdInjector(sortedWords);
 
   useEffect(() => {
     if (savedWords) {
@@ -108,10 +113,10 @@ const Wordbook = () => {
   };
 
   return (
-    <>
+    <AuthGuard>
       <MobileNavigation />
-              <MobileContentWrapper>
-          <PageContainer>
+      <MobileContentWrapper>
+        <PageContainer>
             {/* 헤더 - 정렬 기능을 우측 상단에 배치 */}
             <Header>
               <HeaderContent>
@@ -143,60 +148,88 @@ const Wordbook = () => {
                 <EmptySubtext>Click on words while reading articles to save them here!</EmptySubtext>
               </EmptyState>
             ) : (
-              sortedWords.map((word) => (
-                <WordCard 
-                  key={word.id}
-                  onClick={() => handleGoToArticle(word.articleId)}
-                >
-                  {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
-                  <WordHeader>
-                    <LeftGroup>
-                      <WordColumn>
-                        <WordRow>
-                          <WordText>{word.word}</WordText>
-                          <PronunciationButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePlayWord(word.word, word.id);
-                            }}
-                            disabled={!isSpeechSynthesisSupported()}
-                            title="Play pronunciation"
-                          >
-                            {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
-                          </PronunciationButton>
-                        </WordRow>
-                        {word.partOfSpeech && (
-                          <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
-                        )}
-                      </WordColumn>
-                    </LeftGroup>
-                    <DeleteButton 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveWord(word.id);
-                      }}
-                      title="Remove word"
-                    >
-                      <CloseIcon fontSize="small" />
-                    </DeleteButton>
-                  </WordHeader>
+              itemsWithAds.map((item) => {
+                if (item.type === 'ad') {
+                  return (
+                    <WordbookAdCard key={item.id}>
+                      <AdLabel>광고</AdLabel>
+                      <AdContent>
+                        <AdCard 
+                          adSlot="wordbook"
+                          minHeight="130px"
+                          showLabel={false}
+                          style={{ 
+                            background: 'transparent',
+                            border: 'none',
+                            padding: '0',
+                            margin: '0',
+                            boxShadow: 'none',
+                            borderRadius: '0',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                        />
+                      </AdContent>
+                    </WordbookAdCard>
+                  );
+                }
                 
-                  {/* 정의 */}
-                  <Definition>{word.definition}</Definition>
+                const word = item;
+                return (
+                  <WordCard 
+                    key={word.id}
+                    onClick={() => handleGoToArticle(word.articleId)}
+                  >
+                    {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
+                    <WordHeader>
+                      <LeftGroup>
+                        <WordColumn>
+                          <WordRow>
+                            <WordText>{word.word}</WordText>
+                            <PronunciationButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlayWord(word.word, word.id);
+                              }}
+                              disabled={!isSpeechSynthesisSupported()}
+                              title="Play pronunciation"
+                            >
+                              {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+                            </PronunciationButton>
+                          </WordRow>
+                          {word.partOfSpeech && (
+                            <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
+                          )}
+                        </WordColumn>
+                      </LeftGroup>
+                      <DeleteButton 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveWord(word.id);
+                        }}
+                        title="Remove word"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </DeleteButton>
+                    </WordHeader>
                   
-                  {/* 예문 (있는 경우만) */}
-                  {word.example && (
-                    <Example>
-                      <strong>Example:</strong> "{word.example}"
-                    </Example>
-                  )}
-                </WordCard>
-              ))
+                    {/* 정의 */}
+                    <Definition>{word.definition}</Definition>
+                    
+                    {/* 예문 (있는 경우만) */}
+                    {word.example && (
+                      <Example>
+                        <strong>Example:</strong> "{word.example}"
+                      </Example>
+                    )}
+                  </WordCard>
+                );
+              })
             )}
           </WordList>
         </PageContainer>
       </MobileContentWrapper>
-    </>
+    </AuthGuard>
   );
 };
 
@@ -277,6 +310,58 @@ const WordList = styled.div`
   @media (min-width: 768px) {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
+  }
+`;
+
+const WordbookAdCard = styled.div`
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+  padding: 20px;
+  transition: all 0.25s ease;
+  cursor: default;
+  height: 180px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  
+  /* 단어카드와 완전히 동일한 호버 효과 */
+  &:hover {
+    border-color: #1976d2;
+    box-shadow: 0 8px 32px rgba(25, 118, 210, 0.12);
+    transform: translateY(-4px);
+  }
+`;
+
+const AdLabel = styled.div`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 0.7rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  z-index: 1;
+`;
+
+const AdContent = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  overflow: hidden;
+  
+  /* 구글 애드센스 컨테이너 스타일 조정 */
+  .adsbygoogle {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 140px !important;
   }
 `;
 
