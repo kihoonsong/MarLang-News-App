@@ -22,9 +22,10 @@ class GeminiCLI {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.genAI = null;
     this.model = null;
+    this.chat = null; // 대화 세션을 관리할 속성 추가
     this.conversationHistory = [];
     this.spinner = null;
-    this.currentMode = 'chat'; // chat, english-tutor, code-review, article-generator
+    this.currentMode = 'chat';
     this.userProfile = this.loadUserProfile();
   }
 
@@ -64,6 +65,7 @@ class GeminiCLI {
     try {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
       this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      this.startNewChat(); // 새 대화 세션 시작
       console.log(chalk.green('✅ Gemini AI에 연결되었습니다!'));
       console.log(chalk.cyan('💡 도움말: /help, 종료: /quit, 대화 초기화: /clear'));
       console.log(chalk.gray('─'.repeat(50)));
@@ -73,12 +75,27 @@ class GeminiCLI {
     }
   }
 
+  startNewChat() {
+    const systemInstruction = this.buildContextualPrompt(''); // 초기 시스템 지침 생성
+    this.chat = this.model.startChat({
+      history: this.conversationHistory.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.content }]
+      })),
+      generationConfig: {
+        // (필요 시 설정)
+      },
+      systemInstruction: systemInstruction,
+    });
+    console.log(chalk.yellow(`✨ 새로운 대화 세션을 시작합니다. (모드: ${this.currentMode})`));
+  }
+
   async generateResponse(prompt) {
     try {
-      // 모드별 프롬프트 컨텍스트 추가
-      let contextualPrompt = this.buildContextualPrompt(prompt);
-      
-      const result = await this.model.generateContent(contextualPrompt);
+      if (!this.chat) {
+        this.startNewChat();
+      }
+      const result = await this.chat.sendMessage(prompt);
       const response = await result.response;
       return response.text();
     } catch (error) {
@@ -179,24 +196,28 @@ class GeminiCLI {
         
       case '/tutor':
         this.currentMode = 'english-tutor';
+        this.startNewChat();
         console.log(chalk.green('📚 영어 튜터 모드로 변경되었습니다.'));
         console.log(chalk.cyan('영어 학습에 도움이 되는 대화를 시작하세요!'));
         break;
         
       case '/review':
         this.currentMode = 'code-review';
+        this.startNewChat();
         console.log(chalk.green('🔍 코드 리뷰 모드로 변경되었습니다.'));
         console.log(chalk.cyan('코드를 붙여넣으면 리뷰해드릴게요!'));
         break;
         
       case '/article':
         this.currentMode = 'article-generator';
+        this.startNewChat();
         console.log(chalk.green('📝 기사 생성 모드로 변경되었습니다.'));
         console.log(chalk.cyan('주제를 알려주시면 영어 기사를 만들어드릴게요!'));
         break;
         
       case '/chat':
         this.currentMode = 'chat';
+        this.startNewChat();
         console.log(chalk.green('💬 일반 채팅 모드로 변경되었습니다.'));
         break;
         
@@ -218,6 +239,7 @@ class GeminiCLI {
 
       case '/clear':
         this.conversationHistory = [];
+        this.startNewChat(); // 대화 세션도 새로 시작
         console.log(chalk.green('✅ 대화 기록이 초기화되었습니다.'));
         console.log(chalk.gray('─'.repeat(50)));
         break;
