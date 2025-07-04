@@ -42,67 +42,22 @@ const TTSManager = () => {
   const { warning } = useEnhancedToast();
 
   useEffect(() => {
-    // 강력한 전역 TTS 중지 함수
+    // 가장 확실한 방법으로 TTS를 중지하는 함수
     const forceStopTTS = () => {
-      try {
-        // Speech Synthesis API 강제 중지
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-          // 브라우저별 추가 중지 시도
-          window.speechSynthesis.pause();
-          window.speechSynthesis.resume();
-          window.speechSynthesis.cancel();
-        }
-
-        // speechUtils의 중지 함수 호출
-        if (typeof window.stopCurrentSpeech === 'function') {
-          window.stopCurrentSpeech();
-        }
-
-        console.log('🔇 전역 TTS 강제 중지됨');
-      } catch (error) {
-        console.error('TTS 중지 중 오류:', error);
+      if (window.speechSynthesis) {
+        // 진행 중인 발화를 즉시 중단
+        window.speechSynthesis.cancel();
       }
     };
 
-    // 페이지 변경 시 TTS 중지
+    // location이 변경될 때마다 TTS를 중지
     forceStopTTS();
 
-    // 페이지 가시성 변경 감지
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log('🔇 페이지 숨김 - TTS 중지');
-        forceStopTTS();
-      }
-    };
-
-    // 브라우저 탭 변경/닫기 감지
-    const handleBeforeUnload = () => {
-      console.log('🔇 페이지 떠남 - TTS 중지');
-      forceStopTTS();
-    };
-
-    // 브라우저 포커스 잃음 감지
-    const handleBlur = () => {
-      console.log('🔇 브라우저 포커스 잃음 - TTS 중지');
-      forceStopTTS();
-    };
-
-    // 이벤트 리스너 등록
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('blur', handleBlur);
-
-    // 전역 TTS 중지 함수 등록
-    window.globalStopTTS = forceStopTTS;
-
+    // 컴포넌트가 언마운트될 때도 TTS 중지
     return () => {
-      // 이벤트 리스너 제거
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('blur', handleBlur);
+      forceStopTTS();
     };
-  }, [location]); // location이 바뀔 때마다 실행
+  }, [location]); // 라우트 경로가 변경될 때마다 이 효과를 재실행합니다.
 
   // TTS 기능 향상: 실제 사용 시에만 오프라인 경고 표시
   useEffect(() => {

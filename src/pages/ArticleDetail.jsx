@@ -1403,38 +1403,14 @@ const ArticleDetail = () => {
             <DefinitionArea>
               {selectedLanguage === 'en' ? (
                 // 영어인 경우: 영영사전 정의만 표시
-                <>
-              <DefinitionHeader>
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
-                      Definition
+                <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
+                  {wordPopup.englishDefinition}
                 </Typography>
-              </DefinitionHeader>
-              <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1 }}>
-                    {wordPopup.englishDefinition}
-                  </Typography>
-                </>
               ) : (
-                // 다른 언어인 경우: 단어 번역 + 영어 정의 (보조)
-                <>
-                  <DefinitionHeader>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 0.5 }}>
-                      Translation
-                    </Typography>
-                  </DefinitionHeader>
-                  <Typography variant="h6" sx={{ lineHeight: 1.6, mb: 2, fontSize: '1.2rem', fontWeight: 'bold', color: '#1976d2' }}>
-                    {wordPopup.translatedDefinition}
-              </Typography>
-                  
-                  {/* 영어 정의 (보조 정보) */}
-                  <DefinitionHeader>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#666', mb: 0.5 }}>
-                      English Definition
-                    </Typography>
-                  </DefinitionHeader>
-                  <Typography variant="body2" sx={{ lineHeight: 1.6, mb: 1, color: '#666', fontSize: '0.85rem' }}>
-                    {wordPopup.englishDefinition}
-                  </Typography>
-                </>
+                // 다른 언어인 경우: 단어 번역만 표시
+                <Typography variant="h6" sx={{ lineHeight: 1.6, mb: 2, fontSize: '1.2rem', fontWeight: 'bold', color: '#1976d2' }}>
+                  {wordPopup.translatedDefinition}
+                </Typography>
               )}
               
               {wordPopup.example && (

@@ -40,24 +40,36 @@ export const DataProvider = ({ children }) => {
           const settingsRef = doc(db, 'users', user.uid, 'data', 'settings');
           const viewsRef = doc(db, 'users', user.uid, 'data', 'viewRecords');
 
-          const [wordsSnap, likesSnap, settingsSnap, viewsSnap] = await Promise.all([
-            getDoc(wordsRef),
-            getDoc(likesRef),
-            getDoc(settingsRef),
-            getDoc(viewsRef),
-          ]);
+          const wordsSnap = await getDoc(wordsRef);
+          const likesSnap = await getDoc(likesRef);
+          const settingsSnap = await getDoc(settingsRef);
+          const viewsSnap = await getDoc(viewsRef);
 
-          const words = wordsSnap.exists() ? wordsSnap.data().words : [];
-          const likes = likesSnap.exists() ? likesSnap.data().articles : [];
+          // 데이터 로딩 시 '정제(Sanitization)' 로직 추가
+          const rawWords = wordsSnap.exists() ? wordsSnap.data().words : [];
+          const sanitizedWords = [];
+          if (Array.isArray(rawWords)) {
+            rawWords.forEach((w, index) => {
+              if (w && typeof w.word === 'string' && w.word.trim() !== '') {
+                sanitizedWords.push(w);
+              } else {
+                console.error(`[Data Sanitization] Firebase에서 잘못된 단어 데이터를 발견하여 폐기합니다. Index: ${index}`, w);
+              }
+            });
+          }
+
+          const rawLikes = likesSnap.exists() ? likesSnap.data().articles : [];
+          const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
+
           const settings = settingsSnap.exists() ? settingsSnap.data().settings : userSettings;
           const views = viewsSnap.exists() ? viewsSnap.data().records : [];
 
-          setSavedWords(words);
-          setLikedArticles(likes);
+          setSavedWords(sanitizedWords);
+          setLikedArticles(sanitizedLikes);
           setUserSettings(settings);
           setViewRecords(views);
 
-          console.log(`✅ Firebase 데이터 로드 완료: 단어 ${words.length}개, 좋아요 ${likes.length}개`);
+          console.log(`✅ Firebase 데이터 정제 및 로드 완료: 단어 ${sanitizedWords.length}개, 좋아요 ${sanitizedLikes.length}개`);
         } catch (err) {
           console.error('❌ Firebase 데이터 로드 실패:', err);
           setError('데이터��� 불러오는 데 실패했습니다. 인터넷 연결을 확인해주세요.');
@@ -66,13 +78,26 @@ export const DataProvider = ({ children }) => {
         // --- 비로그인 사용자: LocalStorage에서 데이터 로드 ---
         console.log('👤 게스트 모드: 로컬 저장소에서 데이터 로드');
         try {
-          const localWords = JSON.parse(localStorage.getItem('marlang_guest_words') || '[]');
-          const localLikes = JSON.parse(localStorage.getItem('marlang_guest_likes') || '[]');
+          const rawWords = JSON.parse(localStorage.getItem('marlang_guest_words') || '[]');
+          const sanitizedWords = [];
+          if (Array.isArray(rawWords)) {
+            rawWords.forEach((w, index) => {
+              if (w && typeof w.word === 'string' && w.word.trim() !== '') {
+                sanitizedWords.push(w);
+              } else {
+                console.error(`[Data Sanitization] 로컬 저장소에서 잘못된 단어 데이터를 발견하여 폐기합니다. Index: ${index}`, w);
+              }
+            });
+          }
+
+          const rawLikes = JSON.parse(localStorage.getItem('marlang_guest_likes') || '[]');
+          const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
+
           const localSettings = JSON.parse(localStorage.getItem('marlang_guest_settings') || JSON.stringify(userSettings));
           const localViews = JSON.parse(localStorage.getItem('marlang_guest_views') || '[]');
           
-          setSavedWords(localWords);
-          setLikedArticles(localLikes);
+          setSavedWords(sanitizedWords);
+          setLikedArticles(sanitizedLikes);
           setUserSettings(localSettings);
           setViewRecords(localViews);
         } catch (e) {
@@ -198,7 +223,12 @@ export const DataProvider = ({ children }) => {
     error,
     addWord,
     removeWord,
-    isWordSaved: (word) => savedWords.some(w => w.word.toLowerCase() === word.toLowerCase()),
+    isWordSaved: (word) => {
+      if (!word) return false;
+      return savedWords.some(w => 
+        w && typeof w.word === 'string' && w.word.toLowerCase() === word.toLowerCase()
+      );
+    },
     toggleLike,
     isArticleLiked: (articleId) => likedArticles.some(a => a.id === articleId),
     addViewRecord,
