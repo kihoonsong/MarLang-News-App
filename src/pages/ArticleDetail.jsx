@@ -133,13 +133,17 @@ const ArticleDetail = () => {
   const [currentSentence, setCurrentSentence] = useState(0);
   const [currentUtterance, setCurrentUtterance] = useState(null);
   const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
+  const [ttsPause, setTtsPause] = useState(userSettings?.ttsPause || 200);
 
-  // userSettings 변경 시 TTS 속도 업데이트
+  // userSettings 변경 시 TTS 설정 업데이트
   useEffect(() => {
     if (userSettings?.ttsSpeed) {
       setTtsSpeed(userSettings.ttsSpeed);
     }
-  }, [userSettings?.ttsSpeed]);
+    if (userSettings?.ttsPause !== undefined) {
+      setTtsPause(userSettings.ttsPause);
+    }
+  }, [userSettings?.ttsSpeed, userSettings?.ttsPause]);
 
   // 스와이프 상태 추가
   const [swipeState, setSwipeState] = useState({
@@ -368,7 +372,7 @@ const ArticleDetail = () => {
       utterance.onend = () => {
         if (isPlaying) {
           currentIndex++;
-          setTimeout(playNextSentence, 200);
+          setTimeout(playNextSentence, 50);
         }
       };
       

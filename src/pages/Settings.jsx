@@ -37,6 +37,7 @@ const Settings = () => {
     language: userSettings.language || 'en',
     translationLanguage: userSettings.translationLanguage || 'ko',
     ttsSpeed: userSettings.ttsSpeed || 1.0,
+    ttsPause: userSettings.ttsPause || 200,
     notifications: userSettings.notifications !== false,
     autoPlay: userSettings.autoPlay || false,
     fontSize: userSettings.fontSize || 'medium',
@@ -76,6 +77,7 @@ const Settings = () => {
       language: 'en',
       translationLanguage: 'ko',
       ttsSpeed: 1.0,
+      ttsPause: 200,
       notifications: true,
       autoPlay: false,
       fontSize: 'medium',
@@ -280,6 +282,33 @@ const Settings = () => {
                         { value: 2.0, label: 'Fast' }
                       ]}
                       sx={{ width: 200 }}
+                    />
+                  </SliderContainer>
+                </SettingRow>
+
+                <SettingRow>
+                  <SettingLabel>
+                    <Typography variant="subtitle1">TTS Pause</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Pause between sentences (milliseconds)
+                    </Typography>
+                  </SettingLabel>
+                  <SliderContainer>
+                    <Slider
+                      value={localSettings.ttsPause}
+                      onChange={(_, value) => handleSettingChange('ttsPause', value)}
+                      min={0}
+                      max={1000}
+                      step={50}
+                      marks={[
+                        { value: 0, label: 'None' },
+                        { value: 200, label: 'Short' },
+                        { value: 500, label: 'Medium' },
+                        { value: 1000, label: 'Long' }
+                      ]}
+                      sx={{ width: 200 }}
+                      valueLabelDisplay="on"
+                      valueLabelFormat={(value) => `${value}ms`}
                     />
                   </SliderContainer>
                 </SettingRow>

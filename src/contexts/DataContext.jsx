@@ -16,6 +16,7 @@ export const DataProvider = ({ children }) => {
     language: 'en',
     translationLanguage: 'ko',
     ttsSpeed: 0.8,
+    ttsPause: 200,
     autoSaveWords: true,
     autoPlay: false,
     highlightSavedWords: true,
