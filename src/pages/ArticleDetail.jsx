@@ -470,7 +470,11 @@ const ArticleDetail = () => {
   const createSwipeHandlers = () => {
     const handleStart = (e, clientX) => {
       // 단어 자체를 클릭했을 때는 스와이프를 시작하지 않음
-      if (e.target.classList.contains('clickable-word-span')) {
+      if (e.target.classList.contains('clickable-word-span') || 
+          e.target.classList.contains('highlighted-word') ||
+          e.target.closest('.clickable-word-span') ||
+          e.target.closest('.highlighted-word')) {
+        e.stopPropagation();
         return;
       }
       
@@ -524,6 +528,13 @@ const ArticleDetail = () => {
     return {
       // 터치 이벤트
       onTouchStart: (e) => {
+        // 단어 클릭 요소인지 확인
+        if (e.target.classList.contains('clickable-word-span') || 
+            e.target.classList.contains('highlighted-word') ||
+            e.target.closest('.clickable-word-span') ||
+            e.target.closest('.highlighted-word')) {
+          return;
+        }
         handleStart(e, e.touches[0].clientX);
       },
       onTouchMove: (e) => {
@@ -533,6 +544,13 @@ const ArticleDetail = () => {
         }
       },
       onTouchEnd: (e) => {
+        // 단어 클릭 요소인지 확인
+        if (e.target.classList.contains('clickable-word-span') || 
+            e.target.classList.contains('highlighted-word') ||
+            e.target.closest('.clickable-word-span') ||
+            e.target.closest('.highlighted-word')) {
+          return;
+        }
         e.preventDefault();
         handleEnd();
       },
@@ -552,7 +570,7 @@ const ArticleDetail = () => {
     };
   };
 
-  const swipeHandlers = !isMobile ? createSwipeHandlers() : {};
+  const swipeHandlers = createSwipeHandlers();
 
   // 카드 클릭 핸들러
   const handleCardClick = (e, level) => {
@@ -622,6 +640,10 @@ const ArticleDetail = () => {
   };
 
   const onWordClick = useCallback(async (event, word, isHighlighted) => {
+    // 이벤트 전파 중지 및 기본 동작 방지
+    event.stopPropagation();
+    event.preventDefault();
+    
     if (isHighlighted) {
       handleRemoveWord(event, word);
       return;
@@ -657,6 +679,10 @@ const ArticleDetail = () => {
   }, [selectedLanguage, userSettings, articleData]);
 
   const handleWordClick = async (event, word) => {
+    // 이벤트 전파 중지 및 기본 동작 방지
+    event.stopPropagation();
+    event.preventDefault();
+    
     const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
     if (cleanWord.length > 2) {
       // 팝업 열기 및 로딩 상태 설정
@@ -1080,7 +1106,7 @@ const ArticleDetail = () => {
     // 기존 재생 중지
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(wordPopup.word);
+        const utterance = new SpeechSynthesisUtterance(wordPopup.word);
     utterance.rate = 0.8; // 단어는 천천히
     utterance.volume = 1.0;
     utterance.pitch = 1.0;
@@ -1759,9 +1785,24 @@ const ContentText = styled.div`
     border-radius: 3px;
     padding: 1px 3px;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
     
     &:hover {
       background-color: #fff59d !important;
+    }
+  }
+  
+  .clickable-word-span {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    
+    &:hover {
+      background-color: rgba(25, 118, 210, 0.08);
+      border-radius: 3px;
     }
   }
 `;
@@ -1841,6 +1882,7 @@ const SwipeCardContainer = styled.div`
   align-items: center;
   justify-content: center;
   user-select: none;
+  touch-action: pan-y;
 
   /* Desktop styles */
   height: 700px;
@@ -1851,6 +1893,7 @@ const SwipeCardContainer = styled.div`
     min-height: 500px;
     height: auto;
     overflow: hidden;
+    touch-action: pan-y;
   }
 `;
 
