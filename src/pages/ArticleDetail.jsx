@@ -23,6 +23,7 @@ import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
+import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported } from '../utils/speechUtils';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -323,7 +324,7 @@ const ArticleDetail = () => {
     let currentIndex = 0;
     let isPlaying = true;
 
-    const playNextSentence = () => {
+    const playNextSentence = async () => {
       if (!isPlaying || currentIndex >= sentences.length) {
         // 재생 완료
         setIsTTSPlaying(false);
@@ -340,19 +341,22 @@ const ArticleDetail = () => {
       }
 
       const utterance = new SpeechSynthesisUtterance(sentence);
-      utterance.lang = 'en-US';
       utterance.rate = ttsSpeed;
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
       
-      // 기본 영어 음성 선택
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                           voices.find(voice => voice.lang === 'en-GB') ||
-                           voices.find(voice => voice.lang.startsWith('en'));
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      // Siri 음성 우선 선택 (단어장과 동일한 로직)
+      try {
+        const englishVoice = await getEnglishVoice();
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+          utterance.lang = englishVoice.lang;
+        } else {
+          utterance.lang = 'en-US'; // 기본값
+        }
+      } catch (error) {
+        console.warn('Failed to get English voice:', error);
+        utterance.lang = 'en-US';
       }
 
       utterance.onstart = () => {
@@ -706,22 +710,28 @@ const ArticleDetail = () => {
 
           // 자동 재생 설정이 켜져 있으면 자동으로 발음 재생
           if (userSettings?.autoPlay && wordData.audio) {
-            setTimeout(() => {
+            setTimeout(async () => {
               try {
                 const audio = new Audio(wordData.audio);
                 audio.volume = 0.7;
-                audio.play().catch(e => {
+                audio.play().catch(async (e) => {
                   console.log('Auto-play failed, using TTS:', e);
                   // API 오디오 실패 시 TTS로 폴백
                   const utterance = new SpeechSynthesisUtterance(cleanWord);
-                  utterance.lang = 'en-US';
                   utterance.rate = userSettings?.ttsSpeed || 0.8;
                   
-                  const voices = window.speechSynthesis.getVoices();
-                  const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                                       voices.find(voice => voice.lang.startsWith('en'));
+                  try {
+                    const englishVoice = await getEnglishVoice();
+                    if (englishVoice) {
+                      utterance.voice = englishVoice;
+                      utterance.lang = englishVoice.lang;
+                    } else {
+                      utterance.lang = 'en-US';
+                    }
+                  } catch (error) {
+                    utterance.lang = 'en-US';
+                  }
                   
-                  if (preferredVoice) utterance.voice = preferredVoice;
                   window.speechSynthesis.speak(utterance);
                 });
               } catch (error) {
@@ -1057,7 +1067,7 @@ const ArticleDetail = () => {
   };
 
   // 단어 TTS 재생 (성별 설정 적용)
-  const playWordTTS = () => {
+  const playWordTTS = async () => {
     if (!window.speechSynthesis || !wordPopup.word) {
       console.error('❌ Speech synthesis 또는 단어가 없음');
       return;
@@ -1066,20 +1076,23 @@ const ArticleDetail = () => {
     // 기존 재생 중지
     window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(wordPopup.word);
-        utterance.lang = 'en-US';
+    const utterance = new SpeechSynthesisUtterance(wordPopup.word);
     utterance.rate = 0.8; // 단어는 천천히
     utterance.volume = 1.0;
     utterance.pitch = 1.0;
 
-    // 기본 영어 음성 선택
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => voice.lang === 'en-US') ||
-                         voices.find(voice => voice.lang === 'en-GB') ||
-                         voices.find(voice => voice.lang.startsWith('en'));
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    // Siri 음성 우선 선택 (단어장과 동일한 로직)
+    try {
+      const englishVoice = await getEnglishVoice();
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+        utterance.lang = englishVoice.lang;
+      } else {
+        utterance.lang = 'en-US'; // 기본값
+      }
+    } catch (error) {
+      console.warn('Failed to get English voice:', error);
+      utterance.lang = 'en-US';
     }
 
     utterance.onerror = (event) => {
