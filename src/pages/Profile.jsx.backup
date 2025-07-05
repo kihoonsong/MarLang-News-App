@@ -294,9 +294,8 @@ const Profile = () => {
 
   if (!isAuthenticated) {
     return (
-      <>
-        <MobileNavigation />
-        <MobileContentWrapper>
+      <MobileNavigation />
+      <MobileContentWrapper>
         <div style={styles.container}>
           <PageContainer>
             <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
@@ -373,7 +372,6 @@ const Profile = () => {
           </PageContainer>
         </div>
       </MobileContentWrapper>
-      </>
     );
   }
 

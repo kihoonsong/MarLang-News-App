@@ -283,17 +283,17 @@ function App() {
                       } 
                     />
                     
-                    {/* 인증이 필요한 페이지 */}
+                    {/* 단어장 페이지 (로그인 선택사항) */}
                     <Route 
                       path="/wordbook" 
                       element={
-                        <AuthGuard>
-                          <PageWrapper pageName="Wordbook">
+                        <PageWrapper pageName="Wordbook">
                           <Wordbook />
-                          </PageWrapper>
-                        </AuthGuard>
+                        </PageWrapper>
                       } 
                     />
+                    
+                    {/* 인증이 필요한 페이지 */}
                     <Route 
                       path="/like" 
                       element={
@@ -305,11 +305,9 @@ function App() {
                     <Route 
                       path="/profile" 
                       element={
-                        <AuthGuard>
-                          <PageWrapper pageName="Profile">
+                        <PageWrapper pageName="Profile">
                           <Profile />
-                          </PageWrapper>
-                        </AuthGuard>
+                        </PageWrapper>
                       } 
                     />
                     <Route 

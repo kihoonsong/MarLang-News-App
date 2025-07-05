@@ -17,7 +17,7 @@ const Like = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, isAuthenticated } = useAuth() || {};
+  const { user, isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { likedArticles } = useData();
   const { getArticleById } = useArticles();
   
@@ -139,11 +139,77 @@ const Like = () => {
         <MobileNavigation />
         <MobileContentWrapper>
           <ContentContainer>
-            <EmptyAuthState>
-              <EmptyIcon>❤️</EmptyIcon>
-              <EmptyText>Please sign in to view your liked articles</EmptyText>
-              <EmptySubtext>Like articles while reading to save them here!</EmptySubtext>
-            </EmptyAuthState>
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
+              <div style={{ marginBottom: '3rem' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>❤️</div>
+                <h2 style={{ fontSize: '2rem', fontWeight: '700', color: '#333', margin: '0 0 0.5rem 0' }}>좋아요한 기사</h2>
+                <p style={{ fontSize: '1.1rem', color: '#666', margin: '0' }}>관심 있는 기사를 모아보는 개인 컬렉션</p>
+              </div>
+              
+              <div style={{ display: 'grid', gap: '2rem', marginBottom: '3rem', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>📖</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333', margin: '0 0 0.5rem 0' }}>기사 북마크</h3>
+                    <p style={{ fontSize: '0.95rem', color: '#666', margin: '0', lineHeight: '1.5' }}>기사를 읽으며 마음에 드는 내용에 좋아요를 눌러 나만의 컬렉션을 만들 수 있습니다</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>🔄</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333', margin: '0 0 0.5rem 0' }}>나중에 읽기</h3>
+                    <p style={{ fontSize: '0.95rem', color: '#666', margin: '0', lineHeight: '1.5' }}>지금 당장 읽기 어려운 기사들을 저장해두고 나중에 편리하게 찾아볼 수 있습니다</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>🏷️</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333', margin: '0 0 0.5rem 0' }}>스마트 정렬</h3>
+                    <p style={{ fontSize: '0.95rem', color: '#666', margin: '0', lineHeight: '1.5' }}>좋아요한 날짜, 기사 제목, 카테고리별로 정렬하여 원하는 기사를 빠르게 찾을 수 있습니다</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #e9ecef' }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>📊</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333', margin: '0 0 0.5rem 0' }}>읽기 통계</h3>
+                    <p style={{ fontSize: '0.95rem', color: '#666', margin: '0', lineHeight: '1.5' }}>좋아요한 기사 수와 선호하는 주제를 파악하여 개인 맞춤 추천을 받을 수 있습니다</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ padding: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px', color: 'white', textAlign: 'center' }}>
+                <p style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', opacity: '0.9' }}>좋아요한 기사를 보려면 로그인이 필요합니다</p>
+                <button 
+                  onClick={signInWithGoogle}
+                  style={{
+                    background: 'white',
+                    color: '#333',
+                    border: 'none',
+                    padding: '12px 32px',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = '#f8f9fa';
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = 'white';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  Google로 로그인하기
+                </button>
+              </div>
+            </div>
           </ContentContainer>
         </MobileContentWrapper>
       </>

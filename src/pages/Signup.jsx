@@ -68,7 +68,7 @@ const Signup = () => {
         id: 'email_' + Date.now(),
         email: formData.email,
         name: formData.name,
-        picture: 'https://via.placeholder.com/40',
+        picture: '/placeholder-avatar.svg',
         given_name: formData.name.split(' ')[0],
         family_name: formData.name.split(' ').slice(1).join(' ') || '',
         loginTime: new Date().toISOString(),

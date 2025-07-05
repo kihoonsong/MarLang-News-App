@@ -142,7 +142,7 @@ const ArticleManagement = ({
           advanced: articleForm.content?.advanced || ''
         },
         category: articleForm.category,
-        image: articleForm.image || 'https://via.placeholder.com/400x200?text=No+Image',
+        image: articleForm.image || '/placeholder-image.svg',
         publishedAt: articleForm.publishType === 'immediate' ? new Date().toISOString() : articleForm.publishedAt,
         author: 'Admin',
         views: 0,
