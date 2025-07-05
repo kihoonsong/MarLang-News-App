@@ -47,7 +47,7 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
       
       <HorizontalScrollContainer id={`scroll-${category.id}`}>
         <ArticleRow>
-          {itemsWithAds.length > 0 ? itemsWithAds.map(item => {
+          {articles.length > 0 ? itemsWithAds.map(item => {
             if (item.type === 'ad') {
               return (
                 <ArticleCardWrapper key={item.id}>

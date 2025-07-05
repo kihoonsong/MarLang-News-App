@@ -30,7 +30,7 @@ const Wordbook = () => {
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
 
-  // 광고가 포함된 단어 목록 생성
+  // 광고가 포함된 단어 목록 생성 (최소 3개 이상의 단어가 있을 때만)
   const { itemsWithAds, shouldShowAds } = useAdInjector(sortedWords);
 
   useEffect(() => {
@@ -148,7 +148,8 @@ const Wordbook = () => {
                 <EmptySubtext>Click on words while reading articles to save them here!</EmptySubtext>
               </EmptyState>
             ) : (
-              itemsWithAds.map((item) => {
+              // 실제 단어가 있을 때만 광고가 포함된 목록 사용
+              (sortedWords.length >= 3 ? itemsWithAds : sortedWords).map((item) => {
                 if (item.type === 'ad') {
                   return (
                     <WordbookAdCard key={item.id}>

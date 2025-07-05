@@ -5,6 +5,7 @@ export const membershipConfig = {
     randomPlacement: true, // 랜덤 배치 활성화
     minGap: 2, // 광고 간 최소 간격 (기사 수)
     maxGap: 5, // 광고 간 최대 간격 (기사 수)
+    minContentThreshold: 3, // 광고 표시를 위한 최소 콘텐츠 수
   },
   freeTier: {
     monthlyArticleLimit: 10, // 월간 무료 기사 갯수 (나중에 사용)

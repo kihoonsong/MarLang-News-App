@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Paper, Typography, Box } from '@mui/material';
+import { getAdsenseConfig, loadAdsenseScript } from '../config/adsenseConfig';
 
 const AdCardContainer = styled(Paper)`
   padding: 1rem;
@@ -31,13 +32,87 @@ const AdPlaceholderText = styled(Typography)`
   font-weight: 500;
 `;
 
-const AdCard = () => {
+const AdCard = ({ 
+  adSlot = 'articleBanner', 
+  minHeight = '200px', 
+  showLabel = true,
+  style = {},
+  className = ''
+}) => {
+  const adRef = useRef(null);
+  const adsenseConfig = getAdsenseConfig();
+  
+  useEffect(() => {
+    // 개발 환경이거나 애드센스가 비활성화된 경우 플레이스홀더 표시
+    if (!adsenseConfig.enabled || process.env.NODE_ENV === 'development') {
+      return;
+    }
+
+    const loadAd = async () => {
+      try {
+        await loadAdsenseScript();
+        
+        if (window.adsbygoogle && adRef.current) {
+          // 기존 광고가 있다면 제거
+          const existingAd = adRef.current.querySelector('.adsbygoogle');
+          if (existingAd) {
+            existingAd.remove();
+          }
+          
+          // 새 광고 요소 생성
+          const adElement = document.createElement('ins');
+          adElement.className = 'adsbygoogle';
+          adElement.style.display = 'block';
+          adElement.setAttribute('data-ad-client', adsenseConfig.clientId);
+          
+          // 슬롯별 설정 적용
+          const slotConfig = adsenseConfig.adSlots[adSlot];
+          if (slotConfig) {
+            adElement.setAttribute('data-ad-slot', slotConfig.slot);
+            adElement.setAttribute('data-ad-format', slotConfig.format);
+            
+            if (slotConfig.responsive) {
+              adElement.setAttribute('data-full-width-responsive', 'true');
+            }
+          }
+          
+          adRef.current.appendChild(adElement);
+          
+          // 광고 로드
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        }
+      } catch (error) {
+        console.error('AdSense 로드 실패:', error);
+      }
+    };
+
+    loadAd();
+  }, [adSlot, adsenseConfig]);
+
+  // 개발 환경이거나 애드센스가 비활성화된 경우 플레이스홀더 표시
+  if (!adsenseConfig.enabled || process.env.NODE_ENV === 'development') {
+    return (
+      <AdCardContainer 
+        variant="outlined" 
+        style={{ minHeight, ...style }} 
+        className={className}
+      >
+        {showLabel && <AdLabel>Advertisement</AdLabel>}
+        <AdPlaceholderText>
+          Ad content will be displayed here.
+        </AdPlaceholderText>
+      </AdCardContainer>
+    );
+  }
+
   return (
-    <AdCardContainer variant="outlined">
-      <AdLabel>Advertisement</AdLabel>
-      <AdPlaceholderText>
-        Ad content will be displayed here.
-      </AdPlaceholderText>
+    <AdCardContainer 
+      variant="outlined" 
+      style={{ minHeight, ...style }} 
+      className={className}
+      ref={adRef}
+    >
+      {showLabel && <AdLabel>Advertisement</AdLabel>}
     </AdCardContainer>
   );
 };

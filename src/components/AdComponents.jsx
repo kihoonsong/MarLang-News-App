@@ -14,8 +14,8 @@ const SidebarAd = styled.div`
   }
 `;
 
-export const SidebarAdComponent = () => {
-  const { shouldShowAd } = useAdPlacement('sidebar');
+export const SidebarAdComponent = ({ hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('sidebar', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -40,8 +40,8 @@ const SearchResultAd = styled.div`
   border: 1px solid #e9ecef;
 `;
 
-export const SearchResultAdComponent = () => {
-  const { shouldShowAd } = useAdPlacement('searchResults');
+export const SearchResultAdComponent = ({ hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('searchResults', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -67,8 +67,8 @@ const ArticleDetailAd = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-export const ArticleDetailAdComponent = () => {
-  const { shouldShowAd } = useAdPlacement('articleBanner');
+export const ArticleDetailAdComponent = ({ hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -105,8 +105,8 @@ const InlineAd = styled.div`
   }
 `;
 
-export const InlineAdComponent = ({ className, style }) => {
-  const { shouldShowAd } = useAdPlacement('articleBanner');
+export const InlineAdComponent = ({ className, style, hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -132,8 +132,8 @@ const MobileAd = styled.div`
   }
 `;
 
-export const MobileAdComponent = () => {
-  const { shouldShowAd } = useAdPlacement('articleBanner');
+export const MobileAdComponent = ({ hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -160,8 +160,8 @@ const TopBannerAd = styled.div`
   text-align: center;
 `;
 
-export const TopBannerAdComponent = () => {
-  const { shouldShowAd } = useAdPlacement('articleBanner');
+export const TopBannerAdComponent = ({ hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
   
@@ -177,8 +177,8 @@ export const TopBannerAdComponent = () => {
 };
 
 // 광고 래퍼 컴포넌트 (조건부 렌더링을 위한)
-export const AdWrapper = ({ children, position = 'articleBanner' }) => {
-  const { shouldShowAd } = useAdPlacement(position);
+export const AdWrapper = ({ children, position = 'articleBanner', hasContent = true }) => {
+  const { shouldShowAd } = useAdPlacement(position, hasContent);
   
   if (!shouldShowAd) return null;
   
