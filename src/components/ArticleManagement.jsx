@@ -28,6 +28,8 @@ const ArticleManagement = ({
 }) => {
   // 기사 편집 상태
   const [articleDialog, setArticleDialog] = useState(false);
+  const [draftDialog, setDraftDialog] = useState(false);
+  const [savedDrafts, setSavedDrafts] = useState([]);
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
   const [articleForm, setArticleForm] = useState({
@@ -76,11 +78,6 @@ const ArticleManagement = ({
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setSnackbar({ open: true, message: '이미지 파일은 5MB 이하로 업로드해주세요.', severity: 'error' });
-        return;
-      }
-
       if (!file.type.startsWith('image/')) {
         setSnackbar({ open: true, message: '이미지 파일만 업로드 가능합니다.', severity: 'error' });
         return;
@@ -96,6 +93,23 @@ const ArticleManagement = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // 임시저장 목록 불러오기
+  const loadSavedDrafts = () => {
+    const drafts = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('article_draft_')) {
+        try {
+          const draftData = JSON.parse(localStorage.getItem(key));
+          drafts.push({ key, ...draftData });
+        } catch (error) {
+          console.error('임시저장 데이터 파싱 오류:', error);
+        }
+      }
+    }
+    setSavedDrafts(drafts.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)));
   };
 
   // 기사 추가 핸들러
@@ -158,7 +172,30 @@ const ArticleManagement = ({
     } catch (error) {
       console.error('🚨 기사 추가 중 예외 발생:', error);
       console.error('🚨 에러 스택:', error.stack);
-      setSnackbar({ open: true, message: `기사 추가 중 오류가 발생했습니다: ${error.message}`, severity: 'error' });
+      
+      // 업로드 실패 시 임시저장
+      const draftKey = `article_draft_${Date.now()}`;
+      const draftData = {
+        ...articleForm,
+        savedAt: new Date().toISOString(),
+        errorMessage: error.message
+      };
+      
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
+        setSnackbar({ 
+          open: true, 
+          message: `업로드 실패했습니다. 작성한 내용이 임시저장되었습니다. (${error.message})`, 
+          severity: 'warning' 
+        });
+      } catch (storageError) {
+        console.error('임시저장 실패:', storageError);
+        setSnackbar({ 
+          open: true, 
+          message: `기사 추가 중 오류가 발생했습니다: ${error.message}`, 
+          severity: 'error' 
+        });
+      }
     }
   };
 
@@ -181,6 +218,39 @@ const ArticleManagement = ({
       status: article.status || 'published'
     });
     setArticleDialog(true);
+  };
+
+  // 임시저장된 내용 불러오기
+  const handleLoadDraft = (draftKey) => {
+    try {
+      const draftData = JSON.parse(localStorage.getItem(draftKey));
+      setArticleForm({
+        title: draftData.title || '',
+        summary: draftData.summary || '',
+        content: draftData.content || {
+          beginner: '',
+          intermediate: '',
+          advanced: ''
+        },
+        category: draftData.category || 'Technology',
+        image: draftData.image || '',
+        imageFile: null,
+        publishType: draftData.publishType || 'immediate',
+        publishedAt: draftData.publishedAt || new Date().toISOString().slice(0, 16),
+        status: draftData.status || 'published'
+      });
+      setEditingArticle(null);
+      setActiveContentTab(0);
+      setDraftDialog(false);
+      setArticleDialog(true);
+    } catch (error) {
+      console.error('임시저장 불러오기 오류:', error);
+      setSnackbar({ 
+        open: true, 
+        message: '임시저장 불러오기 중 오류가 발생했습니다.', 
+        severity: 'error' 
+      });
+    }
   };
 
   // 기사 업데이트 핸들러
@@ -233,6 +303,26 @@ const ArticleManagement = ({
     }
   };
 
+  // 임시저장 삭제
+  const handleDeleteDraft = (draftKey) => {
+    try {
+      localStorage.removeItem(draftKey);
+      loadSavedDrafts();
+      setSnackbar({ 
+        open: true, 
+        message: '임시저장이 삭제되었습니다.', 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('임시저장 삭제 오류:', error);
+      setSnackbar({ 
+        open: true, 
+        message: '임시저장 삭제 중 오류가 발생했습니다.', 
+        severity: 'error' 
+      });
+    }
+  };
+
   return (
     <Box>
       {/* 액션 버튼들 */}
@@ -247,6 +337,12 @@ const ArticleManagement = ({
           <ActionButton onClick={onRefreshArticles}>
             <Article fontSize="large" />
             <Typography variant="h6" sx={{ mt: 1 }}>기사 새로고침</Typography>
+          </ActionButton>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <ActionButton onClick={() => { loadSavedDrafts(); setDraftDialog(true); }}>
+            <Save fontSize="large" />
+            <Typography variant="h6" sx={{ mt: 1 }}>임시저장 목록</Typography>
           </ActionButton>
         </Grid>
       </Grid>
@@ -577,6 +673,66 @@ const ArticleManagement = ({
           >
             {editingArticle ? '수정 완료' : '기사 발행'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 임시저장 목록 다이얼로그 */}
+      <Dialog open={draftDialog} onClose={() => setDraftDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>📝 임시저장 목록</DialogTitle>
+        <DialogContent>
+          {savedDrafts.length === 0 ? (
+            <Alert severity="info">저장된 임시저장이 없습니다.</Alert>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>제목</TableCell>
+                    <TableCell>저장일</TableCell>
+                    <TableCell>에러 메시지</TableCell>
+                    <TableCell>작업</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {savedDrafts.map((draft) => (
+                    <TableRow key={draft.key}>
+                      <TableCell>{draft.title || '제목 없음'}</TableCell>
+                      <TableCell>
+                        {new Date(draft.savedAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="error">
+                          {draft.errorMessage || '알 수 없음'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <Button 
+                            size="small" 
+                            onClick={() => handleLoadDraft(draft.key)}
+                            startIcon={<Edit />}
+                          >
+                            불러오기
+                          </Button>
+                          <Button 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleDeleteDraft(draft.key)}
+                            startIcon={<Delete />}
+                          >
+                            삭제
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDraftDialog(false)}>닫기</Button>
         </DialogActions>
       </Dialog>
     </Box>

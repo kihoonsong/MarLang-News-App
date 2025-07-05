@@ -93,9 +93,12 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
           <SearchIcon 
             sx={{ mr: 1, color: '#666', cursor: 'pointer' }} 
             onClick={() => {
-              setIsOpen(false);
-              const url = query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search';
-              navigate(url);
+              if (!isOpen) {
+                setIsOpen(true);
+                if (query.trim()) {
+                  doSearch(query);
+                }
+              }
             }}
           />
         }
