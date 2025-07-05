@@ -268,19 +268,35 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                 </IconButton>
               )}
               
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  flexGrow: 1, 
-                  fontWeight: 'bold', 
-                  color: '#23408e',
-                  cursor: 'pointer',
-                  '&:hover': { color: '#1976d2' }
-                }}
-                onClick={handleLogoClick}
-              >
-                {title || 'MarLang Eng News'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    color: '#23408e',
+                    cursor: 'pointer',
+                    '&:hover': { color: '#1976d2' }
+                  }}
+                  onClick={handleLogoClick}
+                >
+                  {title || 'MarLang Eng News'}
+                </Typography>
+                <Box
+                  sx={{
+                    ml: 1,
+                    backgroundColor: '#dc3545',
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '0.625rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.2
+                  }}
+                >
+                  beta
+                </Box>
+              </Box>
               
               <SearchDropdown placeholder="Search articles..." />
               
