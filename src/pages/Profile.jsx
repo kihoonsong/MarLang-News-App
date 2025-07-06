@@ -506,17 +506,6 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <button 
-                  onClick={logout}
-                  style={{
-                    ...styles.button,
-                    backgroundColor: '#f3f4f6',
-                    color: '#4b5563',
-                    width: '100%'
-                  }}
-                >
-                  {t.logout}
-                </button>
               </div>
 
               {/* 학습 통계 */}

@@ -32,6 +32,17 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   const { user, isAuthenticated, isAdmin, signOut } = useAuth() || {};
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+
+  // 네이버/구글 사용자 통일된 처리를 위한 정규화
+  const normalizedUser = user ? {
+    ...user,
+    // 네이버 사용자도 동일한 속성명 사용하도록 정규화
+    displayName: user.name || user.displayName,
+    photoURL: user.picture || user.photoURL,
+    provider: user.provider || (user.isServerAuth ? 'naver' : 'unknown'),
+    isServerAuth: user.isServerAuth || false
+  } : null;
 
   // 현재 경로에 따른 네비게이션 값 설정
   const getCurrentNavValue = () => {
@@ -107,11 +118,25 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
   };
 
   const handleUserMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+    console.log('🔍 사용자 메뉴 열기:', {
+      isMobile,
+      user: normalizedUser,
+      isAuthenticated,
+      provider: normalizedUser?.provider,
+      isServerAuth: normalizedUser?.isServerAuth
+    });
+    
+    if (isMobile) {
+      setMobileDropdownOpen(!mobileDropdownOpen);
+    } else {
+      setAnchorEl(event.currentTarget);
+    }
   };
 
   const handleUserMenuClose = () => {
+    console.log('🔍 사용자 메뉴 닫기');
     setAnchorEl(null);
+    setMobileDropdownOpen(false);
   };
 
   const handleLogout = async () => {
@@ -218,10 +243,12 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
         {isAuthenticated ? (
           <IconButton size="small" onClick={handleUserMenuOpen} color="inherit">
             <Avatar 
-              src={user?.picture} 
-              alt={user?.name}
+              src={normalizedUser?.photoURL} 
+              alt={normalizedUser?.displayName}
               sx={{ width: 32, height: 32 }}
-            />
+            >
+              {!normalizedUser?.photoURL && (normalizedUser?.displayName?.charAt(0)?.toUpperCase() || 'U')}
+            </Avatar>
           </IconButton>
         ) : (
           <IconButton
@@ -325,8 +352,8 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
               
               {isAuthenticated ? (
                 <IconButton size="large" onClick={handleUserMenuOpen} color="inherit">
-                  <Avatar src={user?.picture} sx={{ width: 32, height: 32 }}>
-                    {!user?.picture && <AccountCircleIcon />}
+                  <Avatar src={normalizedUser?.photoURL} sx={{ width: 32, height: 32 }}>
+                    {!normalizedUser?.photoURL && (normalizedUser?.displayName?.charAt(0)?.toUpperCase() || <AccountCircleIcon />)}
                   </Avatar>
                 </IconButton>
               ) : (
@@ -345,101 +372,6 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                   Login
                 </IconButton>
               )}
-              
-      {/* 사용자 메뉴 - 모바일과 데스크톱 공통 */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleUserMenuClose}
-        sx={{ 
-          zIndex: theme => theme.zIndex.modal + 100,
-          '& .MuiBackdrop-root': {
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
-          }
-        }}
-        PaperProps={{
-          elevation: 8,
-          sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            mt: 1.5,
-            minWidth: 200,
-            '&:before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              top: 0,
-              right: 14,
-              width: 10,
-              height: 10,
-              bgcolor: 'background.paper',
-              transform: 'translateY(-50%) rotate(45deg)',
-              zIndex: 0,
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <MenuItem onClick={(e) => {
-          e.stopPropagation();
-          if (typeof window.globalStopTTS === 'function') {
-            window.globalStopTTS();
-          }
-          handleUserMenuClose();
-          navigate('/profile');
-        }}>
-                  <ListItemIcon>
-                    <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
-                      <AccountCircleIcon fontSize="small" />
-                    </Avatar>
-                  </ListItemIcon>
-                  <ListItemText>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {user?.name || 'Guest User'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {user?.email || 'guest@marlang.com'}
-                    </Typography>
-                  </ListItemText>
-                </MenuItem>
-                
-        
-        {isAdmin && (
-          <MenuItem onClick={(e) => {
-            e.stopPropagation();
-            if (typeof window.globalStopTTS === 'function') {
-              window.globalStopTTS();
-            }
-            handleUserMenuClose();
-            navigate('/dashboard');
-          }}>
-                    <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>Dashboard</ListItemText>
-                  </MenuItem>
-        )}
-        
-        <MenuItem onClick={(e) => {
-          e.stopPropagation();
-          if (typeof window.globalStopTTS === 'function') {
-            window.globalStopTTS();
-          }
-          handleUserMenuClose();
-          navigate('/settings');
-        }}>
-                  <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-                  <ListItemText>Settings</ListItemText>
-        </MenuItem>
-        
-        <MenuItem onClick={(e) => {
-          e.stopPropagation();
-          handleLogout();
-        }}>
-          <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
             </Toolbar>
           </AppBar>
           
@@ -459,6 +391,157 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
           {/* 카테고리 탭 영역 (선택적) */}
           {showCategoryTabs && children}
         </>
+      )}
+
+      {/* 모바일 전용 드롭다운 */}
+      {isMobile && mobileDropdownOpen && (
+        <>
+          {/* 백드롭 */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              zIndex: 9998,
+            }}
+            onClick={handleUserMenuClose}
+          />
+          
+          {/* 드롭다운 메뉴 */}
+          <div
+            style={{
+              position: 'fixed',
+              top: '64px',
+              right: '16px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              boxShadow: '0px 2px 8px rgba(0,0,0,0.32)',
+              zIndex: 9999,
+              minWidth: '200px',
+              maxWidth: 'calc(100vw - 32px)',
+            }}
+          >
+            {/* Profile 메뉴 */}
+            <div
+              style={{
+                padding: '16px',
+                borderBottom: '1px solid #f0f0f0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+              onClick={() => {
+                console.log('Mobile Profile clicked - User:', normalizedUser?.provider);
+                handleUserMenuClose();
+                navigate('/profile');
+              }}
+            >
+              <PersonIcon fontSize="small" />
+              <span>Profile</span>
+            </div>
+
+            {/* Admin Dashboard */}
+            {isAdmin && (
+              <div
+                style={{
+                  padding: '16px',
+                  borderBottom: '1px solid #f0f0f0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+                onClick={() => {
+                  console.log('Mobile Dashboard clicked - User:', normalizedUser?.provider);
+                  handleUserMenuClose();
+                  navigate('/dashboard');
+                }}
+              >
+                <DashboardIcon fontSize="small" />
+                <span>Dashboard</span>
+              </div>
+            )}
+
+
+            {/* Logout */}
+            <div
+              style={{
+                padding: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+              onClick={() => {
+                console.log('Mobile Logout clicked - User:', normalizedUser?.provider);
+                handleUserMenuClose();
+                handleLogout();
+              }}
+            >
+              <LogoutIcon fontSize="small" />
+              <span>Logout</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 데스크톱 전용 메뉴 */}
+      {!isMobile && (
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleUserMenuClose}
+          sx={{ 
+            zIndex: 9999,
+            '& .MuiBackdrop-root': {
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            }
+          }}
+          PaperProps={{
+            elevation: 8,
+            sx: {
+              overflow: 'visible',
+              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+              mt: 1.5,
+              minWidth: 200,
+              '&:before': {
+                content: '""',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                right: 14,
+                width: 10,
+                height: 10,
+                bgcolor: 'background.paper',
+                transform: 'translateY(-50%) rotate(45deg)',
+                zIndex: 0,
+              },
+            },
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <MenuItem onClick={() => { handleUserMenuClose(); navigate('/profile'); }}>
+            <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Profile</ListItemText>
+          </MenuItem>
+          
+          {isAdmin && (
+            <MenuItem onClick={() => { handleUserMenuClose(); navigate('/dashboard'); }}>
+              <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Dashboard</ListItemText>
+            </MenuItem>
+          )}
+          
+          <MenuItem onClick={() => { handleUserMenuClose(); handleLogout(); }}>
+            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Logout</ListItemText>
+          </MenuItem>
+        </Menu>
       )}
 
       {/* 인증 모달 */}
