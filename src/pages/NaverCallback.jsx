@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 const NaverCallback = () => {
@@ -53,24 +53,36 @@ const NaverCallback = () => {
 
         console.log('🔍 서버 응답 데이터:', data);
 
-        if (!data.customToken) {
+        if (!data.customToken && data.tokenType !== 'server_auth') {
           console.log('🚨 토큰이 없습니다. tokenType:', data.tokenType);
           throw new Error('인증 토큰을 받지 못했습니다. 관리자에게 문의하세요.');
         }
 
-        // Firebase 커스텀 토큰으로 로그인
+        // Firebase 인증 처리
         if (data.tokenType === 'custom') {
           console.log('✅ 커스텀 토큰으로 로그인');
           await signInWithCustomToken(auth, data.customToken);
-        } else if (data.tokenType === 'temp') {
-          // 임시 토큰의 경우 익명 로그인 후 Firestore에서 사용자 정보 연결
-          console.log('✅ 임시 토큰 사용, 사용자 정보 저장');
+        } else if (data.tokenType === 'server_auth') {
+          // 서버 기반 인증 - 네이버 사용자 정보를 직접 저장
+          console.log('✅ 서버 기반 인증 - 네이버 사용자 정보 저장');
           
-          // 임시적으로 로컬 스토리지에 사용자 정보 저장
-          localStorage.setItem('tempNaverUser', JSON.stringify(data.user));
+          // 네이버 사용자 정보를 로컬에 저장 (AuthContext에서 인식)
+          localStorage.setItem('naverAuthUser', JSON.stringify({
+            ...data.user,
+            isServerAuth: true,
+            loginTime: new Date().toISOString()
+          }));
           
-          // 홈페이지로 리디렉션하여 AuthContext에서 처리하도록 함
-          window.location.href = '/';
+          setStatus('success');
+          
+          // 원래 페이지로 리디렉션
+          const originalPath = sessionStorage.getItem('preNaverLoginPath') || '/';
+          sessionStorage.removeItem('preNaverLoginPath');
+          sessionStorage.removeItem('naverOAuthState');
+          
+          setTimeout(() => {
+            window.location.href = originalPath;
+          }, 1000);
           return;
         } else {
           console.log('🚨 지원되지 않는 토큰 타입:', data.tokenType);

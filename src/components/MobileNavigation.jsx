@@ -114,9 +114,15 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    signOut();
-    handleUserMenuClose();
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      handleUserMenuClose();
+      // 로그아웃 후 홈으로 리다이렉션
+      navigate('/');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
   };
 
   const handleAvatarClick = () => {
@@ -210,12 +216,13 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
         />
         
         {isAuthenticated ? (
-          <Avatar 
-            src={user?.picture} 
-            alt={user?.name}
-            sx={{ width: 32, height: 32, cursor: 'pointer' }}
-            onClick={handleAvatarClick}
-          />
+          <IconButton size="small" onClick={handleUserMenuOpen} color="inherit">
+            <Avatar 
+              src={user?.picture} 
+              alt={user?.name}
+              sx={{ width: 32, height: 32 }}
+            />
+          </IconButton>
         ) : (
           <IconButton
             color="inherit"
@@ -231,6 +238,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
           </IconButton>
         )}
       </MobileHeader>
+      
 
       {/* 하단 네비게이션 */}
       <MobileBottomNav>
@@ -338,40 +346,50 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                 </IconButton>
               )}
               
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleUserMenuClose}
-                onClick={handleUserMenuClose}
-                PaperProps={{
-                  elevation: 0,
-                  sx: {
-                    overflow: 'visible',
-                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                    mt: 1.5,
-                    '&:before': {
-                      content: '""',
-                      display: 'block',
-                      position: 'absolute',
-                      top: 0,
-                      right: 14,
-                      width: 10,
-                      height: 10,
-                      bgcolor: 'background.paper',
-                      transform: 'translateY(-50%) rotate(45deg)',
-                      zIndex: 0,
-                    },
-                  },
-                }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                <MenuItem onClick={() => {
-                  if (typeof window.globalStopTTS === 'function') {
-                    window.globalStopTTS();
-                  }
-                  navigate('/profile');
-                }}>
+      {/* 사용자 메뉴 - 모바일과 데스크톱 공통 */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleUserMenuClose}
+        sx={{ 
+          zIndex: theme => theme.zIndex.modal + 100,
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.3)'
+          }
+        }}
+        PaperProps={{
+          elevation: 8,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+            mt: 1.5,
+            minWidth: 200,
+            '&:before': {
+              content: '""',
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              right: 14,
+              width: 10,
+              height: 10,
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
+              zIndex: 0,
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MenuItem onClick={(e) => {
+          e.stopPropagation();
+          if (typeof window.globalStopTTS === 'function') {
+            window.globalStopTTS();
+          }
+          handleUserMenuClose();
+          navigate('/profile');
+        }}>
                   <ListItemIcon>
                     <Avatar src={user?.picture} sx={{ width: 24, height: 24 }}>
                       <AccountCircleIcon fontSize="small" />
@@ -387,35 +405,41 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
                   </ListItemText>
                 </MenuItem>
                 
-                {isAdmin && (
-                  <MenuItem onClick={() => {
-                    if (typeof window.globalStopTTS === 'function') {
-                      window.globalStopTTS();
-                    }
-                    setAnchorEl(null);
-                    navigate('/dashboard');
-                  }}>
+        
+        {isAdmin && (
+          <MenuItem onClick={(e) => {
+            e.stopPropagation();
+            if (typeof window.globalStopTTS === 'function') {
+              window.globalStopTTS();
+            }
+            handleUserMenuClose();
+            navigate('/dashboard');
+          }}>
                     <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
                     <ListItemText>Dashboard</ListItemText>
                   </MenuItem>
-                )}
-                
-                <MenuItem onClick={() => {
-                  if (typeof window.globalStopTTS === 'function') {
-                    window.globalStopTTS();
-                  }
-                  setAnchorEl(null);
-                  navigate('/settings');
-                }}>
+        )}
+        
+        <MenuItem onClick={(e) => {
+          e.stopPropagation();
+          if (typeof window.globalStopTTS === 'function') {
+            window.globalStopTTS();
+          }
+          handleUserMenuClose();
+          navigate('/settings');
+        }}>
                   <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
                   <ListItemText>Settings</ListItemText>
-                </MenuItem>
-                
-                <MenuItem onClick={handleLogout}>
-                  <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-                  <ListItemText>Logout</ListItemText>
-                </MenuItem>
-              </Menu>
+        </MenuItem>
+        
+        <MenuItem onClick={(e) => {
+          e.stopPropagation();
+          handleLogout();
+        }}>
+          <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Logout</ListItemText>
+        </MenuItem>
+      </Menu>
             </Toolbar>
           </AppBar>
           

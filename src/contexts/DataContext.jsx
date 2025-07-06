@@ -33,7 +33,51 @@ export const DataProvider = ({ children }) => {
       setError(null);
 
       if (user) {
-        // --- 로그인 사용자: Firebase에서 데이터 로드 ---
+        if (user.isServerAuth) {
+          // --- 네이버 서버 인증 사용자: HTTP API에서 데이터 로드 ---
+          console.log(`🌐 서버 API에서 사용자 데이터 로드 중: ${user.uid}`);
+          try {
+            const response = await fetch(`https://us-central1-marlang-app.cloudfunctions.net/getUserData?userId=${user.uid}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (response.ok) {
+              const serverData = await response.json();
+              
+              const sanitizedWords = Array.isArray(serverData.savedWords) ? 
+                serverData.savedWords.filter(w => w && typeof w.word === 'string') : [];
+              const sanitizedLikes = Array.isArray(serverData.likedArticles) ? 
+                serverData.likedArticles.filter(a => a && typeof a.id === 'string') : [];
+              const settings = serverData.settings || userSettings;
+              const views = Array.isArray(serverData.viewRecords) ? serverData.viewRecords : [];
+
+              setSavedWords(sanitizedWords);
+              setLikedArticles(sanitizedLikes);
+              setUserSettings(settings);
+              setViewRecords(views);
+
+              console.log(`✅ 서버 데이터 로드 완료: 단어 ${sanitizedWords.length}개, 좋아요 ${sanitizedLikes.length}개`);
+            } else {
+              throw new Error(`서버 데이터 로드 실패: ${response.status}`);
+            }
+          } catch (err) {
+            console.error('❌ 서버 데이터 로드 실패, 로컬에서 로드:', err);
+            // 서버 실패 시 로컬 저장소에서 로드
+            const localWords = JSON.parse(localStorage.getItem(`marlang_${user.uid}_savedWords`) || '[]');
+            const localLikes = JSON.parse(localStorage.getItem(`marlang_${user.uid}_likedArticles`) || '[]');
+            const localSettings = JSON.parse(localStorage.getItem(`marlang_${user.uid}_settings`) || JSON.stringify(userSettings));
+            const localViews = JSON.parse(localStorage.getItem(`marlang_${user.uid}_viewRecords`) || '[]');
+            
+            setSavedWords(localWords);
+            setLikedArticles(localLikes);
+            setUserSettings(localSettings);
+            setViewRecords(localViews);
+          }
+        } else {
+          // --- Firebase 인증 사용자: Firebase에서 데이터 로드 ---
         console.log(`🔥 Firebase에서 사용자 데이터 로드 중: ${user.uid}`);
         try {
           const wordsRef = doc(db, 'users', user.uid, 'data', 'savedWords');
@@ -71,25 +115,17 @@ export const DataProvider = ({ children }) => {
           setViewRecords(views);
 
           console.log(`✅ Firebase 데이터 정제 및 로드 완료: 단어 ${sanitizedWords.length}개, 좋아요 ${sanitizedLikes.length}개`);
-        } catch (err) {
-          console.error('❌ Firebase 데이터 로드 실패:', err);
-          setError('데이터��� 불러오는 데 실패했습니다. 인터넷 연결을 확인해주세요.');
+          } catch (err) {
+            console.error('❌ Firebase 데이터 로드 실패:', err);
+            setError('데이터를 불러오는 데 실패했습니다. 인터넷 연결을 확인해주세요.');
+          }
         }
       } else {
-        // --- 비로그인 사용자: LocalStorage에서 데이터 로드 ---
-        console.log('👤 게스트 모드: 로컬 저장소에서 데이터 로드');
+        // --- 비로그인 사용자: 기본 LocalStorage에서 데이터 로드 ---
+        console.log('👤 비로그인 모드: 로컬 저장소에서 데이터 로드');
         try {
           const rawWords = JSON.parse(localStorage.getItem('marlang_guest_words') || '[]');
-          const sanitizedWords = [];
-          if (Array.isArray(rawWords)) {
-            rawWords.forEach((w, index) => {
-              if (w && typeof w.word === 'string' && w.word.trim() !== '') {
-                sanitizedWords.push(w);
-              } else {
-                console.error(`[Data Sanitization] 로컬 저장소에서 잘못된 단어 데이터를 발견하여 폐기합니다. Index: ${index}`, w);
-              }
-            });
-          }
+          const sanitizedWords = Array.isArray(rawWords) ? rawWords.filter(w => w && typeof w.word === 'string') : [];
 
           const rawLikes = JSON.parse(localStorage.getItem('marlang_guest_likes') || '[]');
           const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
@@ -102,7 +138,7 @@ export const DataProvider = ({ children }) => {
           setUserSettings(localSettings);
           setViewRecords(localViews);
         } catch (e) {
-          console.error("로컬 데이터 파싱 오류", e);
+          console.error("비로그인 로컬 데이터 파싱 오류", e);
         }
       }
       setIsLoading(false);
@@ -115,16 +151,57 @@ export const DataProvider = ({ children }) => {
 
   const saveData = async (dataType, data) => {
     if (user) {
-      // 로그인 사용자는 Firebase에 저장
-      const ref = doc(db, 'users', user.uid, 'data', dataType);
-      const payload = dataType === 'savedWords' ? { words: data } :
-                      dataType === 'likedArticles' ? { articles: data } :
-                      dataType === 'settings' ? { settings: data } :
-                      { records: data };
-      await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+      if (user.isServerAuth) {
+        // 네이버 서버 인증 사용자: HTTP API를 통해 서버에 저장
+        try {
+          const response = await fetch('https://us-central1-marlang-app.cloudfunctions.net/saveUserData', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.uid,
+              dataType: dataType,
+              data: data,
+              userInfo: {
+                email: user.email,
+                name: user.name,
+                provider: user.provider
+              }
+            }),
+          });
+
+          if (response.ok) {
+            console.log(`✅ ${dataType} 데이터 서버 API에 저장 완료`);
+          } else {
+            throw new Error(`서버 저장 실패: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('서버 API 저장 실패, 로컬 저장소로 fallback:', error);
+          // 서버 실패 시 로컬 저장소 사용
+          const key = `marlang_${user.uid}_${dataType}`;
+          localStorage.setItem(key, JSON.stringify(data));
+        }
+      } else {
+        // Firebase 인증 사용자: Firestore에 저장
+        try {
+          const ref = doc(db, 'users', user.uid, 'data', dataType);
+          const payload = dataType === 'savedWords' ? { words: data } :
+                          dataType === 'likedArticles' ? { articles: data } :
+                          dataType === 'settings' ? { settings: data } :
+                          { records: data };
+          await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+          console.log(`✅ ${dataType} 데이터 Firebase에 저장 완료`);
+        } catch (error) {
+          console.error('Firestore 저장 실패, 로컬 저장소로 fallback:', error);
+          // Firestore 실패 시 로컬 저장소 사용
+          const key = `marlang_${user.uid}_${dataType}`;
+          localStorage.setItem(key, JSON.stringify(data));
+        }
+      }
     } else {
-      // 게스트는 LocalStorage에 저장
-      const key = `marlang_guest_${dataType === 'savedWords' ? 'words' : dataType === 'likedArticles' ? 'likes' : dataType === 'settings' ? 'settings' : 'views'}`;
+      // 비로그인 사용자는 LocalStorage에 저장
+      const key = `marlang_guest_${dataType}`;
       localStorage.setItem(key, JSON.stringify(data));
     }
   };

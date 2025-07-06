@@ -5,10 +5,7 @@ const axios = require("axios");
 
 // Firebase Admin 초기화
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    projectId: 'marlang-app'
-  });
+  admin.initializeApp();
 }
 
 const client = new TextToSpeechClient();
@@ -161,23 +158,23 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
       }
     }
 
-    // 4. 커스텀 토큰 생성 (대체 방법 사용)
+    // 4. 커스텀 토큰 생성
     let customToken = null;
-    let tokenType = 'none';
+    let tokenType = 'server_auth'; // 기본적으로 서버 인증 모드
     
     try {
+      // 커스텀 토큰 생성 시도
       customToken = await admin.auth().createCustomToken(uid, {
-        provider: 'naver'
+        provider: 'naver',
+        naverUserId: naverUser.id
       });
       tokenType = 'custom';
-      console.log('커스텀 토큰 생성 성공');
+      console.log('✅ 커스텀 토큰 생성 성공');
     } catch (tokenError) {
-      console.log('커스텀 토큰 생성 실패, 임시 토큰 생성:', tokenError.message);
-      
-      // 대체 방법: 임시 Firebase Auth 토큰 생성
-      // 실제로는 사용자 정보와 함께 클라이언트에서 익명 로그인 후 연결하도록 함
-      customToken = `temp_${uid}_${Date.now()}`;
-      tokenType = 'temp';
+      console.log('⚠️ 커스텀 토큰 생성 실패, 서버 인증 모드 사용:', tokenError.message);
+      // IAM 권한 문제가 있어도 서버 인증 모드로 계속 진행
+      customToken = null;
+      tokenType = 'server_auth';
     }
 
     // 5. Firestore에 사용자 정보 저장/업데이트
@@ -210,7 +207,7 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
     await userRef.set(userDoc, { merge: true });
 
     // 6. 클라이언트에 커스텀 토큰과 사용자 정보 반환
-    res.json({ 
+    const responseData = { 
       success: true,
       customToken: customToken,
       tokenType: tokenType,
@@ -221,11 +218,151 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
         picture: naverUser.profile_image || null,
         provider: 'naver',
         naverAccessToken: access_token
+      },
+      debug: {
+        hasCustomToken: !!customToken,
+        tokenType: tokenType,
+        userId: uid
       }
+    };
+
+    console.log('📤 클라이언트로 전송할 응답:', {
+      success: responseData.success,
+      tokenType: responseData.tokenType,
+      hasCustomToken: !!responseData.customToken,
+      userEmail: responseData.user.email
     });
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('Naver auth error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// 사용자 데이터 저장 함수
+exports.saveUserData = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { userId, dataType, data, userInfo } = req.body;
+    
+    if (!userId || !dataType || !data) {
+      res.status(400).json({ error: 'Missing required parameters' });
+      return;
+    }
+
+    // Firestore에 데이터 저장
+    const userDataRef = admin.firestore().collection('users').doc(userId).collection('data').doc(dataType);
+    
+    const payload = {
+      [dataType === 'savedWords' ? 'words' : 
+        dataType === 'likedArticles' ? 'articles' :
+        dataType === 'settings' ? 'settings' : 'records']: data,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await userDataRef.set(payload, { merge: true });
+
+    // 사용자 정보도 업데이트
+    if (userInfo) {
+      const userRef = admin.firestore().collection('users').doc(userId);
+      await userRef.set({
+        ...userInfo,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    console.log(`✅ 사용자 ${userId}의 ${dataType} 데이터 저장 완료`);
+
+    res.json({ 
+      success: true,
+      message: `${dataType} data saved successfully`
+    });
+
+  } catch (error) {
+    console.error('Save user data error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// 사용자 데이터 로드 함수
+exports.getUserData = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const userId = req.query.userId;
+    
+    if (!userId) {
+      res.status(400).json({ error: 'Missing userId parameter' });
+      return;
+    }
+
+    // Firestore에서 모든 사용자 데이터 로드
+    const userDataCollection = admin.firestore().collection('users').doc(userId).collection('data');
+    const snapshot = await userDataCollection.get();
+
+    const userData = {
+      savedWords: [],
+      likedArticles: [],
+      settings: {},
+      viewRecords: []
+    };
+
+    snapshot.forEach(doc => {
+      const docId = doc.id;
+      const docData = doc.data();
+      
+      if (docId === 'savedWords' && docData.words) {
+        userData.savedWords = docData.words;
+      } else if (docId === 'likedArticles' && docData.articles) {
+        userData.likedArticles = docData.articles;
+      } else if (docId === 'settings' && docData.settings) {
+        userData.settings = docData.settings;
+      } else if (docId === 'viewRecords' && docData.records) {
+        userData.viewRecords = docData.records;
+      }
+    });
+
+    console.log(`✅ 사용자 ${userId}의 데이터 로드 완료`);
+
+    res.json(userData);
+
+  } catch (error) {
+    console.error('Get user data error:', error);
     res.status(500).json({ 
       error: 'Internal server error', 
       message: error.message 

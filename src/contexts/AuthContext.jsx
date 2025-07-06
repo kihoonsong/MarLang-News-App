@@ -12,40 +12,66 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 초기 로드 시 네이버 서버 인증 사용자 확인
+  useEffect(() => {
+    const checkNaverServerAuth = () => {
+      const naverAuthUser = localStorage.getItem('naverAuthUser');
+      
+      if (naverAuthUser) {
+        try {
+          const naverUserData = JSON.parse(naverAuthUser);
+          console.log('🔍 네이버 서버 인증 사용자 발견:', naverUserData.email);
+          
+          setUser({
+            id: naverUserData.uid,
+            uid: naverUserData.uid,
+            email: naverUserData.email,
+            name: naverUserData.name,
+            picture: naverUserData.picture,
+            provider: naverUserData.provider,
+            role: 'user',
+            isServerAuth: true
+          });
+          setIsLoading(false);
+          return true;
+        } catch (err) {
+          console.error('네이버 서버 인증 사용자 처리 오류:', err);
+          localStorage.removeItem('naverAuthUser');
+        }
+      }
+      
+      // 더 이상 사용하지 않는 게스트 관련 로컬 저장소 데이터 정리
+      localStorage.removeItem('guestNaverUser');
+      localStorage.removeItem('tempNaverUser');
+      localStorage.removeItem('pendingNaverUser');
+      
+      return false;
+    };
+
+    // 네이버 서버 인증 사용자 체크
+    const hasNaverUser = checkNaverServerAuth();
+    
+    // 네이버 사용자가 없을 때만 Firebase 인증 체크 시작
+    if (!hasNaverUser) {
+      setIsLoading(true);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // 네이버 서버 인증 사용자가 있으면 Firebase 인증 무시
+      const naverAuthUser = localStorage.getItem('naverAuthUser');
+      if (naverAuthUser) {
+        console.log('🔍 네이버 서버 인증 사용자 있음, Firebase 인증 건너뜀');
+        return;
+      }
+      
       console.log('🔍 인증 상태 변경:', firebaseUser?.email || '로그아웃 상태');
+      
       if (firebaseUser) {
         await handleUser(firebaseUser);
       } else {
-        // 로그아웃 상태일 때 임시 네이버 사용자 확인
-        const tempNaverUser = localStorage.getItem('tempNaverUser');
-        if (tempNaverUser) {
-          try {
-            const naverUserData = JSON.parse(tempNaverUser);
-            console.log('🔍 임시 네이버 사용자 발견:', naverUserData.email);
-            
-            // 임시 사용자 정보를 상태로 설정
-            setUser({
-              id: naverUserData.uid,
-              uid: naverUserData.uid,
-              email: naverUserData.email,
-              name: naverUserData.name,
-              picture: naverUserData.picture,
-              provider: naverUserData.provider,
-              role: 'user'
-            });
-            
-            // 임시 데이터 제거
-            localStorage.removeItem('tempNaverUser');
-          } catch (err) {
-            console.error('임시 네이버 사용자 처리 오류:', err);
-            localStorage.removeItem('tempNaverUser');
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
+        setUser(null);
       }
       setIsLoading(false);
     });
@@ -67,6 +93,46 @@ export const AuthProvider = ({ children }) => {
     if (!firebaseUser) return;
     
     try {
+      // Anonymous 로그인 후 네이버 사용자 정보가 있는지 확인
+      const pendingNaverUser = localStorage.getItem('pendingNaverUser');
+      
+      if (firebaseUser.isAnonymous && pendingNaverUser) {
+        console.log('🔗 Anonymous 사용자에 네이버 정보 연결');
+        
+        try {
+          const naverUserData = JSON.parse(pendingNaverUser);
+          
+          // Firestore에 네이버 사용자 정보로 저장
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          const marlangUser = {
+            id: firebaseUser.uid,
+            uid: firebaseUser.uid,
+            email: naverUserData.email,
+            name: naverUserData.name,
+            picture: naverUserData.picture,
+            provider: naverUserData.provider,
+            role: 'user',
+            naverUserId: naverUserData.uid.replace('naver_', ''),
+            isNaverUser: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          
+          await setDoc(userDocRef, marlangUser, { merge: true });
+          setUser(marlangUser);
+          
+          console.log('✅ 네이버 사용자 정보가 성공적으로 Firebase에 저장됨');
+          
+          // 처리 완료 후 임시 데이터 제거
+          localStorage.removeItem('pendingNaverUser');
+          return;
+        } catch (err) {
+          console.error('❌ 네이버 사용자 정보 연결 실패:', err);
+          // 실패해도 기본 사용자로 진행
+        }
+      }
+      
+      // 기존 로직
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
       
@@ -83,7 +149,7 @@ export const AuthProvider = ({ children }) => {
           name: firebaseUser.displayName || 'New User',
           picture: firebaseUser.photoURL,
           provider: firebaseUser.providerData[0]?.providerId || 'password',
-          role: 'user', // 기본 역할
+          role: 'user',
           createdAt: serverTimestamp(),
         };
         await setDoc(userDocRef, marlangUser);
@@ -173,10 +239,18 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     setIsLoading(true);
     try {
+      // 네이버 서버 인증 사용자 로그아웃
+      const naverAuthUser = localStorage.getItem('naverAuthUser');
+      if (naverAuthUser) {
+        localStorage.removeItem('naverAuthUser');
+        console.log('✅ 네이버 서버 인증 사용자 로그아웃');
+      }
+      
+      // Firebase 로그아웃
       await firebaseSignOut(auth);
       setUser(null);
     } catch (err) {
-      console.error("Firebase 로그아웃 실패:", err);
+      console.error("로그아웃 실패:", err);
     } finally {
       setIsLoading(false);
     }

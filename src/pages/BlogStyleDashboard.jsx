@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Tabs, Tab, Container, Snackbar, Alert, CircularProgress, Typography
+  Box, Tabs, Tab, Container, Snackbar, Alert, CircularProgress, Typography, Button, IconButton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,10 +13,11 @@ import ArticleManagement from '../components/ArticleManagement';
 import CategoryManagement from '../components/CategoryManagement';
 import MemberManagement from '../components/MemberManagement';
 import { DashboardContainer } from '../components/DashboardStyles';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const BlogStyleDashboard = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading: authLoading, getAllUsers, updateUserRole, deleteUser } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, getAllUsers, updateUserRole, deleteUser, signOut } = useAuth();
   const {
     allArticles,
     categories,
@@ -229,12 +230,50 @@ const BlogStyleDashboard = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
+  };
+
   return (
     <>
       <MobileNavigation />
       <MobileContentWrapper>
         <Container maxWidth="xl">
           <DashboardContainer>
+            {/* 대시보드 헤더 */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 2,
+              p: 2,
+              backgroundColor: 'background.paper',
+              borderRadius: 1,
+              boxShadow: 1
+            }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                📊 관리자 대시보드
+              </Typography>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'bold'
+                }}
+              >
+                로그아웃
+              </Button>
+            </Box>
+
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
               <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} variant="scrollable" scrollButtons="auto">
                 <Tab label="📊 대시보드" />
