@@ -36,7 +36,11 @@
       "Bash(node:*)",
       "Bash(sed:*)",
       "Bash(cp:*)",
-      "WebFetch(domain:marlang-app--preview-ntr4z65b.web.app)"
+      "WebFetch(domain:marlang-app--preview-ntr4z65b.web.app)",
+      "Bash(npm install:*)",
+      "Bash(firebase functions:config:set:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(cd:*)"
     ],
     "deny": []
   }

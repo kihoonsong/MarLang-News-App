@@ -167,22 +167,37 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
               </IconButton>
             )}
             
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            fontWeight: 'bold', 
-            color: '#23408e', 
-            mr: 2,
-            cursor: 'pointer',
-                flexShrink: 0,
-            '&:hover': {
-              color: '#1976d2'
-            }
-          }}
-          onClick={handleLogoClick}
-        >
-              {title || 'MarLang'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: 2, flexShrink: 0 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 'bold', 
+              color: '#23408e', 
+              cursor: 'pointer',
+              '&:hover': {
+                color: '#1976d2'
+              }
+            }}
+            onClick={handleLogoClick}
+          >
+            {title || 'MarLang'}
+          </Typography>
+          <Box
+            sx={{
+              ml: 1,
+              backgroundColor: '#dc3545',
+              borderRadius: '12px',
+              padding: '2px 6px',
+              fontSize: '0.5rem',
+              fontWeight: 'bold',
+              color: 'white',
+              textTransform: 'uppercase',
+              lineHeight: 1.2
+            }}
+          >
+            beta
+          </Box>
+        </Box>
         
         <SearchDropdown 
           placeholder="Search articles..."

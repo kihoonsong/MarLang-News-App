@@ -164,26 +164,26 @@ const DashboardStats = ({
         <Grid item xs={12} md={6}>
           <Card sx={{ p: 3, borderRadius: '16px' }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom>
-              🌐 실시간 현황
+              📊 운영 지표
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="warning.main">
-                    {defaultStats.currentUsers}
+                    {defaultStats.categories}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    접속자
+                    카테고리
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6}>
                 <Box textAlign="center" sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="info.main">
-                    {defaultStats.categories}
+                    {defaultStats.totalMembers > 0 ? Math.round((defaultStats.totalLikes / defaultStats.totalMembers) * 100) / 100 : 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    카테고리
+                    회원당 평균 좋아요
                   </Typography>
                 </Box>
               </Grid>
@@ -314,6 +314,81 @@ const DashboardStats = ({
                   size="small"
                 />
               </Box>
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* 추가 운영 지표 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              🎯 참여도 지표
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                전체 참여율
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {defaultStats.totalMembers > 0 ? Math.round((defaultStats.totalLikes / (defaultStats.totalMembers * defaultStats.totalArticles)) * 100) || 0 : 0}%
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                활성 사용자 비율
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="primary">
+                {defaultStats.totalMembers > 0 ? Math.round((defaultUserAnalytics.usersByLearningActivity.active / defaultStats.totalMembers) * 100) || 0 : 0}%
+              </Typography>
+            </Box>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              📈 성장 지표
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                일일 성장률
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {defaultStats.totalMembers > 0 ? Math.round((defaultStats.todayMembers / defaultStats.totalMembers) * 100) || 0 : 0}%
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                콘텐츠 증가율
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="info.main">
+                {defaultStats.totalArticles > 0 ? Math.round((defaultStats.todayArticles / defaultStats.totalArticles) * 100) || 0 : 0}%
+              </Typography>
+            </Box>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card sx={{ p: 3, borderRadius: '16px' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              🔍 사용자 인사이트
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                고성과 사용자 비율
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="warning.main">
+                {defaultStats.totalMembers > 0 ? Math.round((defaultUserAnalytics.usersByReadingFrequency.high / defaultStats.totalMembers) * 100) || 0 : 0}%
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                평균 학습 완료도
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {defaultStats.avgSavedWords > 0 ? Math.min(Math.round((defaultStats.avgSavedWords / 100) * 100), 100) : 0}%
+              </Typography>
             </Box>
           </Card>
         </Grid>

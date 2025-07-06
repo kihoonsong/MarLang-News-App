@@ -32,6 +32,7 @@ const ArticleManagement = ({
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
+  const [articleStats, setArticleStats] = useState({});
   const [articleForm, setArticleForm] = useState({
     title: '',
     summary: '',
@@ -111,6 +112,45 @@ const ArticleManagement = ({
     }
     setSavedDrafts(drafts.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)));
   };
+
+  // 기사별 실제 통계 계산
+  const calculateArticleStats = () => {
+    const stats = {};
+    
+    allArticles.forEach(article => {
+      // 기본 성과 지표 계산
+      const engagementRate = article.views > 0 ? (article.likes / article.views * 100).toFixed(1) : 0;
+      const publishDate = new Date(article.publishedAt);
+      const daysSincePublish = Math.floor((new Date() - publishDate) / (1000 * 60 * 60 * 24));
+      const avgViewsPerDay = daysSincePublish > 0 ? (article.views / daysSincePublish).toFixed(1) : article.views;
+      
+      // 카테고리별 평균과 비교
+      const categoryArticles = allArticles.filter(a => a.category === article.category);
+      const categoryAvgViews = categoryArticles.reduce((sum, a) => sum + (a.views || 0), 0) / categoryArticles.length;
+      const categoryAvgLikes = categoryArticles.reduce((sum, a) => sum + (a.likes || 0), 0) / categoryArticles.length;
+      
+      const viewsVsCategory = categoryAvgViews > 0 ? ((article.views - categoryAvgViews) / categoryAvgViews * 100).toFixed(1) : 0;
+      const likesVsCategory = categoryAvgLikes > 0 ? ((article.likes - categoryAvgLikes) / categoryAvgLikes * 100).toFixed(1) : 0;
+      
+      stats[article.id] = {
+        engagementRate: parseFloat(engagementRate),
+        avgViewsPerDay: parseFloat(avgViewsPerDay),
+        daysSincePublish,
+        viewsVsCategory: parseFloat(viewsVsCategory),
+        likesVsCategory: parseFloat(likesVsCategory),
+        performance: article.views > categoryAvgViews ? 'high' : article.views > categoryAvgViews * 0.5 ? 'medium' : 'low'
+      };
+    });
+    
+    setArticleStats(stats);
+  };
+
+  // 컴포넌트 마운트 시 통계 계산
+  React.useEffect(() => {
+    if (allArticles && allArticles.length > 0) {
+      calculateArticleStats();
+    }
+  }, [allArticles]);
 
   // 기사 추가 핸들러
   const handleAddArticle = async () => {
@@ -347,6 +387,59 @@ const ArticleManagement = ({
         </Grid>
       </Grid>
 
+      {/* 성과 요약 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="success.main">
+              {Object.values(articleStats).filter(stat => stat.performance === 'high').length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              고성과 기사
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="primary">
+              {Object.values(articleStats).length > 0 ? 
+                (Object.values(articleStats).reduce((sum, stat) => sum + stat.engagementRate, 0) / Object.values(articleStats).length).toFixed(1) 
+                : 0}%
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              평균 참여율
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="warning.main">
+              {Object.values(articleStats).length > 0 ? 
+                (Object.values(articleStats).reduce((sum, stat) => sum + stat.avgViewsPerDay, 0) / Object.values(articleStats).length).toFixed(1) 
+                : 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              일평균 조회수
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="info.main">
+              {allArticles.filter(article => {
+                const publishDate = new Date(article.publishedAt);
+                const today = new Date();
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return publishDate >= weekAgo;
+              }).length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              최근 7일 발행
+            </Typography>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* 기사 목록 테이블 */}
       <Card sx={{ borderRadius: '16px' }}>
         <CardContent>
@@ -367,6 +460,9 @@ const ArticleManagement = ({
                   <TableCell><strong>카테고리</strong></TableCell>
                   <TableCell><strong>조회수</strong></TableCell>
                   <TableCell><strong>좋아요</strong></TableCell>
+                  <TableCell><strong>참여율</strong></TableCell>
+                  <TableCell><strong>일평균 조회</strong></TableCell>
+                  <TableCell><strong>성과</strong></TableCell>
                   <TableCell><strong>발행일</strong></TableCell>
                   <TableCell><strong>상태</strong></TableCell>
                   <TableCell><strong>작업</strong></TableCell>
@@ -398,6 +494,26 @@ const ArticleManagement = ({
                       <Box display="flex" alignItems="center" gap={1}>
                         ❤️ {article.likes || 0}
                       </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="primary" fontWeight="bold">
+                        {articleStats[article.id]?.engagementRate || 0}%
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {articleStats[article.id]?.avgViewsPerDay || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={articleStats[article.id]?.performance || 'low'}
+                        color={
+                          articleStats[article.id]?.performance === 'high' ? 'success' :
+                          articleStats[article.id]?.performance === 'medium' ? 'warning' : 'default'
+                        }
+                        size="small"
+                      />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">

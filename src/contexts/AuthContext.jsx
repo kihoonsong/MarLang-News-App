@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { auth, googleProvider, db } from '../config/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 
@@ -18,7 +18,34 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser) {
         await handleUser(firebaseUser);
       } else {
-        setUser(null);
+        // 로그아웃 상태일 때 임시 네이버 사용자 확인
+        const tempNaverUser = localStorage.getItem('tempNaverUser');
+        if (tempNaverUser) {
+          try {
+            const naverUserData = JSON.parse(tempNaverUser);
+            console.log('🔍 임시 네이버 사용자 발견:', naverUserData.email);
+            
+            // 임시 사용자 정보를 상태로 설정
+            setUser({
+              id: naverUserData.uid,
+              uid: naverUserData.uid,
+              email: naverUserData.email,
+              name: naverUserData.name,
+              picture: naverUserData.picture,
+              provider: naverUserData.provider,
+              role: 'user'
+            });
+            
+            // 임시 데이터 제거
+            localStorage.removeItem('tempNaverUser');
+          } catch (err) {
+            console.error('임시 네이버 사용자 처리 오류:', err);
+            localStorage.removeItem('tempNaverUser');
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
       }
       setIsLoading(false);
     });
@@ -82,6 +109,31 @@ export const AuthProvider = ({ children }) => {
         setError(`Google 로그인 오류: ${err.message}`);
         setIsLoading(false);
       }
+    }
+  };
+
+  const signInWithNaver = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 네이버 로그인 리디렉션 방식
+      const naverClientId = import.meta.env.VITE_NAVER_CLIENT_ID;
+      const redirectUri = encodeURIComponent(`${window.location.origin}/auth/naver/callback`);
+      const state = Math.random().toString(36).substring(2, 15);
+      
+      // 상태값과 원래 페이지 정보 저장
+      sessionStorage.setItem('naverOAuthState', state);
+      sessionStorage.setItem('preNaverLoginPath', window.location.pathname);
+      
+      const naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${naverClientId}&redirect_uri=${redirectUri}&state=${state}`;
+      
+      // 현재 페이지에서 직접 리디렉션
+      window.location.href = naverAuthUrl;
+      
+    } catch (err) {
+      console.error('🚨 네이버 로그인 초기화 오류:', err);
+      setError(`네이버 로그인 오류: ${err.message}`);
+      setIsLoading(false);
     }
   };
 
@@ -152,6 +204,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     error,
     signInWithGoogle,
+    signInWithNaver,
     signInWithEmail,
     signUpWithEmail,
     signOut,

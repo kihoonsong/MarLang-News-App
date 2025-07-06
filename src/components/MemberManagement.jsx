@@ -6,12 +6,15 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton,
   FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel,
-  Alert
+  Alert, LinearProgress
 } from '@mui/material';
 import {
-  People, PersonAdd, Edit, Delete, Save, Cancel, Warning, CheckCircle
+  People, PersonAdd, Edit, Delete, Save, Cancel, Warning, CheckCircle,
+  TrendingUp, Visibility, Book, School
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 // 구독 플랜 정의
 const SUBSCRIPTION_PLANS = {
@@ -59,6 +62,7 @@ const MemberManagement = ({
   const [roleChangeDialog, setRoleChangeDialog] = useState({ open: false, member: null, newRole: '' });
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userActivity, setUserActivity] = useState({});
   const [memberForm, setMemberForm] = useState({
     name: '',
     email: '',
@@ -94,12 +98,99 @@ const MemberManagement = ({
     setEditingMember(null);
   };
 
+  // 사용자 활동 데이터 계산
+  const calculateUserActivity = async (userList) => {
+    const activityData = {};
+    
+    for (const user of userList) {
+      try {
+        // 사용자별 데이터 수집
+        const userDataRef = collection(db, 'users', user.id, 'data');
+        const userDataSnap = await getDocs(userDataRef);
+        
+        let savedWords = 0;
+        let likedArticles = 0;
+        let viewRecords = 0;
+        let lastActivity = user.createdAt;
+        
+        userDataSnap.docs.forEach(doc => {
+          const data = doc.data();
+          if (doc.id === 'savedWords' && data.words) {
+            savedWords = data.words.length;
+          }
+          if (doc.id === 'likedArticles' && data.articles) {
+            likedArticles = data.articles.length;
+          }
+          if (doc.id === 'viewRecords' && data.records) {
+            viewRecords = data.records.length;
+            // 최근 활동 시간 찾기
+            const latestView = data.records.reduce((latest, record) => {
+              const recordDate = new Date(record.viewedAt);
+              return recordDate > latest ? recordDate : latest;
+            }, new Date(user.createdAt));
+            lastActivity = latestView;
+          }
+        });
+
+        // 활동 점수 계산 (0-100)
+        const activityScore = Math.min(100, 
+          (viewRecords * 2) + (savedWords * 1.5) + (likedArticles * 3)
+        );
+        
+        // 참여 수준 결정
+        const engagementLevel = activityScore > 50 ? 'high' : 
+                              activityScore > 20 ? 'medium' : 'low';
+        
+        // 가입 후 경과 일수
+        const daysSinceJoin = Math.floor(
+          (new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24)
+        );
+        
+        // 마지막 활동 후 경과 일수
+        const daysSinceLastActivity = Math.floor(
+          (new Date() - lastActivity) / (1000 * 60 * 60 * 24)
+        );
+
+        activityData[user.id] = {
+          savedWords,
+          likedArticles,
+          viewRecords,
+          activityScore: Math.round(activityScore),
+          engagementLevel,
+          daysSinceJoin,
+          daysSinceLastActivity,
+          lastActivity,
+          isActive: daysSinceLastActivity < 7,
+          learningRate: daysSinceJoin > 0 ? (savedWords / daysSinceJoin).toFixed(1) : 0
+        };
+        
+      } catch (error) {
+        console.error(`사용자 ${user.id} 활동 데이터 로딩 실패:`, error);
+        activityData[user.id] = {
+          savedWords: 0,
+          likedArticles: 0,
+          viewRecords: 0,
+          activityScore: 0,
+          engagementLevel: 'low',
+          daysSinceJoin: 0,
+          daysSinceLastActivity: 999,
+          lastActivity: new Date(user.createdAt),
+          isActive: false,
+          learningRate: 0
+        };
+      }
+    }
+    
+    setUserActivity(activityData);
+  };
+
   // 사용자 목록 로드
   const loadMembers = async () => {
     setLoading(true);
     try {
       const userList = await getAllUsers();
       setMembers(userList);
+      await calculateUserActivity(userList);
     } catch (error) {
       console.error('회원 목록 로딩 실패:', error);
       setSnackbar({ open: true, message: '회원 목록을 불러오는데 실패했습니다.', severity: 'error' });
@@ -294,6 +385,54 @@ const MemberManagement = ({
 
   return (
     <Box>
+      {/* 회원 활동 통계 요약 */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="success.main">
+              {Object.values(userActivity).filter(activity => activity.isActive).length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              활성 사용자 (7일 내)
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="primary">
+              {Object.values(userActivity).length > 0 ? 
+                Math.round(Object.values(userActivity).reduce((sum, activity) => sum + activity.activityScore, 0) / Object.values(userActivity).length)
+                : 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              평균 활동 점수
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="warning.main">
+              {Object.values(userActivity).filter(activity => activity.engagementLevel === 'high').length}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              고참여 사용자
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="bold" color="info.main">
+              {Object.values(userActivity).length > 0 ? 
+                Math.round(Object.values(userActivity).reduce((sum, activity) => sum + activity.savedWords, 0) / Object.values(userActivity).length)
+                : 0}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              회원당 평균 저장 단어
+            </Typography>
+          </Card>
+        </Grid>
+      </Grid>
+
       {/* 액션 버튼 */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -318,7 +457,9 @@ const MemberManagement = ({
                   <TableCell><strong>회원 정보</strong></TableCell>
                   <TableCell><strong>권한</strong></TableCell>
                   <TableCell><strong>구독</strong></TableCell>
-                  <TableCell><strong>활동</strong></TableCell>
+                  <TableCell><strong>활동 점수</strong></TableCell>
+                  <TableCell><strong>학습 데이터</strong></TableCell>
+                  <TableCell><strong>참여도</strong></TableCell>
                   <TableCell><strong>가입일</strong></TableCell>
                   <TableCell><strong>상태</strong></TableCell>
                   <TableCell><strong>작업</strong></TableCell>
@@ -361,21 +502,65 @@ const MemberManagement = ({
                       </Box>
                     </TableCell>
                     <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="h6" fontWeight="bold" 
+                          color={
+                            (userActivity[member.id]?.activityScore || 0) > 50 ? 'success.main' :
+                            (userActivity[member.id]?.activityScore || 0) > 20 ? 'warning.main' : 'text.secondary'
+                          }>
+                          {userActivity[member.id]?.activityScore || 0}
+                        </Typography>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={userActivity[member.id]?.activityScore || 0}
+                          sx={{ width: 50, height: 6, borderRadius: 3 }}
+                          color={
+                            (userActivity[member.id]?.activityScore || 0) > 50 ? 'success' :
+                            (userActivity[member.id]?.activityScore || 0) > 20 ? 'warning' : 'inherit'
+                          }
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell>
                       <Box>
-                        <Typography variant="body2">
-                          📖 {member.readArticles || 0}개
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Visibility fontSize="small" />
+                          {userActivity[member.id]?.viewRecords || 0}회 조회
                         </Typography>
-                        <Typography variant="body2">
-                          📝 {(member.savedWords || []).length}단어
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Book fontSize="small" />
+                          {userActivity[member.id]?.savedWords || 0}단어 저장
                         </Typography>
-                        <Typography variant="body2">
-                          ❤️ {(member.likedArticles || []).length}개
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          ❤️ {userActivity[member.id]?.likedArticles || 0}개 좋아요
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Chip 
+                          label={userActivity[member.id]?.engagementLevel || 'low'}
+                          color={
+                            userActivity[member.id]?.engagementLevel === 'high' ? 'success' :
+                            userActivity[member.id]?.engagementLevel === 'medium' ? 'warning' : 'default'
+                          }
+                          size="small"
+                          sx={{ mb: 1 }}
+                        />
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {userActivity[member.id]?.isActive ? '🟢 활성' : '🔴 비활성'}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {userActivity[member.id]?.daysSinceLastActivity}일 전 활동
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {member.joinDate ? new Date(member.joinDate).toLocaleDateString() : '-'}
+                        {member.createdAt ? new Date(member.createdAt.toDate?.() || member.createdAt).toLocaleDateString() : '-'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {userActivity[member.id]?.daysSinceJoin || 0}일 경과
                       </Typography>
                     </TableCell>
                     <TableCell>

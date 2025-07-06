@@ -33,6 +33,7 @@ const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard')
 const Settings = React.lazy(() => import('./pages/Settings'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
@@ -339,7 +340,17 @@ function App() {
                       } 
                     />
                     
-                    {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방�� */}
+                    {/* 네이버 로그인 콜백 */}
+                    <Route 
+                      path="/auth/naver/callback" 
+                      element={
+                        <PageWrapper pageName="Naver Login">
+                          <NaverCallback />
+                        </PageWrapper>
+                      } 
+                    />
+                    
+                    {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}
                     <Route 
                       path="/:categorySlug" 
                       element={
