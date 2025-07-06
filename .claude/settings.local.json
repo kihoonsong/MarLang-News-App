@@ -40,7 +40,10 @@
       "Bash(npm install:*)",
       "Bash(firebase functions:config:set:*)",
       "Bash(firebase functions:log:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(gcloud projects get-iam-policy:*)",
+      "Bash(firebase projects:get-iam-policy:*)",
+      "Bash(gcloud auth:*)"
     ],
     "deny": []
   }

@@ -84,9 +84,19 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
         onFocus={() => setIsOpen(true)}
         onKeyPress={(e) => {
           if (e.key === 'Enter') {
-            setIsOpen(false);
-            const url = query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search';
-            navigate(url);
+            e.preventDefault();
+            
+            // 빈 검색창일 때는 아무 동작 안 함
+            if (!query.trim()) {
+              return;
+            }
+            
+            // 검색 결과가 있으면 첫 번째 기사로 이동
+            if (results.length > 0) {
+              setIsOpen(false);
+              setQuery('');
+              navigate(`/article/${results[0].id}`);
+            }
           }
         }}
         startAdornment={
@@ -121,9 +131,10 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                   </Typography>
                 </Header>
                 
-                {results.map((article) => (
+                {results.map((article, index) => (
                   <Item 
                     key={article.id}
+                    $isFirst={index === 0 && query.trim()}
                     onClick={() => {
                       setIsOpen(false);
                       setQuery('');
@@ -176,6 +187,11 @@ const Container = styled('div')`
   position: relative;
   width: 100%;
   max-width: 400px;
+  
+  /* 풀스크린(데스크톱)에서 크기 50% 확대 */
+  @media (min-width: 1024px) {
+    max-width: 600px; /* 400px → 600px (50% 증가) */
+  }
 `;
 
 const Input = styled(InputBase)`
@@ -188,6 +204,16 @@ const Input = styled(InputBase)`
   &:focus-within {
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* 풀스크린에서 더 큰 패딩과 폰트 크기 */
+  @media (min-width: 1024px) {
+    padding: ${props => props.$compact ? '0.4rem 1rem' : '0.75rem 1.5rem'};
+    font-size: 1.1rem;
+    
+    .MuiInputBase-input {
+      font-size: 1.1rem;
+    }
   }
 `;
 
@@ -204,6 +230,11 @@ const DropdownPaper = styled(Paper)`
   max-height: 300px;
   overflow-y: auto;
   border-radius: 12px !important;
+  
+  /* 풀스크린에서 더 넓게 */
+  @media (min-width: 1024px) {
+    max-height: 400px; /* 높이도 약간 증가 */
+  }
 `;
 
 const Loading = styled('div')`
@@ -224,9 +255,42 @@ const Item = styled('div')`
   display: flex;
   align-items: center;
   transition: background-color 0.2s;
+  position: relative;
   
   &:hover {
     background-color: #f8f9fa;
+  }
+  
+  /* 첫 번째 아이템 하이라이트 (엔터 키 대상) */
+  ${props => props.$isFirst && `
+    background-color: #e3f2fd;
+    border-left: 3px solid #1976d2;
+    
+    &:hover {
+      background-color: #bbdefb;
+    }
+    
+    &::before {
+      content: '⏎';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #1976d2;
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+  `}
+  
+  /* 풀스크린에서 더 큰 패딩 */
+  @media (min-width: 1024px) {
+    padding: 16px;
+    
+    ${props => props.$isFirst && `
+      &::before {
+        right: 16px;
+      }
+    `}
   }
 `;
 

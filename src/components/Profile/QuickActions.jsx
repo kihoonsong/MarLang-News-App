@@ -23,13 +23,7 @@ const QuickActions = ({ translations, isAdmin }) => {
       label: translations.adminDashboard,
       path: '/dashboard',
       color: '#ed6c02'
-    }] : []),
-    {
-      icon: '⚙️',
-      label: translations.settings,
-      path: '/settings',
-      color: '#2e7d32'
-    }
+    }] : [])
   ];
 
   return (

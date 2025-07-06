@@ -30,7 +30,6 @@ const Like = React.lazy(() => import('./pages/Like'));
 const DatePage = React.lazy(() => import('./pages/Date'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
-const Settings = React.lazy(() => import('./pages/Settings'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
@@ -322,16 +321,6 @@ function App() {
                         <PageWrapper pageName="Profile">
                           <Profile />
                         </PageWrapper>
-                      } 
-                    />
-                    <Route 
-                      path="/settings" 
-                      element={
-                        <AuthGuard>
-                          <PageWrapper pageName="Settings">
-                          <Settings />
-                          </PageWrapper>
-                        </AuthGuard>
                       } 
                     />
                     <Route 

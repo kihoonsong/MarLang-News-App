@@ -2,7 +2,6 @@ import React from 'react';
 import { Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 
@@ -71,12 +70,6 @@ const UserMenu = ({ anchorEl, open, onClose, user, isAdmin, onSignOut }) => {
         </ListItemText>
       </MenuItem>
       
-      <MenuItem onClick={() => handleMenuItemClick('/settings')}>
-        <ListItemIcon>
-          <SettingsIcon fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Settings</ListItemText>
-      </MenuItem>
       
       {isAdmin && (
         <MenuItem onClick={() => handleMenuItemClick('/dashboard')}>

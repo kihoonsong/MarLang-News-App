@@ -30,11 +30,15 @@ import PremiumContentGuard from '../components/PremiumContentGuard';
 
 
 
-// 기사 내용에서 3개 레벨 생성
+// 기사 내용에서 3개 레벨 생성 (개선된 버전)
 const generateLevelsFromContent = (article) => {
+  console.log('🔧 기사 레벨 생성:', article.title);
+  console.log('🔧 원본 content 타입:', typeof article.content);
+  console.log('🔧 원본 content:', article.content);
+  
   // 새로운 3개 버전 구조를 그대로 사용
   if (article.content && typeof article.content === 'object') {
-    return {
+    const levels = {
       1: {
         title: 'Level 1 - Beginner',
         content: article.content.beginner || ''
@@ -48,10 +52,14 @@ const generateLevelsFromContent = (article) => {
         content: article.content.advanced || ''
       }
     };
+    console.log('✅ 객체 형태 레벨 생성 완료:', levels);
+    return levels;
   } else {
-    // 기존 단일 문자열 구조인 경우 그대로 사용
-    const baseContent = article.content || article.summary || '';
-    return {
+    // 기존 단일 문자열 구조인 경우 모든 소스에서 콘텐츠 찾기
+    const baseContent = article.content || article.summary || article.description || 'No content available';
+    console.log('📝 기본 콘텐츠 사용:', baseContent.substring(0, 100), '...');
+    
+    const levels = {
       1: {
         title: 'Level 1 - Beginner',
         content: baseContent
@@ -65,6 +73,8 @@ const generateLevelsFromContent = (article) => {
         content: baseContent
       }
     };
+    console.log('✅ 단일 형태 레벨 생성 완료:', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
+    return levels;
   }
 };
 
@@ -129,6 +139,7 @@ const ArticleDetail = () => {
   
   // TTS 상태
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
+  const [isTTSLoading, setIsTTSLoading] = useState(false); // 로딩 상태 추가
   const [currentSentence, setCurrentSentence] = useState(0);
   const [currentUtterance, setCurrentUtterance] = useState(null);
   const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
@@ -337,10 +348,145 @@ const ArticleDetail = () => {
     };
   }, []);
 
-  // TTS 시작 함수 (더 안전하게)
+  // 배속 변경용 TTS 시작 함수 (무한 루프 방지)
+  const startTTSWithSpeed = async (speed, controller) => {
+    if (!window.speechSynthesis || !articleData || !controller) {
+      console.error('❌ Speech synthesis, 기사 데이터 또는 컨트롤러 없음');
+      return;
+    }
+
+    setIsTTSLoading(true);
+
+    // 기존 재생 즉시 중지
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
+    console.log('🔍 배속 변경 - 현재 레벨:', selectedLevel);
+    console.log('🔍 배속 변경 - 현재 콘텐츠:', currentContent.substring(0, 100), '...');
+    
+    const sentences = currentContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    if (sentences.length === 0) {
+      console.warn('⚠️ 재생할 문장이 없습니다. 레벨:', selectedLevel);
+      setIsTTSLoading(false);
+      return;
+    }
+    
+    console.log('📝 배속 변경 - 문장 개수:', sentences.length);
+
+    // TTS 상태를 미리 설정
+    setIsTTSPlaying(true);
+    setIsTTSLoading(false);
+    setCurrentSentence(0);
+
+    try {
+      // 음성 목록을 완전히 로드될 때까지 대기
+      console.log('🔊 배속 변경 - 음성 로딩 시작...');
+      const englishVoice = await getEnglishVoice();
+      console.log('✅ 배속 변경 - 음성 로딩 완료:', englishVoice ? englishVoice.name : 'fallback');
+      
+      // 음성이 로드된 후 약간의 추가 대기
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      let currentIndex = 0;
+
+      const playNextSentence = () => {
+        if (!controller.isRunning() || currentIndex >= sentences.length) {
+          console.log('🛑 배속 변경 TTS 종료:', !controller.isRunning() ? '컨트롤러 중지' : '모든 문장 완료');
+          setIsTTSPlaying(false);
+          setCurrentSentence(-1);
+          setCurrentUtterance(null);
+          return;
+        }
+        
+        const sentence = sentences[currentIndex].trim();
+        if (!sentence) {
+          currentIndex++;
+          setTimeout(playNextSentence, 50);
+          return;
+        }
+
+        console.log(`📢 배속 ${speed} - 문장 ${currentIndex + 1}/${sentences.length}: ${sentence.substring(0, 50)}...`);
+
+        const utterance = new SpeechSynthesisUtterance(sentence);
+        utterance.rate = speed; // 새로운 속도 사용
+        utterance.volume = 1.0;
+        utterance.pitch = 1.0;
+        
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+          utterance.lang = englishVoice.lang;
+        } else {
+          utterance.lang = 'en-US';
+        }
+
+        utterance.onstart = () => {
+          if (controller.isRunning()) {
+            console.log(`▶️ 배속 ${speed} - 문장 ${currentIndex + 1} 재생 시작`);
+            setCurrentSentence(currentIndex);
+          }
+        };
+        
+        utterance.onend = () => {
+          if (controller.isRunning()) {
+            console.log(`⏹️ 배속 ${speed} - 문장 ${currentIndex + 1} 재생 완료`);
+            currentIndex++;
+            setTimeout(playNextSentence, 200);
+          }
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('❌ 배속 변경 TTS Error:', event.error, '문장:', currentIndex + 1);
+          if (controller.isRunning()) {
+            currentIndex++;
+            setTimeout(playNextSentence, 500);
+          }
+        };
+        
+        controller.currentUtterance = utterance;
+        setCurrentUtterance(utterance);
+        
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+        } else {
+          window.speechSynthesis.speak(utterance);
+        }
+      };
+      
+      playNextSentence();
+      
+    } catch (error) {
+      console.error('❌ 배속 변경 TTS 시작 실패:', error);
+      setIsTTSPlaying(false);
+      setIsTTSLoading(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
+    }
+  };
+
+  // TTS 시작 함수 (첫 문장 문제 해결)
   const startTTS = async () => {
-    if (!window.speechSynthesis || !articleData || !ttsController) {
-      console.error('❌ Speech synthesis, 기사 데이터 또는 TTS 컨트롤러 없음');
+    if (!window.speechSynthesis || !articleData) {
+      console.error('❌ Speech synthesis 또는 기사 데이터 없음');
+      return;
+    }
+
+    setIsTTSLoading(true); // 로딩 시작
+
+    if (!ttsController || !ttsController.isRunning()) {
+      console.warn('⚠️ TTS 컨트롤러가 없거나 중지된 상태입니다. 새로 생성합니다.');
+      const newController = window.createTTSController ? window.createTTSController() : null;
+      if (!newController) {
+        console.error('❌ TTS 컨트롤러 생성 실패');
+        setIsTTSLoading(false);
+        return;
+      }
+      setTtsController(newController);
+      // 새 컨트롤러 생성 후 재귀 호출
+      setTimeout(() => startTTS(), 50);
       return;
     }
 
@@ -350,75 +496,115 @@ const ArticleDetail = () => {
     }
 
     const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
+    console.log('🔍 현재 레벨:', selectedLevel);
+    console.log('🔍 기사 데이터:', articleData?.levels);
+    console.log('🔍 현재 콘텐츠:', currentContent.substring(0, 100), '...');
+    
     const sentences = currentContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
     if (sentences.length === 0) {
-      console.warn('⚠️ 재생할 문장이 없습니다');
+      console.warn('⚠️ 재생할 문장이 없습니다. 레벨:', selectedLevel);
+      console.warn('⚠️ 전체 콘텐츠:', currentContent);
+      setIsTTSLoading(false);
       return;
     }
-
-    // 음성 목록 사전 로드 (첫 접속 문제 해결)
-    const englishVoice = await getEnglishVoice();
     
-    let currentIndex = 0;
+    console.log('📝 문장 개수:', sentences.length);
 
-    const playNextSentence = async () => {
-      // 컨트롤러가 중지되었는지 확인
-      if (!ttsController.isRunning() || currentIndex >= sentences.length) {
-        setIsTTSPlaying(false);
-        setCurrentSentence(-1);
-        setCurrentUtterance(null);
-        return;
-      }
+    // TTS 상태를 미리 설정
+    setIsTTSPlaying(true);
+    setIsTTSLoading(false); // 로딩 완료
+    setCurrentSentence(0);
+
+    try {
+      // 음성 목록을 완전히 로드될 때까지 대기 (첫 접속 문제 해결)
+      console.log('🔊 음성 로딩 시작...');
+      const englishVoice = await getEnglishVoice();
+      console.log('✅ 음성 로딩 완료:', englishVoice ? englishVoice.name : 'fallback');
       
-      const sentence = sentences[currentIndex].trim();
-      if (!sentence) {
-        currentIndex++;
-        setTimeout(playNextSentence, 100);
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(sentence);
-      utterance.rate = ttsSpeed;
-      utterance.volume = 1.0;
-      utterance.pitch = 1.0;
+      // 음성이 로드된 후 약간의 추가 대기 (안정성 향상)
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // 사전 로드된 음성 사용
-      if (englishVoice) {
-        utterance.voice = englishVoice;
-        utterance.lang = englishVoice.lang;
-      } else {
-        utterance.lang = 'en-US';
-      }
+      let currentIndex = 0;
 
-      utterance.onstart = () => {
-        if (ttsController.isRunning()) {
-          setCurrentSentence(currentIndex);
+      const playNextSentence = () => {
+        // 컨트롤러가 중지되었는지 확인
+        if (!ttsController.isRunning() || currentIndex >= sentences.length) {
+          console.log('🛑 TTS 종료:', !ttsController.isRunning() ? '컨트롤러 중지' : '모든 문장 완료');
+          setIsTTSPlaying(false);
+          setCurrentSentence(-1);
+          setCurrentUtterance(null);
+          return;
         }
-      };
-      
-      utterance.onend = () => {
-        if (ttsController.isRunning()) {
+        
+        const sentence = sentences[currentIndex].trim();
+        if (!sentence) {
           currentIndex++;
           setTimeout(playNextSentence, 50);
+          return;
+        }
+
+        console.log(`📢 문장 ${currentIndex + 1}/${sentences.length}: ${sentence.substring(0, 50)}...`);
+
+        const utterance = new SpeechSynthesisUtterance(sentence);
+        utterance.rate = ttsSpeed;
+        utterance.volume = 1.0;
+        utterance.pitch = 1.0;
+        
+        // 로드된 음성 사용
+        if (englishVoice) {
+          utterance.voice = englishVoice;
+          utterance.lang = englishVoice.lang;
+        } else {
+          utterance.lang = 'en-US';
+        }
+
+        utterance.onstart = () => {
+          if (ttsController.isRunning()) {
+            console.log(`▶️ 문장 ${currentIndex + 1} 재생 시작`);
+            setCurrentSentence(currentIndex);
+          }
+        };
+        
+        utterance.onend = () => {
+          if (ttsController.isRunning()) {
+            console.log(`⏹️ 문장 ${currentIndex + 1} 재생 완료`);
+            currentIndex++;
+            // 다음 문장 재생 전 짧은 대기
+            setTimeout(playNextSentence, 200);
+          }
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('❌ TTS Error:', event.error, '문장:', currentIndex + 1);
+          if (ttsController.isRunning()) {
+            currentIndex++;
+            setTimeout(playNextSentence, 500);
+          }
+        };
+        
+        ttsController.currentUtterance = utterance;
+        setCurrentUtterance(utterance);
+        
+        // speechSynthesis가 준비되었는지 확인 후 재생
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+        } else {
+          window.speechSynthesis.speak(utterance);
         }
       };
       
-      utterance.onerror = (event) => {
-        console.error('TTS Error:', event.error);
-        if (ttsController.isRunning()) {
-          currentIndex++;
-          setTimeout(playNextSentence, 100);
-        }
-      };
+      // 첫 번째 문장 재생 시작
+      playNextSentence();
       
-      ttsController.currentUtterance = utterance;
-      setCurrentUtterance(utterance);
-      window.speechSynthesis.speak(utterance);
-    };
-    
-    setIsTTSPlaying(true);
-    playNextSentence();
+    } catch (error) {
+      console.error('❌ TTS 시작 실패:', error);
+      setIsTTSPlaying(false);
+      setIsTTSLoading(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
+    }
   };
 
   const handleTTS = () => {
@@ -431,6 +617,7 @@ const ArticleDetail = () => {
         window.speechSynthesis.cancel();
       }
       setIsTTSPlaying(false);
+      setIsTTSLoading(false);
       setCurrentSentence(-1);
       setCurrentUtterance(null);
     } else {
@@ -440,25 +627,35 @@ const ArticleDetail = () => {
   };
 
   const handleSpeedChange = (newSpeed) => {
+    console.log('⚡ 배속 변경:', ttsSpeed, '→', newSpeed);
     setTtsSpeed(newSpeed);
     
     // 재생 중이면 현재 위치에서 새 속도로 재시작
-    if (isTTSPlaying) {
-      if (ttsController) {
-        ttsController.stop();
-      }
+    if (isTTSPlaying && ttsController) {
+      console.log('🔄 재생 중 배속 변경 - TTS 재시작');
+      
+      // 기존 재생 중지 (컨트롤러는 유지)
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
       
-      setTimeout(() => {
-        startTTS();
-      }, 100);
+      // 컨트롤러를 중지하지 않고 새 컨트롤러 생성
+      const newController = window.createTTSController ? window.createTTSController() : null;
+      if (newController) {
+        setTtsController(newController);
+        
+        setTimeout(() => {
+          // 새 속도로 TTS 재시작
+          startTTSWithSpeed(newSpeed, newController);
+        }, 100);
+      }
     }
   };
 
   const handleLevelChange = (level) => {
-    // TTS 중지
+    console.log('🔄 레벨 변경:', selectedLevel, '→', level);
+    
+    // 기존 TTS 중지
     if (ttsController) {
       ttsController.stop();
     }
@@ -466,9 +663,19 @@ const ArticleDetail = () => {
       window.speechSynthesis.cancel();
     }
     setIsTTSPlaying(false);
+    setIsTTSLoading(false);
     setCurrentSentence(-1);
     setCurrentUtterance(null);
     setSelectedLevel(level);
+    
+    // 새로운 TTS 컨트롤러 생성 (레벨 변경 후)
+    setTimeout(() => {
+      if (window.createTTSController) {
+        const newController = window.createTTSController();
+        setTtsController(newController);
+        console.log('✅ 새 TTS 컨트롤러 생성 완료');
+      }
+    }, 100);
   };
 
   const theme = useTheme();
@@ -534,7 +741,7 @@ const ArticleDetail = () => {
     };
 
     return {
-      // 터치 이벤트
+      // 터치 이벤트 (passive event listener 문제 해결)
       onTouchStart: (e) => {
         // 단어 클릭 요소인지 확인
         if (e.target.classList.contains('clickable-word-span') || 
@@ -547,7 +754,7 @@ const ArticleDetail = () => {
       },
       onTouchMove: (e) => {
         if (swipeState.isDragging) {
-          e.preventDefault();
+          // passive event listener에서는 preventDefault 사용 안 함
           handleMove(e.touches[0].clientX);
         }
       },
@@ -559,7 +766,7 @@ const ArticleDetail = () => {
             e.target.closest('.highlighted-word')) {
           return;
         }
-        e.preventDefault();
+        // passive event listener에서는 preventDefault 사용 안 함
         handleEnd();
       },
       
@@ -1196,8 +1403,19 @@ const ArticleDetail = () => {
           {/* 새로운 컨트롤 레이아웃 */}
           <ControlsSection>
             <PlaybackControls>
-              <PlayButton onClick={handleTTS} $isPlaying={isTTSPlaying}>
-                {isTTSPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+              <PlayButton 
+                onClick={handleTTS} 
+                $isPlaying={isTTSPlaying}
+                $isLoading={isTTSLoading}
+                disabled={isTTSLoading}
+              >
+                {isTTSLoading ? (
+                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                ) : isTTSPlaying ? (
+                  <PauseIcon />
+                ) : (
+                  <PlayArrowIcon />
+                )}
               </PlayButton>
               
               <SpeedControlGroup>
@@ -1547,21 +1765,29 @@ const PlayButton = styled.button`
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: ${props => props.$isPlaying ? '#1976d2' : 'linear-gradient(135deg, #1976d2, #42a5f5)'};
+  background: ${props => 
+    props.$isLoading ? '#ccc' :
+    props.$isPlaying ? '#1976d2' : 'linear-gradient(135deg, #1976d2, #42a5f5)'
+  };
   color: white;
   border: none;
   border-radius: 50%;
-  cursor: pointer;
+  cursor: ${props => props.$isLoading ? 'not-allowed' : 'pointer'};
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  opacity: ${props => props.$isLoading ? 0.7 : 1};
   
   &:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
+    transform: ${props => props.$isLoading ? 'none' : 'scale(1.1)'};
+    box-shadow: ${props => props.$isLoading ? '0 4px 12px rgba(25, 118, 210, 0.3)' : '0 6px 20px rgba(25, 118, 210, 0.4)'};
   }
   
   &:active {
-    transform: scale(0.95);
+    transform: ${props => props.$isLoading ? 'none' : 'scale(0.95)'};
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
   }
 `;
 
@@ -1906,7 +2132,7 @@ const SwipeCardContainer = styled.div`
   align-items: center;
   justify-content: center;
   user-select: none;
-  touch-action: pan-y;
+  touch-action: manipulation; /* passive event listener 호환을 위한 변경 */
 
   /* Desktop styles */
   height: 700px;
@@ -1917,7 +2143,7 @@ const SwipeCardContainer = styled.div`
     min-height: 500px;
     height: auto;
     overflow: hidden;
-    touch-action: pan-y;
+    touch-action: manipulation; /* 수직 스크롤 허용, 수평 스와이프는 JavaScript로 처리 */
   }
 `;
 

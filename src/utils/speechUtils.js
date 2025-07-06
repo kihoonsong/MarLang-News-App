@@ -5,64 +5,111 @@ export const isSpeechSynthesisSupported = () => {
   return 'speechSynthesis' in window;
 };
 
-// 사용 가능한 음성 목록 가져오기
+// 사용 가능한 음성 목록 가져오기 (안정성 개선)
 export const getAvailableVoices = () => {
-  if (!isSpeechSynthesisSupported()) return [];
+  if (!isSpeechSynthesisSupported()) {
+    console.warn('⚠️ Speech Synthesis가 지원되지 않습니다');
+    return Promise.resolve([]);
+  }
   
   return new Promise((resolve) => {
     let voices = speechSynthesis.getVoices();
     
     if (voices.length > 0) {
+      console.log('✅ 음성 목록 즉시 로드됨:', voices.length, '개');
       resolve(voices);
-    } else {
-      // 일부 브라우저에서는 비동기적으로 로드됨
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const checkVoices = () => {
-        voices = speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          resolve(voices);
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(checkVoices, 100);
-        } else {
-          // 최대 재시도 후에도 음성이 없으면 빈 배열 반환
-          console.warn('Unable to load voices after multiple attempts');
-          resolve([]);
-        }
-      };
-      
-      speechSynthesis.onvoiceschanged = checkVoices;
-      // 즉시 체크도 한 번 더 수행
-      setTimeout(checkVoices, 100);
+      return;
     }
+    
+    // 일부 브라우저에서는 비동기적으로 로드됨
+    let attempts = 0;
+    const maxAttempts = 20; // 재시도 횟수 증가
+    const retryInterval = 150; // 재시도 간격 증가
+    
+    const checkVoices = () => {
+      voices = speechSynthesis.getVoices();
+      console.log(`🔄 음성 로딩 시도 ${attempts + 1}/${maxAttempts}, 발견된 음성: ${voices.length}개`);
+      
+      if (voices.length > 0) {
+        console.log('✅ 음성 목록 로드 완료:', voices.length, '개');
+        // onvoiceschanged 이벤트 리스너 제거
+        speechSynthesis.onvoiceschanged = null;
+        resolve(voices);
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(checkVoices, retryInterval);
+      } else {
+        // 최대 재시도 후에도 음성이 없으면 빈 배열 반환
+        console.warn('⚠️ 음성 로딩 실패: 최대 재시도 횟수 초과');
+        speechSynthesis.onvoiceschanged = null;
+        resolve([]);
+      }
+    };
+    
+    // onvoiceschanged 이벤트 등록
+    speechSynthesis.onvoiceschanged = checkVoices;
+    
+    // 즉시 체크 수행 (더 긴 대기 시간)
+    setTimeout(checkVoices, 200);
   });
 };
 
-// 영어 발음에 적합한 음성 찾기
+// 영어 발음에 적합한 음성 찾기 (안정성 개선)
 export const getEnglishVoice = async () => {
-  const voices = await getAvailableVoices();
-  
-  // 우선순위: 미국 영어 -> 영국 영어 -> 기타 영어 -> 기본값
-  const preferredVoices = [
-    'en-US',
-    'en-GB', 
-    'en-AU',
-    'en-CA',
-    'en'
-  ];
-  
-  for (const langCode of preferredVoices) {
-    const voice = voices.find(v => 
-      v.lang.startsWith(langCode) && 
-      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('male'))
-    );
-    if (voice) return voice;
+  try {
+    const voices = await getAvailableVoices();
+    
+    if (!voices || voices.length === 0) {
+      console.warn('⚠️ 사용 가능한 음성이 없습니다');
+      return null;
+    }
+    
+    // 우선순위: 미국 영어 -> 영국 영어 -> 기타 영어 -> 기본값
+    const preferredVoices = [
+      'en-US',
+      'en-GB', 
+      'en-AU',
+      'en-CA',
+      'en'
+    ];
+    
+    // 1단계: 선호 언어와 성별 조건 모두 만족하는 음성 찾기
+    for (const langCode of preferredVoices) {
+      const voice = voices.find(v => 
+        v.lang.startsWith(langCode) && 
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('male'))
+      );
+      if (voice) {
+        console.log('✅ 선호 음성 발견:', voice.name, voice.lang);
+        return voice;
+      }
+    }
+    
+    // 2단계: 선호 언어만 만족하는 음성 찾기
+    for (const langCode of preferredVoices) {
+      const voice = voices.find(v => v.lang.startsWith(langCode));
+      if (voice) {
+        console.log('✅ 대체 음성 발견:', voice.name, voice.lang);
+        return voice;
+      }
+    }
+    
+    // 3단계: 어떤 영어 음성이든 찾기
+    const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().includes('en'));
+    if (anyEnglishVoice) {
+      console.log('✅ 일반 영어 음성 발견:', anyEnglishVoice.name, anyEnglishVoice.lang);
+      return anyEnglishVoice;
+    }
+    
+    // 4단계: 기본 음성 사용
+    const defaultVoice = voices[0];
+    console.log('⚠️ 기본 음성 사용:', defaultVoice ? defaultVoice.name : 'none');
+    return defaultVoice || null;
+    
+  } catch (error) {
+    console.error('❌ getEnglishVoice 오류:', error);
+    return null;
   }
-  
-  // 대안: 첫 번째 영어 음성
-  return voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
 };
 
 // 텍스트 읽기 함수

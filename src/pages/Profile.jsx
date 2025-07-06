@@ -11,7 +11,6 @@ import ProfileHeader from '../components/Profile/ProfileHeader';
 import LearningStats from '../components/Profile/LearningStats';
 import QuickActions from '../components/Profile/QuickActions';
 import RecentActivity from '../components/Profile/RecentActivity';
-import ProfileSettings from '../components/Profile/ProfileSettings';
 
 // 다국어 번역 데이터
 const translations = {
@@ -26,16 +25,7 @@ const translations = {
     quickActions: '🚀 빠른 액션',
     viewWordbook: '📚 단어장 보기',
     viewLikedArticles: '❤️ 좋아요 기사',
-    adminDashboard: '🔧 관리자 대시보드',
-    settings: '⚙️ 설정',
-    interfaceLanguage: '🌐 인터페이스 언어',
-    interfaceLanguageDesc: '앱 화면 표시 언어',
-    translationLanguage: '🌍 번역 언어',
-    translationLanguageDesc: '단어 클릭 시 번역 언어',
-    ttsSpeed: '⚡ TTS 속도',
-    autoSaveWords: '🔄 자동 단어 저장',
-    autoPlay: '🔊 자동 재생',
-    highlightSavedWords: '🎨 저장된 단어 하이라이트'
+    adminDashboard: '🔧 관리자 대시보드'
   },
   en: {
     admin: '👑 Administrator',
@@ -48,29 +38,10 @@ const translations = {
     quickActions: '🚀 Quick Actions',
     viewWordbook: '📚 View Wordbook',
     viewLikedArticles: '❤️ Liked Articles',
-    adminDashboard: '🔧 Admin Dashboard',
-    settings: '⚙️ Settings',
-    interfaceLanguage: '🌐 Interface Language',
-    interfaceLanguageDesc: 'App display language',
-    translationLanguage: '🌍 Translation Language',
-    translationLanguageDesc: 'Word translation language',
-    ttsSpeed: '⚡ TTS Speed',
-    autoSaveWords: '🔄 Auto Save Words',
-    autoPlay: '🔊 Auto Play',
-    highlightSavedWords: '🎨 Highlight Saved Words'
+    adminDashboard: '🔧 Admin Dashboard'
   }
 };
 
-// 언어 옵션
-const languageOptions = [
-  { code: 'ko', name: '한국어', flag: '🇰🇷' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
-];
 
 const Profile = () => {
   const { user, logout, isAdmin, isAuthenticated, signInWithGoogle } = useAuth();
@@ -85,7 +56,6 @@ const Profile = () => {
   
   const [recentWords, setRecentWords] = useState([]);
   const [recentArticles, setRecentArticles] = useState([]);
-  const [saveMessage, setSaveMessage] = useState('');
 
   // 현재 언어의 번역 텍스트
   const currentTranslations = translations[userSettings?.language || 'en'];
@@ -127,12 +97,6 @@ const Profile = () => {
     );
   }
 
-  // 설정 변경 핸들러
-  const handleSettingChange = (key, value) => {
-    updateSettings({ [key]: value });
-    setSaveMessage('✅ 저장됨');
-    setTimeout(() => setSaveMessage(''), 2000);
-  };
 
   // 로그아웃 핸들러
   const handleLogout = async () => {
@@ -185,13 +149,6 @@ const Profile = () => {
               formatTimeAgo={formatTimeAgo}
             />
             
-            <ProfileSettings 
-              userSettings={userSettings}
-              translations={currentTranslations}
-              languageOptions={languageOptions}
-              saveMessage={saveMessage}
-              onSettingChange={handleSettingChange}
-            />
           </ProfileContainer>
         </PageContainer>
       </MobileContentWrapper>
