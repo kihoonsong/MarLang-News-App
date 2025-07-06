@@ -16,10 +16,26 @@ export const getAvailableVoices = () => {
       resolve(voices);
     } else {
       // 일부 브라우저에서는 비동기적으로 로드됨
-      speechSynthesis.onvoiceschanged = () => {
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const checkVoices = () => {
         voices = speechSynthesis.getVoices();
-        resolve(voices);
+        if (voices.length > 0) {
+          resolve(voices);
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(checkVoices, 100);
+        } else {
+          // 최대 재시도 후에도 음성이 없으면 빈 배열 반환
+          console.warn('Unable to load voices after multiple attempts');
+          resolve([]);
+        }
       };
+      
+      speechSynthesis.onvoiceschanged = checkVoices;
+      // 즉시 체크도 한 번 더 수행
+      setTimeout(checkVoices, 100);
     }
   });
 };
@@ -161,6 +177,7 @@ export const loadVoiceSettings = () => {
 // 음성 상태 관리
 let currentUtterance = null;
 let isPlaying = false;
+let globalTTSController = null;
 
 export const getCurrentPlayingStatus = () => isPlaying;
 
@@ -169,11 +186,44 @@ export const stopCurrentSpeech = () => {
     speechSynthesis.cancel();
     isPlaying = false;
   }
+  
+  // 전역 컨트롤러가 있으면 중지
+  if (globalTTSController) {
+    globalTTSController.stop();
+    globalTTSController = null;
+  }
 };
+
+// TTS 컨트롤러 클래스
+class TTSController {
+  constructor() {
+    this.isActive = true;
+    this.currentUtterance = null;
+  }
+  
+  stop() {
+    this.isActive = false;
+    if (this.currentUtterance) {
+      speechSynthesis.cancel();
+      this.currentUtterance = null;
+    }
+  }
+  
+  isRunning() {
+    return this.isActive;
+  }
+}
 
 // 전역 함수로 노출 (App.jsx TTSManager에서 사용)
 if (typeof window !== 'undefined') {
   window.stopCurrentSpeech = stopCurrentSpeech;
+  window.createTTSController = () => {
+    if (globalTTSController) {
+      globalTTSController.stop();
+    }
+    globalTTSController = new TTSController();
+    return globalTTSController;
+  };
 }
 
 // 향상된 발음 함수 (상태 관리 포함)

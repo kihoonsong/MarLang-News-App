@@ -22,7 +22,7 @@ import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
-import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported } from '../utils/speechUtils';
+import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -298,13 +298,23 @@ const ArticleDetail = () => {
 
   // saveHighlights 함수 제거 - 이제 Firebase에서 단어장 데이터로 하이라이트 관리
 
+  // TTS 컨트롤러 상태
+  const [ttsController, setTtsController] = useState(null);
+
   // ArticleDetail 전용 TTS 설정
   useEffect(() => {
+    // TTS 컨트롤러 생성
+    const controller = window.createTTSController ? window.createTTSController() : null;
+    setTtsController(controller);
+    
     // 컴포넌트별 TTS 중지 함수
     const stopArticleTTS = () => {
       try {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+        if (controller) {
+          controller.stop();
+        }
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
         }
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
@@ -315,13 +325,12 @@ const ArticleDetail = () => {
       }
     };
 
-    // 전역 TTS 중지 함수에 등록 (전역 관리자와 연동)
+    // 전역 TTS 중지 함수에 등록
     window.stopCurrentTTS = stopArticleTTS;
 
     // 컴포넌트 언마운트 시 즉시 TTS 중지
     return () => {
       stopArticleTTS();
-      // 전역 함수 정리
       if (window.stopCurrentTTS === stopArticleTTS) {
         delete window.stopCurrentTTS;
       }
@@ -329,9 +338,9 @@ const ArticleDetail = () => {
   }, []);
 
   // TTS 시작 함수 (더 안전하게)
-  const startTTS = () => {
-    if (!window.speechSynthesis || !articleData) {
-      console.error('❌ Speech synthesis 또는 기사 데이터 없음');
+  const startTTS = async () => {
+    if (!window.speechSynthesis || !articleData || !ttsController) {
+      console.error('❌ Speech synthesis, 기사 데이터 또는 TTS 컨트롤러 없음');
       return;
     }
 
@@ -348,12 +357,14 @@ const ArticleDetail = () => {
       return;
     }
 
+    // 음성 목록 사전 로드 (첫 접속 문제 해결)
+    const englishVoice = await getEnglishVoice();
+    
     let currentIndex = 0;
-    let isPlaying = true;
 
     const playNextSentence = async () => {
-      if (!isPlaying || currentIndex >= sentences.length) {
-        // 재생 완료
+      // 컨트롤러가 중지되었는지 확인
+      if (!ttsController.isRunning() || currentIndex >= sentences.length) {
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
         setCurrentUtterance(null);
@@ -372,28 +383,22 @@ const ArticleDetail = () => {
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
       
-      // Siri 음성 우선 선택 (단어장과 동일한 로직)
-      try {
-        const englishVoice = await getEnglishVoice();
-        if (englishVoice) {
-          utterance.voice = englishVoice;
-          utterance.lang = englishVoice.lang;
-        } else {
-          utterance.lang = 'en-US'; // 기본값
-        }
-      } catch (error) {
-        console.warn('Failed to get English voice:', error);
+      // 사전 로드된 음성 사용
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+        utterance.lang = englishVoice.lang;
+      } else {
         utterance.lang = 'en-US';
       }
 
       utterance.onstart = () => {
-        if (isPlaying) {
+        if (ttsController.isRunning()) {
           setCurrentSentence(currentIndex);
-      }
+        }
       };
       
       utterance.onend = () => {
-        if (isPlaying) {
+        if (ttsController.isRunning()) {
           currentIndex++;
           setTimeout(playNextSentence, 50);
         }
@@ -401,41 +406,17 @@ const ArticleDetail = () => {
       
       utterance.onerror = (event) => {
         console.error('TTS Error:', event.error);
-        if (isPlaying) {
+        if (ttsController.isRunning()) {
           currentIndex++;
           setTimeout(playNextSentence, 100);
         }
       };
       
+      ttsController.currentUtterance = utterance;
       setCurrentUtterance(utterance);
       window.speechSynthesis.speak(utterance);
     };
     
-    // TTS 중지 함수 등록 (개선된 버전)
-    const stopTTS = () => {
-      try {
-        isPlaying = false;
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-        }
-          setIsTTSPlaying(false);
-          setCurrentSentence(-1);
-          setCurrentUtterance(null);
-        console.log('🔇 TTS 재생 중지됨');
-      } catch (error) {
-        console.error('TTS 중지 중 오류:', error);
-        }
-      };
-      
-    // 전역 및 컴포넌트별 중지 함수 모두 등록
-    window.stopCurrentTTS = stopTTS;
-    if (typeof window.globalStopTTS === 'function') {
-      window.stopCurrentTTS = () => {
-        stopTTS();
-        // 전역 중지도 함께 호출하여 다른 TTS도 중지
-        window.globalStopTTS();
-    };
-    }
     setIsTTSPlaying(true);
     playNextSentence();
   };
@@ -443,16 +424,15 @@ const ArticleDetail = () => {
   const handleTTS = () => {
     if (isTTSPlaying) {
       // TTS 중지
-      if (window.stopCurrentTTS) {
-        window.stopCurrentTTS();
-      } else {
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-        }
-        setIsTTSPlaying(false);
-        setCurrentSentence(-1);
-        setCurrentUtterance(null);
+      if (ttsController) {
+        ttsController.stop();
       }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setIsTTSPlaying(false);
+      setCurrentSentence(-1);
+      setCurrentUtterance(null);
     } else {
       // TTS 시작
       startTTS();
@@ -464,25 +444,30 @@ const ArticleDetail = () => {
     
     // 재생 중이면 현재 위치에서 새 속도로 재시작
     if (isTTSPlaying) {
-      const currentIndex = currentSentence;
-      if (window.stopCurrentTTS) {
-        window.stopCurrentTTS();
+      if (ttsController) {
+        ttsController.stop();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
       
       setTimeout(() => {
-        if (currentIndex >= 0) {
-          // 현재 문장부터 다시 시작하는 간단한 로직
-          startTTS();
-        }
+        startTTS();
       }, 100);
     }
   };
 
   const handleLevelChange = (level) => {
     // TTS 중지
-    if (window.stopCurrentTTS) {
-      window.stopCurrentTTS();
+    if (ttsController) {
+      ttsController.stop();
     }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsTTSPlaying(false);
+    setCurrentSentence(-1);
+    setCurrentUtterance(null);
     setSelectedLevel(level);
   };
 

@@ -49,10 +49,23 @@ const TTSManager = () => {
         // 진행 중인 발화를 즉시 중단
         window.speechSynthesis.cancel();
       }
+      
+      // 전역 TTS 중지 함수 호출
+      if (window.stopCurrentSpeech) {
+        window.stopCurrentSpeech();
+      }
+      
+      // 다른 컴포넌트에서 실행 중인 TTS도 중지
+      if (window.stopCurrentTTS) {
+        window.stopCurrentTTS();
+      }
     };
 
     // location이 변경될 때마다 TTS를 중지
     forceStopTTS();
+    
+    // 전역 중지 함수 등록
+    window.globalStopTTS = forceStopTTS;
 
     // 컴포넌트가 언마운트될 때도 TTS 중지
     return () => {
