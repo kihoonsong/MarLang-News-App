@@ -116,7 +116,7 @@ const ArticleDetail = () => {
         setLevels(generatedLevels);
         
         // Record view
-        addViewRecord(article.id, article.category);
+        addViewRecord(article);
         updateActivityTime();
       } else {
         console.error('기사를 찾을 수 없습니다:', id);
@@ -214,7 +214,7 @@ const ArticleDetail = () => {
 
   // Get current content for TTS
   const getCurrentContent = () => {
-    if (!levels[selectedLevel]?.content) return '';
+    if (!levels || !levels[selectedLevel] || !levels[selectedLevel].content) return '';
     return levels[selectedLevel].content;
   };
 

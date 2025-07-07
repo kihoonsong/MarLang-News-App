@@ -87,7 +87,7 @@ const ArticleContent = ({
   isTTSPlaying, 
   onWordClick 
 }) => {
-  if (!levels || !levels[selectedLevel]) {
+  if (!levels || !levels[selectedLevel] || !levels[selectedLevel].content) {
     return (
       <ContentContainer>
         <Typography variant="body1" color="text.secondary" align="center">

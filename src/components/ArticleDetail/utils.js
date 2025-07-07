@@ -8,6 +8,16 @@ export const generateLevelsFromContent = (article) => {
   console.log('🔧 원본 content 타입:', typeof article.content);
   console.log('🔧 원본 content:', article.content);
   
+  // 안전한 null 체크 추가
+  if (!article) {
+    console.error('❌ article 객체가 없습니다');
+    return {
+      1: { title: 'Level 1 - Beginner', content: 'No content available' },
+      2: { title: 'Level 2 - Intermediate', content: 'No content available' },
+      3: { title: 'Level 3 - Advanced', content: 'No content available' }
+    };
+  }
+
   // 새로운 3개 버전 구조를 그대로 사용
   if (article.content && typeof article.content === 'object') {
     const levels = {
