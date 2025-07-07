@@ -14,7 +14,7 @@ const ActionsContainer = styled(Box)`
   justify-content: space-between;
   align-items: center;
   padding: 20px 0;
-  border-top: 1px solid ${props => props.theme.palette.divider};
+  border-top: 1px solid ${props => props.theme?.palette?.divider || '#e0e0e0'};
   margin-top: 32px;
   gap: 16px;
   
@@ -48,17 +48,17 @@ const NavigationActions = styled(Box)`
 `;
 
 const LikeButton = styled(IconButton)`
-  color: ${props => props.$isLiked ? props.theme.palette.error.main : props.theme.palette.action.active};
+  color: ${props => props.$isLiked ? (props.theme?.palette?.error?.main || '#d32f2f') : (props.theme?.palette?.action?.active || '#666666')};
   transition: all 0.3s ease;
   
   &:hover {
-    color: ${props => props.theme.palette.error.main};
+    color: ${props => props.theme?.palette?.error?.main || '#d32f2f'};
     transform: scale(1.1);
   }
 `;
 
 const ShareButton = styled(IconButton)`
-  color: ${props => props.theme.palette.primary.main};
+  color: ${props => props.theme?.palette?.primary?.main || '#1976d2'};
   transition: all 0.3s ease;
   
   &:hover {

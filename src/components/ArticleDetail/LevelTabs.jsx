@@ -3,9 +3,9 @@ import styled from 'styled-components';
 import { Tabs, Tab, Box, Chip, Typography } from '@mui/material';
 
 const LevelTabsContainer = styled(Box)`
-  border-bottom: 1px solid ${props => props.theme.palette.divider};
+  border-bottom: 1px solid ${props => props.theme?.palette?.divider || '#e0e0e0'};
   margin-bottom: 24px;
-  background: ${props => props.theme.palette.background.paper};
+  background: ${props => props.theme?.palette?.background?.paper || '#ffffff'};
   border-radius: 12px 12px 0 0;
   overflow: hidden;
 `;

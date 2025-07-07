@@ -21,13 +21,13 @@ const WordHeader = styled(Box)`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  border-bottom: 1px solid ${props => props.theme.palette.divider};
+  border-bottom: 1px solid ${props => props.theme?.palette?.divider || '#e0e0e0'};
   padding-bottom: 12px;
 `;
 
 const WordTitle = styled(Typography)`
   font-weight: 600;
-  color: ${props => props.theme.palette.primary.main};
+  color: ${props => props.theme?.palette?.primary?.main || '#1976d2'};
   font-size: 1.2rem;
 `;
 
@@ -53,10 +53,10 @@ const TranslationText = styled(Typography)`
 `;
 
 const ExampleText = styled(Typography)`
-  background: ${props => props.theme.palette.grey[100]};
+  background: ${props => props.theme?.palette?.grey?.[100] || '#f5f5f5'};
   padding: 12px;
   border-radius: 8px;
-  border-left: 4px solid ${props => props.theme.palette.primary.main};
+  border-left: 4px solid ${props => props.theme?.palette?.primary?.main || '#1976d2'};
   margin: 8px 0;
   font-style: italic;
 `;
