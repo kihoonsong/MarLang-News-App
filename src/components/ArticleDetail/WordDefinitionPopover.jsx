@@ -38,7 +38,7 @@ const DefinitionSection = styled(Box)`
 const SectionTitle = styled(Typography)`
   font-weight: 600;
   margin-bottom: 8px;
-  color: ${props => props.theme.palette.text.primary};
+  color: ${props => props.theme?.palette?.text?.primary || '#000000'};
 `;
 
 const DefinitionText = styled(Typography)`
@@ -47,7 +47,7 @@ const DefinitionText = styled(Typography)`
 `;
 
 const TranslationText = styled(Typography)`
-  color: ${props => props.theme.palette.text.secondary};
+  color: ${props => props.theme?.palette?.text?.secondary || '#666666'};
   font-style: italic;
   line-height: 1.6;
 `;

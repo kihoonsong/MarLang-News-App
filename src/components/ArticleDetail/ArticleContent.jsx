@@ -5,7 +5,7 @@ import { Box, Typography } from '@mui/material';
 const ContentContainer = styled(Box)`
   line-height: 1.8;
   font-size: 1.1rem;
-  color: ${props => props.theme.palette.text.primary};
+  color: ${props => props.theme?.palette?.text?.primary || '#000000'};
   margin-bottom: 32px;
   
   @media (max-width: 768px) {

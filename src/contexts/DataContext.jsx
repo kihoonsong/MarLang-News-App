@@ -241,13 +241,25 @@ export const DataProvider = ({ children }) => {
   };
   
   const addViewRecord = async (articleData) => {
+    if (!articleData) {
+      console.error('❌ addViewRecord: articleData가 없습니다');
+      return;
+    }
+    
     const newRecord = {
-      articleId: articleData.id,
-      title: articleData.title,
-      category: articleData.category,
+      articleId: articleData.id || '',
+      title: articleData.title || '',
+      category: articleData.category || '',
       viewedAt: new Date().toISOString(),
-      summary: articleData.summary,
+      summary: articleData.summary || '',
     };
+    
+    // undefined 값 체크
+    if (!newRecord.articleId) {
+      console.error('❌ addViewRecord: articleId가 없습니다', articleData);
+      return;
+    }
+    
     const updatedRecords = [newRecord, ...viewRecords.filter(r => r.articleId !== articleData.id)].slice(0, 100);
     setViewRecords(updatedRecords);
     await saveData('viewRecords', updatedRecords);

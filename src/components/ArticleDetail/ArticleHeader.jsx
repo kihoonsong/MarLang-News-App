@@ -11,7 +11,7 @@ const ArticleTitle = styled(Typography)`
   font-weight: 700;
   margin-bottom: 16px;
   line-height: 1.3;
-  color: ${props => props.theme.palette.text.primary};
+  color: ${props => props.theme?.palette?.text?.primary || '#000000'};
   
   @media (max-width: 768px) {
     font-size: 1.5rem;
@@ -45,7 +45,7 @@ const SourceInfo = styled(Box)`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: ${props => props.theme.palette.text.secondary};
+  color: ${props => props.theme?.palette?.text?.secondary || '#666666'};
 `;
 
 const ArticleImage = styled.img`

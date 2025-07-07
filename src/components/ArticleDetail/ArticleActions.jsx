@@ -79,7 +79,7 @@ const NavButton = styled(Button)`
 
 const LikeCount = styled(Typography)`
   margin-left: 8px;
-  color: ${props => props.theme.palette.text.secondary};
+  color: ${props => props.theme?.palette?.text?.secondary || '#666666'};
   font-weight: 500;
 `;
 
