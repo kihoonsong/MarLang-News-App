@@ -460,18 +460,25 @@ class EnhancedNewsApiService {
     const baseContent = fullContent || summary || '';
     const sentences = baseContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
+    // 헬퍼 함수: 문장들을 연결하고 마침표 하나만 추가
+    const joinSentences = (sentenceArray) => {
+      if (sentenceArray.length === 0) return '';
+      const joined = sentenceArray.join('. ');
+      return joined + '.';
+    };
+    
     return {
       1: {
         title: 'Level 1 - Beginner',
-        content: this.simplifyContent(sentences.slice(0, 3).join('. ') + '.')
+        content: this.simplifyContent(joinSentences(sentences.slice(0, 3)))
       },
       2: {
         title: 'Level 2 - Intermediate', 
-        content: sentences.slice(0, 5).join('. ') + '.'
+        content: joinSentences(sentences.slice(0, 5))
       },
       3: {
         title: 'Level 3 - Advanced',
-        content: sentences.slice(0, 8).join('. ') + '.'
+        content: joinSentences(sentences.slice(0, 8))
       }
     };
   }
