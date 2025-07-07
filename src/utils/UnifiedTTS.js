@@ -266,13 +266,13 @@ class UnifiedTTS {
             speechSynthesis.cancel();
           }
           
-          // iOS에서 더 긴 지연 후 재시도
+          // iOS에서 초고속 재시도
           setTimeout(() => {
             if (this.isActive && this.isPlaying && !this.isPaused) {
               console.log(`🔄 [iOS] speechSynthesis 초기화 후 재시도`);
               this.playNextSentence();
             }
-          }, 500);
+          }, 100);
           return;
         }
         
@@ -317,8 +317,8 @@ class UnifiedTTS {
         console.log(`🔄 [${this.getPlatform()}] 기존 재생 중지 후 새 문장 시작 (speaking: ${speechSynthesis.speaking}, pending: ${speechSynthesis.pending})`);
         speechSynthesis.cancel();
         
-        // iOS에서는 cancel 후 완전히 정리될 때까지 더 오래 기다림
-        const waitTime = this.getPlatform() === 'iOS' ? 500 : 100;
+        // iOS에서는 cancel 후 초고속 정리
+        const waitTime = this.getPlatform() === 'iOS' ? 100 : 50;
         
         // iOS에서 speechSynthesis 상태가 완전히 정리될 때까지 기다림
         const waitForClear = () => {
@@ -348,8 +348,8 @@ class UnifiedTTS {
 
     // 백업 타이머 설정 (onend 이벤트 실패 대비)
     const expectedDuration = this.calculatePlayTime(sentence.text);
-    // iOS에서는 더 긴 백업 타이머 사용 (canceled 에러 대비)
-    const bufferTime = this.getPlatform() === 'iOS' ? 2000 : 1000;
+    // iOS에서는 조기 감지 타이머가 있으므로 백업 타이머 대폭 단축
+    const bufferTime = this.getPlatform() === 'iOS' ? 500 : 500;
     const timerDuration = expectedDuration + bufferTime;
     
     console.log(`⏰ [${this.getPlatform()}] 백업 타이머 설정: ${timerDuration}ms (예상: ${expectedDuration}ms + 여유: ${bufferTime}ms)`);
@@ -364,7 +364,7 @@ class UnifiedTTS {
     
     // iOS에서 조기 감지 타이머 (무음 재생 빠른 감지)
     if (this.getPlatform() === 'iOS') {
-      const earlyDetectionTime = 1500; // 1.5초 후 무음 재생 의심 (빠른 감지)
+      const earlyDetectionTime = 500; // 0.5초 후 무음 재생 의심 (초고속 감지)
       console.log(`🚨 [iOS] 조기 감지 타이머 설정: ${earlyDetectionTime}ms`);
       
       this.earlyDetectionTimer = setTimeout(() => {
@@ -394,13 +394,13 @@ class UnifiedTTS {
             this.currentUtterance = null;
           }
           
-          // 즉시 다음 문장 재시도
+          // 즉시 다음 문장 재시도 (초고속)
           setTimeout(() => {
             if (this.isActive && this.isPlaying && !this.isPaused) {
               console.log(`🔄 [iOS] 조기 감지 후 즉시 재시도`);
               this.playNextSentence();
             }
-          }, 100);
+          }, 50);
         }
       }, earlyDetectionTime);
     }
@@ -424,8 +424,8 @@ class UnifiedTTS {
     console.log(`➡️ [${this.getPlatform()}] 다음 문장으로 이동: ${this.currentIndex}/${this.sentences.length}`);
     
     if (this.currentIndex < this.sentences.length) {
-      // 모든 플랫폼에서 동일한 지연 시간 (데스크톱 방식 적용)
-      const delay = 100;
+      // 모바일에서 매우 빠른 전환 시간 (절반으로 단축)
+      const delay = this.getPlatform() === 'iOS' ? 25 : 50;
       console.log(`⏳ [${this.getPlatform()}] ${delay}ms 후 다음 문장 재생`);
       
       this.playTimer = setTimeout(() => {
