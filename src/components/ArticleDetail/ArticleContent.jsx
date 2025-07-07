@@ -5,7 +5,7 @@ import { Box, Typography } from '@mui/material';
 const ContentContainer = styled(Box)`
   line-height: 1.8;
   font-size: 1.1rem;
-  color: ${props => props.theme?.palette?.text?.primary || '#000000'};
+  color: ${props => props.theme.palette.text.primary};
   margin-bottom: 32px;
   
   @media (max-width: 768px) {
@@ -22,19 +22,19 @@ const StyledWordSpan = styled.span`
   display: inline;
   
   &:hover {
-    background-color: ${props => props.theme?.palette?.action?.hover || '#f5f5f5'};
+    background-color: ${props => props.theme.palette.action.hover};
   }
   
   ${props => props.$isHighlighted && `
-    background-color: ${props.theme?.palette?.primary?.main || '#1976d2'};
-    color: ${props.theme?.palette?.primary?.contrastText || '#ffffff'};
+    background-color: ${props.theme.palette.primary.main};
+    color: ${props.theme.palette.primary.contrastText};
     font-weight: 600;
     animation: pulse 1s ease-in-out;
   `}
   
   ${props => props.$isCurrentSentence && `
-    background-color: ${props.theme?.palette?.warning?.light || '#fff3cd'};
-    color: ${props.theme?.palette?.warning?.contrastText || '#856404'};
+    background-color: ${props.theme.palette.warning.light};
+    color: ${props.theme.palette.warning.contrastText};
     box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
   `}
   
@@ -47,11 +47,11 @@ const StyledWordSpan = styled.span`
 
 const SentenceContainer = styled.span`
   ${props => props.$isCurrentSentence && `
-    background: linear-gradient(120deg, ${props.theme?.palette?.primary?.light || '#bbdefb'}20 0%, ${props.theme?.palette?.primary?.light || '#bbdefb'}40 100%);
+    background: linear-gradient(120deg, ${props.theme.palette.primary.light}20 0%, ${props.theme.palette.primary.light}40 100%);
     border-radius: 8px;
     padding: 4px 8px;
     margin: 0 2px;
-    border-left: 4px solid ${props.theme?.palette?.primary?.main || '#1976d2'};
+    border-left: 4px solid ${props.theme.palette.primary.main};
     display: inline-block;
     animation: highlight 0.5s ease-in-out;
   `}

@@ -21,13 +21,13 @@ const WordHeader = styled(Box)`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  border-bottom: 1px solid ${props => props.theme?.palette?.divider || '#e0e0e0'};
+  border-bottom: 1px solid ${props => props.theme.palette.divider};
   padding-bottom: 12px;
 `;
 
 const WordTitle = styled(Typography)`
   font-weight: 600;
-  color: ${props => props.theme?.palette?.primary?.main || '#1976d2'};
+  color: ${props => props.theme.palette.primary.main};
   font-size: 1.2rem;
 `;
 
@@ -38,7 +38,7 @@ const DefinitionSection = styled(Box)`
 const SectionTitle = styled(Typography)`
   font-weight: 600;
   margin-bottom: 8px;
-  color: ${props => props.theme?.palette?.text?.primary || '#000000'};
+  color: ${props => props.theme.palette.text.primary};
 `;
 
 const DefinitionText = styled(Typography)`
@@ -47,16 +47,16 @@ const DefinitionText = styled(Typography)`
 `;
 
 const TranslationText = styled(Typography)`
-  color: ${props => props.theme?.palette?.text?.secondary || '#666666'};
+  color: ${props => props.theme.palette.text.secondary};
   font-style: italic;
   line-height: 1.6;
 `;
 
 const ExampleText = styled(Typography)`
-  background: ${props => props.theme?.palette?.grey?.[100] || '#f5f5f5'};
+  background: ${props => props.theme.palette.grey[100]};
   padding: 12px;
   border-radius: 8px;
-  border-left: 4px solid ${props => props.theme?.palette?.primary?.main || '#1976d2'};
+  border-left: 4px solid ${props => props.theme.palette.primary.main};
   margin: 8px 0;
   font-style: italic;
 `;

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
@@ -246,9 +247,10 @@ const PageWrapper = ({ children, pageName }) => {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <EnhancedToastProvider>
+      <MuiThemeProvider theme={theme}>
+        <StyledThemeProvider theme={theme}>
+          <CssBaseline />
+          <EnhancedToastProvider>
           <AuthProvider>
             <DataProvider>
               <ArticlesProvider>
@@ -377,7 +379,8 @@ function App() {
             </DataProvider>
           </AuthProvider>
         </EnhancedToastProvider>
-      </ThemeProvider>
+        </StyledThemeProvider>
+      </MuiThemeProvider>
     </ErrorBoundary>
   );
 }
