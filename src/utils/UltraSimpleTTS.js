@@ -82,27 +82,30 @@ class UltraSimpleTTS {
   }
 
   /**
-   * 문장의 예상 재생 시간 계산 (더 정확하게)
+   * 문장의 예상 재생 시간 계산 (모바일 최적화)
    */
   calculatePlayTime(text, rate = 0.8) {
     const words = text.split(/\s+/).length;
     
-    // 더 정확한 WPM 계산 (실제 TTS 속도 반영)
-    const baseWPM = 100; // 기본 WPM을 더 느리게 (실제 TTS 속도)
+    // 플랫폼별 WPM 최적화
+    const baseWPM = isMobile ? 80 : 100; // 모바일에서 더 느린 TTS 속도 반영
     const wordsPerMinute = baseWPM * rate;
     const timeInSeconds = (words / wordsPerMinute) * 60;
     
-    // 문자 수 기반 계산 (더 보수적)
-    const charBasedTime = text.length * 0.08; // 글자당 0.08초 (약간 줄임)
+    // 문자 수 기반 계산 (모바일에서 더 보수적)
+    const charMultiplier = isMobile ? 0.12 : 0.08; // 모바일에서 더 긴 시간
+    const charBasedTime = text.length * charMultiplier;
     const wordBasedTime = timeInSeconds;
     
     // 둘 중 더 긴 시간 사용
     const estimatedTime = Math.max(wordBasedTime, charBasedTime);
     
-    // 최소 3초, 최대 20초 (더 넉넉하게)
-    const finalTime = Math.max(Math.min(estimatedTime, 20), 3);
+    // 플랫폼별 최소/최대 시간 설정
+    const minTime = isMobile ? 4 : 3; // 모바일에서 더 긴 최소 시간
+    const maxTime = isMobile ? 30 : 20; // 모바일에서 더 긴 최대 시간
+    const finalTime = Math.max(Math.min(estimatedTime, maxTime), minTime);
     
-    console.log(`⏱️ 예상 재생 시간: ${finalTime.toFixed(1)}초 (${words}단어, ${text.length}글자)`);
+    console.log(`⏱️ [${isMobile ? 'Mobile' : 'Desktop'}] 예상 재생 시간: ${finalTime.toFixed(1)}초 (${words}단어, ${text.length}글자)`);
     return finalTime * 1000; // 밀리초로 변환
   }
 
@@ -188,24 +191,32 @@ class UltraSimpleTTS {
       utterance.lang = 'en-US';
     }
 
-    // 간단한 onend 이벤트 처리
-    utterance.onend = () => {
-      console.log(`✅ onend 이벤트: 문장 ${this.currentIndex + 1} 완료`);
-      
-      // 타이머들 정리
-      if (this.playTimer) {
-        clearTimeout(this.playTimer);
-        this.playTimer = null;
-      }
-      
-      // 상태 체크 후 다음 문장으로 이동
-      if (this.isActive && this.isPlaying && !this.isMoving) {
-        console.log('→ onend에서 다음 문장으로 이동');
-        this.moveToNextSentence(options);
-      } else {
-        console.log(`onend 다음 문장 이동 취소 - isActive: ${this.isActive}, isPlaying: ${this.isPlaying}, isMoving: ${this.isMoving}`);
-      }
-    };
+    // 모바일 환경에서는 onend 이벤트가 불안정하므로 조건부 처리
+    if (!isMobile) {
+      utterance.onend = () => {
+        console.log(`✅ onend 이벤트: 문장 ${this.currentIndex + 1} 완료`);
+        
+        // 타이머들 정리
+        if (this.playTimer) {
+          clearTimeout(this.playTimer);
+          this.playTimer = null;
+        }
+        
+        // 상태 체크 후 다음 문장으로 이동
+        if (this.isActive && this.isPlaying && !this.isMoving) {
+          console.log('→ onend에서 다음 문장으로 이동');
+          this.moveToNextSentence(options);
+        } else {
+          console.log(`onend 다음 문장 이동 취소 - isActive: ${this.isActive}, isPlaying: ${this.isPlaying}, isMoving: ${this.isMoving}`);
+        }
+      };
+    } else {
+      // 모바일에서는 onend 이벤트를 사용하지 않고 타이머에만 의존
+      console.log('📱 모바일 환경: onend 이벤트 비활성화, 타이머 기반 동작');
+      utterance.onend = () => {
+        console.log(`✅ [Mobile] onend 이벤트 무시: 문장 ${this.currentIndex + 1}`);
+      };
+    }
 
     utterance.onerror = (event) => {
       console.error(`❌ 문장 ${this.currentIndex + 1} 에러:`, event.error);
@@ -244,13 +255,14 @@ class UltraSimpleTTS {
         console.log('🔄 기존 재생 중지 후 새 문장 시작');
         speechSynthesis.cancel();
         
-        // 충분한 시간 대기 후 재생
+        // 플랫폼별 최적화된 대기 시간
+        const waitTime = isMobile ? 500 : 200; // 모바일에서 더 긴 대기
         setTimeout(() => {
           if (this.isActive && this.currentUtterance === utterance) {
-            console.log(`🎵 문장 ${this.currentIndex + 1} 재생 시작 (지연 후)`);
+            console.log(`🎵 문장 ${this.currentIndex + 1} 재생 시작 (${waitTime}ms 지연 후)`);
             speechSynthesis.speak(utterance);
           }
-        }, 200);
+        }, waitTime);
       } else {
         console.log(`🎵 문장 ${this.currentIndex + 1} 재생 시작 (즉시)`);
         speechSynthesis.speak(utterance);
@@ -263,16 +275,32 @@ class UltraSimpleTTS {
       return;
     }
 
-    // 안전한 백업 타이머 (onend 이벤트 실패 시에만)
+    // 플랫폼별 타이머 전략
     const expectedDuration = this.calculatePlayTime(sentence.text, utterance.rate);
-    this.playTimer = setTimeout(() => {
-      if (this.isActive && this.isPlaying && !this.isMoving) {
-        console.log(`⏰ 백업 타이머: 문장 ${this.currentIndex + 1} 완료 (onend 실패 추정)`);
-        this.moveToNextSentence(options);
-      } else {
-        console.log(`⏰ 백업 타이머 취소 - TTS 중지됨`);
-      }
-    }, expectedDuration + 500); // 예상 시간 + 500ms 여유
+    
+    if (isMobile) {
+      // 모바일: 주 타이머 (onend 이벤트 대신)
+      console.log(`📱 모바일 주 타이머 시작: ${expectedDuration}ms`);
+      this.playTimer = setTimeout(() => {
+        if (this.isActive && this.isPlaying && !this.isMoving) {
+          console.log(`⏰ [Mobile] 주 타이머: 문장 ${this.currentIndex + 1} 완료`);
+          this.moveToNextSentence(options);
+        } else {
+          console.log(`⏰ [Mobile] 주 타이머 취소 - TTS 중지됨`);
+        }
+      }, expectedDuration);
+    } else {
+      // 데스크톱: 백업 타이머 (onend 이벤트 실패 시)
+      const bufferTime = 500;
+      this.playTimer = setTimeout(() => {
+        if (this.isActive && this.isPlaying && !this.isMoving) {
+          console.log(`⏰ [Desktop] 백업 타이머: 문장 ${this.currentIndex + 1} 완료 (onend 실패 추정)`);
+          this.moveToNextSentence(options);
+        } else {
+          console.log(`⏰ [Desktop] 백업 타이머 취소 - TTS 중지됨`);
+        }
+      }, expectedDuration + bufferTime);
+    }
   }
 
   /**
@@ -311,8 +339,8 @@ class UltraSimpleTTS {
       // 즉시 다음 문장 재생 (지연 없음)
       this.isMoving = false; // 이동 플래그 해제
       
-      // 환경별 최적화된 지연 시간
-      const delay = isMobile ? 20 : 50; // 모바일에서 더 빠른 전환
+      // 환경별 최적화된 지연 시간 (모바일에서 더 긴 지연)
+      const delay = isMobile ? 300 : 100; // 모바일에서 충분한 전환 시간
       setTimeout(() => {
         if (this.isActive && this.isPlaying) {
           this.playNextSentence(options);
