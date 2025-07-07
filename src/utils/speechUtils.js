@@ -124,12 +124,8 @@ export const speakText = async (text, options = {}) => {
     return false;
   }
 
-  // 오프라인 상태 체크 (App.jsx TTSManager에서 제공)
-  if (typeof window.checkTTSAvailability === 'function') {
-    if (!window.checkTTSAvailability()) {
-      return false; // 오프라인 시 TTS 사용 중단
-    }
-  }
+  // 오프라인 상태에서도 로컬 TTS 허용 - 오프라인 차단 로직 제거
+  // Web Speech API의 로컬 음성 엔진은 오프라인에서도 동작 가능
 
   // 기존 음성 중단
   speechSynthesis.cancel();
