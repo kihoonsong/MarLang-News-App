@@ -43,7 +43,8 @@
       "Bash(cd:*)",
       "Bash(gcloud projects get-iam-policy:*)",
       "Bash(firebase projects:get-iam-policy:*)",
-      "Bash(gcloud auth:*)"
+      "Bash(gcloud auth:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }
