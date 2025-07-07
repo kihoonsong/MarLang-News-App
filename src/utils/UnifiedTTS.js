@@ -39,6 +39,8 @@ class UnifiedTTS {
     this.onResume = options.onResume || null;
     
     console.log('🎵 UnifiedTTS 초기화 - 플랫폼:', this.getPlatform());
+    console.log('🔍 모바일 감지:', isMobile, 'iOS:', isIOS, 'Android:', isAndroid);
+    console.log('🔍 User Agent:', navigator.userAgent);
     this.initializeVoice();
   }
 
@@ -134,8 +136,17 @@ class UnifiedTTS {
    * TTS 재생 시작
    */
   async play(text) {
+    console.log('🎯 [TTS] play 함수 시작 - 플랫폼:', this.getPlatform());
+    console.log('🎯 [TTS] speechSynthesis 지원:', !!window.speechSynthesis);
+    console.log('🎯 [TTS] 텍스트 길이:', text?.length);
+    
     if (!text || text.trim().length === 0) {
       console.warn('⚠️ 재생할 텍스트가 없습니다');
+      return false;
+    }
+
+    if (!window.speechSynthesis) {
+      console.error('❌ speechSynthesis를 지원하지 않는 브라우저');
       return false;
     }
 
@@ -172,8 +183,13 @@ class UnifiedTTS {
    * 다음 문장 재생 (핵심 로직)
    */
   playNextSentence() {
+    console.log(`🎬 [${this.getPlatform()}] playNextSentence 시작`);
+    console.log(`🔍 [${this.getPlatform()}] 상태 - isActive: ${this.isActive}, isPlaying: ${this.isPlaying}, isPaused: ${this.isPaused}`);
+    console.log(`🔍 [${this.getPlatform()}] 인덱스 - current: ${this.currentIndex}, total: ${this.sentences.length}`);
+    
     // 상태 확인
     if (!this.isActive || !this.isPlaying || this.isPaused || this.currentIndex >= this.sentences.length) {
+      console.log(`⏹️ [${this.getPlatform()}] playNextSentence 중단 - 조건 불만족`);
       if (this.currentIndex >= this.sentences.length && this.isActive) {
         this.handleComplete();
       }
@@ -325,7 +341,13 @@ class UnifiedTTS {
           if (!speechSynthesis.speaking && !speechSynthesis.pending) {
             if (this.isActive && this.currentUtterance === utterance) {
               console.log(`🎵 [${this.getPlatform()}] 문장 ${this.currentIndex + 1} 재생 시작 (상태 정리 후)`);
-              speechSynthesis.speak(utterance);
+              console.log(`🔊 [${this.getPlatform()}] speechSynthesis.speak() 호출중...`);
+              try {
+                speechSynthesis.speak(utterance);
+                console.log(`✅ [${this.getPlatform()}] speechSynthesis.speak() 성공`);
+              } catch (speakError) {
+                console.error(`❌ [${this.getPlatform()}] speechSynthesis.speak() 에러:`, speakError);
+              }
             }
           } else {
             // 아직 정리되지 않았으면 조금 더 기다림
@@ -336,7 +358,13 @@ class UnifiedTTS {
         setTimeout(waitForClear, waitTime);
       } else {
         console.log(`🎵 [${this.getPlatform()}] 문장 ${this.currentIndex + 1} 재생 시작 (즉시)`);
-        speechSynthesis.speak(utterance);
+        console.log(`🔊 [${this.getPlatform()}] speechSynthesis.speak() 호출중...`);
+        try {
+          speechSynthesis.speak(utterance);
+          console.log(`✅ [${this.getPlatform()}] speechSynthesis.speak() 성공`);
+        } catch (speakError) {
+          console.error(`❌ [${this.getPlatform()}] speechSynthesis.speak() 에러:`, speakError);
+        }
       }
     } catch (error) {
       console.error(`❌ [${this.getPlatform()}] 재생 실행 에러:`, error);
