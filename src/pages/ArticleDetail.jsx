@@ -23,9 +23,7 @@ import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
 import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
-import { createSimpleTTSController, playSimpleTTS } from '../utils/simpleTTS'; // 레거시 호환용
-import { createTTSService } from '../utils/TTSService';
-import { createUltraSimpleTTS } from '../utils/UltraSimpleTTS';
+import { createUnifiedTTS } from '../utils/UnifiedTTS';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -141,15 +139,16 @@ const ArticleDetail = () => {
   });
   const [selectedLanguage, setSelectedLanguage] = useState(userSettings?.translationLanguage || 'en');
   
-  // TTS 상태
+  // TTS 상태 (통합)
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
-  const [isTTSLoading, setIsTTSLoading] = useState(false); // 로딩 상태 추가
-  const [currentSentence, setCurrentSentence] = useState(0);
-  const [currentUtterance, setCurrentUtterance] = useState(null);
+  const [isTTSLoading, setIsTTSLoading] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState(-1);
   const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
-  const [ttsPause, setTtsPause] = useState(userSettings?.ttsPause || 200);
-  const [currentChunk, setCurrentChunk] = useState(0);
-  const [totalChunks, setTotalChunks] = useState(0);
+  const [ttsPause, setTtsPause] = useState(userSettings?.ttsPause || false);
+  const [totalSentences, setTotalSentences] = useState(0);
+  
+  // 통합 TTS 인스턴스
+  const unifiedTTSRef = useRef(null);
 
   // userSettings 변경 시 TTS 설정 업데이트
   useEffect(() => {
@@ -171,18 +170,12 @@ const ArticleDetail = () => {
       setIsTTSPlaying(false);
       setIsTTSLoading(false);
       setCurrentSentence(-1);
-      setCurrentChunk(0);
-      setTotalChunks(0);
+      setTotalSentences(0);
       
-      // 통합 중지 함수 호출 (try-catch로 안전하게)
-      try {
-        stopAllTTS();
-      } catch (error) {
-        console.warn('언마운트 TTS 중지 오류:', error);
-        // 오류 발생 시 speechSynthesis 직접 중지
-        if (speechSynthesis.speaking || speechSynthesis.pending) {
-          speechSynthesis.cancel();
-        }
+      // UnifiedTTS 중지
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+        unifiedTTSRef.current = null;
       }
       
       console.log('✅ 언마운트 TTS 정지 완료');
@@ -343,49 +336,7 @@ const ArticleDetail = () => {
 
   // saveHighlights 함수 제거 - 이제 Firebase에서 단어장 데이터로 하이라이트 관리
 
-  // UltraSimpleTTS 서비스 상태
-  const [ultraSimpleTTS, setUltraSimpleTTS] = useState(null);
-
-  // ArticleDetail 전용 UltraSimpleTTS 설정
-  useEffect(() => {
-    // UltraSimpleTTS 서비스 생성
-    const ttsService = createUltraSimpleTTS();
-    setUltraSimpleTTS(ttsService);
-    
-    // 컴포넌트별 TTS 중지 함수 (전역 등록용)
-    const stopArticleTTS = () => {
-      try {
-        if (ttsService) {
-          ttsService.stop();
-        }
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-        }
-        setIsTTSPlaying(false);
-        setCurrentSentence(-1);
-        setCurrentUtterance(null);
-        setCurrentChunk(0);
-        setTotalChunks(0);
-        console.log('🔇 ArticleDetail UltraSimpleTTS 중지됨');
-      } catch (error) {
-        console.error('ArticleDetail UltraSimpleTTS 중지 오류:', error);
-      }
-    };
-
-    // 전역 TTS 중지 함수에 등록 (중복 방지)
-    if (!window.stopCurrentUltraSimpleTTS) {
-      window.stopCurrentUltraSimpleTTS = stopArticleTTS;
-    }
-
-    // 컴포넌트 언마운트 시 즉시 TTS 중지
-    return () => {
-      stopArticleTTS();
-      // 현재 컴포넌트의 중지 함수가 전역에 등록되어 있다면 제거
-      if (window.stopCurrentUltraSimpleTTS === stopArticleTTS) {
-        delete window.stopCurrentUltraSimpleTTS;
-      }
-    };
-  }, []);
+  // 이전 UltraSimpleTTS 관련 코드 제거 - UnifiedTTS만 사용
 
 
   // 단순화된 TTS 시작 함수
@@ -413,215 +364,117 @@ const ArticleDetail = () => {
       return;
     }
 
-    // TTS 상태를 미리 설정
-    setIsTTSPlaying(true);
-    setIsTTSLoading(false); // 로딩 완료
-    setCurrentSentence(0);
-    setCurrentChunk(0);
-
     try {
-      // 울트라 심플 TTS 서비스 사용 (모든 환경)
-      console.log('🚀 UltraSimpleTTS 서비스로 재생 시작');
+      console.log('🚀 UnifiedTTS 서비스로 재생 시작 (모든 플랫폼)');
       
-      // UltraSimpleTTS 서비스 생성
-      const ultraTTS = ultraSimpleTTS || createUltraSimpleTTS();
+      // UnifiedTTS 인스턴스 생성
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+      }
       
-      // 이벤트 리스너 설정
-      ultraTTS.setEventListeners({
+      unifiedTTSRef.current = createUnifiedTTS({
+        rate: ttsSpeed,
         onStart: () => {
           console.log('🎵 TTS 재생 시작됨');
           setIsTTSLoading(false);
           setIsTTSPlaying(true);
         },
-        onProgress: (chunkIndex, totalChunks, chunkText, chunkInfo) => {
-          console.log(`📊 진행률: ${chunkIndex + 1}/${totalChunks}`);
-          console.log(`📢 현재 재생 중인 문장: "${chunkText.substring(0, 50)}..."`);
-          console.log(`🔍 chunkInfo:`, chunkInfo);
+        onProgress: (sentenceIndex, totalSentences, sentenceText, sentenceInfo) => {
+          console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
+          console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);
           
-          // UltraSimpleTTS는 문장 인덱스를 정확히 전달하므로 직접 사용
-          console.log(`🎯 정확한 문장 인덱스: ${chunkIndex} (전체 ${totalChunks}개 문장)`);
-          console.log(`🎯 UI 상태 업데이트: currentSentence=${chunkIndex}, currentChunk=${chunkIndex}, totalChunks=${totalChunks}`);
-          
-          setCurrentSentence(chunkIndex);
-          setCurrentChunk(chunkIndex);
-          setTotalChunks(totalChunks);
-          
-          // 상태 업데이트 후 확인
-          setTimeout(() => {
-            console.log(`✅ 상태 업데이트 확인: currentSentence 상태가 ${chunkIndex}로 설정되었는지 확인 필요`);
-          }, 10);
+          setCurrentSentence(sentenceIndex);
+          setTotalSentences(totalSentences);
         },
         onComplete: () => {
           console.log('✅ TTS 재생 완료');
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
-          setCurrentChunk(0);
-          setTotalChunks(0);
+          setTotalSentences(0);
         },
         onError: (error) => {
           console.error('❌ TTS 에러:', error);
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
-          setCurrentChunk(0);
-          setTotalChunks(0);
+          setTotalSentences(0);
         }
       });
       
       // TTS 재생 시작
-      const playPromise = ultraTTS.play(currentContent, {
-        rate: ttsSpeed,
-        volume: 1.0,
-        pitch: 1.0
-      });
+      const success = await unifiedTTSRef.current.play(currentContent);
       
-      // 모바일 최적화: 15-20초 타임아웃 (iOS 음성 로딩 시간 고려)
-      const timeoutPromise = new Promise((_, reject) => {
-        const timeoutDuration = isMobile ? (isIOS ? 20000 : 15000) : 8000;
-        setTimeout(() => reject(new Error('TTS 시작 타임아웃')), timeoutDuration);
-      });
-      
-      try {
-        const playResult = await Promise.race([playPromise, timeoutPromise]);
-        
-        if (!playResult) {
-          console.error('❌ TTS 재생 실패');
-          setIsTTSLoading(false);
-          setIsTTSPlaying(false);
-          setCurrentSentence(-1);
-          setCurrentChunk(0);
-          setTotalChunks(0);
-        }
-      } catch (timeoutError) {
-        console.error('❌ TTS 시작 타임아웃:', timeoutError);
+      if (!success) {
+        console.error('❌ TTS 재생 실패');
         setIsTTSLoading(false);
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
-        setCurrentChunk(0);
-        setTotalChunks(0);
-        
-        // 사용자에게 명확한 피드백 제공
-        alert('음성 로딩이 실패했습니다. 다시 시도해주세요.');
+        setTotalSentences(0);
       }
-      
-      // UltraSimpleTTS 사용으로 기존 로직 스킵
-      return;
       
     } catch (error) {
       console.error('❌ TTS 시작 실패:', error);
       setIsTTSPlaying(false);
       setIsTTSLoading(false);
       setCurrentSentence(-1);
-      setCurrentChunk(0);
-      setTotalChunks(0);
+      setTotalSentences(0);
     }
   };
 
   const handleTTS = () => {
     if (isTTSPlaying) {
-      // TTS 완전 중지 (개선된 버전)
-      console.log('🛑 TTS 중지 버튼 클릭 - 통합 중지');
+      // TTS 중지
+      console.log('🛑 TTS 중지 버튼 클릭');
       
-      // 즉시 상태 초기화 (재생 중지)
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+      }
+      
       setIsTTSPlaying(false);
       setIsTTSLoading(false);
       setCurrentSentence(-1);
-      setCurrentUtterance(null);
-      setCurrentChunk(0);
-      setTotalChunks(0);
+      setTotalSentences(0);
       
-      // 통합 중지 함수 호출
-      stopAllTTS();
-      
-      console.log('✅ TTS 중지 로직 완료');
+      console.log('✅ TTS 중지 완료');
     } else {
       // TTS 시작
       startTTS();
     }
   };
 
-  // 통합 TTS 중지 함수
+  // 구 통합 TTS 중지 함수 (호환성을 위해 유지)
   const stopAllTTS = () => {
-    console.log('🛑 통합 TTS 중지 시작');
-    
-    // 1. UltraSimpleTTS 인스턴스 중지
-    if (ultraSimpleTTS) {
-      console.log('🛑 UltraSimpleTTS 인스턴스 중지');
-      try {
-        ultraSimpleTTS.stop();
-      } catch (error) {
-        console.warn('UltraSimpleTTS 중지 오류:', error);
-      }
+    if (unifiedTTSRef.current) {
+      unifiedTTSRef.current.stop();
     }
-    
-    // 2. 전역 중지 함수들 (중복 호출 방지)
-    if (window.stopCurrentUltraSimpleTTS && window.stopCurrentUltraSimpleTTS !== stopAllTTS) {
-      console.log('🛑 전역 UltraSimpleTTS 중지');
-      try {
-        window.stopCurrentUltraSimpleTTS();
-      } catch (error) {
-        console.warn('전역 UltraSimpleTTS 중지 오류:', error);
-      }
-    }
-    
-    if (window.stopCurrentTTS && window.stopCurrentTTS !== stopAllTTS) {
-      console.log('🛑 전역 TTS 중지');
-      try {
-        window.stopCurrentTTS();
-      } catch (error) {
-        console.warn('전역 TTS 중지 오류:', error);
-      }
-    }
-    
-    // 3. speechSynthesis 즉시 중지 (단순화)
-    if (speechSynthesis.speaking || speechSynthesis.pending) {
-      speechSynthesis.cancel();
-      console.log('🔇 speechSynthesis 즉시 중지');
-    }
-    
-    // 4. 100ms 후 한 번 더 확인 (필요시에만)
-    setTimeout(() => {
-      if (speechSynthesis.speaking || speechSynthesis.pending) {
-        speechSynthesis.cancel();
-        console.log('🔇 speechSynthesis 재시도 중지');
-      }
-    }, 100);
-    
-    console.log('✅ 통합 TTS 중지 완료');
   };
 
   const handleSpeedChange = (newSpeed) => {
     console.log('⚡ 배속 변경:', ttsSpeed, '→', newSpeed);
     setTtsSpeed(newSpeed);
     
-    // 재생 중이면 현재 위치에서 새 속도로 재시작
-    if (isTTSPlaying && ultraSimpleTTS) {
-      console.log('🔄 재생 중 배속 변경 - UltraSimpleTTS 재시작');
-      
-      // 기존 재생 중지
-      ultraSimpleTTS.stop();
-      
-      // 새 속도로 TTS 재시작
-      setTimeout(() => {
-        startTTS();
-      }, 200);
+    // 재생 중이면 새 속도로 업데이트
+    if (unifiedTTSRef.current && isTTSPlaying) {
+      console.log('🔄 재생 중 배속 변경');
+      unifiedTTSRef.current.setSpeed(newSpeed);
     }
   };
 
   const handleLevelChange = (level) => {
     console.log('🔄 레벨 변경:', selectedLevel, '→', level);
     
+    // TTS 중지
+    if (unifiedTTSRef.current) {
+      unifiedTTSRef.current.stop();
+    }
+    
     // 상태 초기화
     setIsTTSPlaying(false);
     setIsTTSLoading(false);
     setCurrentSentence(-1);
-    setCurrentUtterance(null);
-    setCurrentChunk(0);
-    setTotalChunks(0);
+    setTotalSentences(0);
     setSelectedLevel(level);
-    
-    // 통합 중지 함수 호출
     try {
       stopAllTTS();
     } catch (error) {
@@ -1492,13 +1345,14 @@ const ArticleDetail = () => {
                 // UltraSimpleTTS와 동일한 문장 분할 방식 사용
                 const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
                 
-                console.log(`🎨 렌더링: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}`);
+                console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
                 
                 return sentences.map((sentence, sentenceIdx) => {
-                        const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive;
+                        // 현재 선택된 레벨에서만 하이라이팅 활성화
+                        const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive && level === selectedLevel;
                         
                         if (isCurrentSentence) {
-                          console.log(`🔥 현재 활성 문장: 인덱스 ${sentenceIdx} - "${sentence.substring(0, 30)}..."`);
+                          console.log(`🔥 현재 활성 문장: 레벨 ${level}, 인덱스 ${sentenceIdx} - "${sentence.substring(0, 30)}..."`);
                         }
                   
                   return (
