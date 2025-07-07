@@ -14,7 +14,7 @@ const SidebarAd = styled.div`
   }
 `;
 
-export const SidebarAdComponent = ({ hasContent = true }) => {
+export const SidebarAdComponent = ({ hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('sidebar', hasContent);
   
   if (!shouldShowAd) return null;
@@ -40,7 +40,7 @@ const SearchResultAd = styled.div`
   border: 1px solid #e9ecef;
 `;
 
-export const SearchResultAdComponent = ({ hasContent = true }) => {
+export const SearchResultAdComponent = ({ hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('searchResults', hasContent);
   
   if (!shouldShowAd) return null;
@@ -67,7 +67,7 @@ const ArticleDetailAd = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-export const ArticleDetailAdComponent = ({ hasContent = true }) => {
+export const ArticleDetailAdComponent = ({ hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
@@ -105,7 +105,7 @@ const InlineAd = styled.div`
   }
 `;
 
-export const InlineAdComponent = ({ className, style, hasContent = true }) => {
+export const InlineAdComponent = ({ className, style, hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
@@ -132,7 +132,7 @@ const MobileAd = styled.div`
   }
 `;
 
-export const MobileAdComponent = ({ hasContent = true }) => {
+export const MobileAdComponent = ({ hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
@@ -160,7 +160,7 @@ const TopBannerAd = styled.div`
   text-align: center;
 `;
 
-export const TopBannerAdComponent = ({ hasContent = true }) => {
+export const TopBannerAdComponent = ({ hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement('articleBanner', hasContent);
   
   if (!shouldShowAd) return null;
@@ -177,7 +177,7 @@ export const TopBannerAdComponent = ({ hasContent = true }) => {
 };
 
 // 광고 래퍼 컴포넌트 (조건부 렌더링을 위한)
-export const AdWrapper = ({ children, position = 'articleBanner', hasContent = true }) => {
+export const AdWrapper = ({ children, position = 'articleBanner', hasContent = false }) => {
   const { shouldShowAd } = useAdPlacement(position, hasContent);
   
   if (!shouldShowAd) return null;

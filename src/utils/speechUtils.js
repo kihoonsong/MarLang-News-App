@@ -5,6 +5,10 @@ export const isSpeechSynthesisSupported = () => {
   return 'speechSynthesis' in window;
 };
 
+// 모바일 및 플랫폼 감지
+const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
 // 사용 가능한 음성 목록 가져오기 (안정성 개선)
 export const getAvailableVoices = () => {
   if (!isSpeechSynthesisSupported()) {
@@ -21,10 +25,10 @@ export const getAvailableVoices = () => {
       return;
     }
     
-    // 일부 브라우저에서는 비동기적으로 로드됨
+    // 모바일 환경에서는 더 많은 재시도와 긴 간격 필요
     let attempts = 0;
-    const maxAttempts = 20; // 재시도 횟수 증가
-    const retryInterval = 150; // 재시도 간격 증가
+    const maxAttempts = isMobile ? 40 : 20; // 모바일에서 재시도 횟수 증가
+    const retryInterval = isMobile ? 300 : 150; // 모바일에서 재시도 간격 증가
     
     const checkVoices = () => {
       voices = speechSynthesis.getVoices();
@@ -46,11 +50,12 @@ export const getAvailableVoices = () => {
       }
     };
     
-    // onvoiceschanged 이벤트 등록
+    // onvoiceschanged 이벤트 등록 (모바일 환경 고려)
     speechSynthesis.onvoiceschanged = checkVoices;
     
-    // 즉시 체크 수행 (더 긴 대기 시간)
-    setTimeout(checkVoices, 200);
+    // 즉시 체크 수행 (모바일에서 더 긴 대기 시간)
+    const initialDelay = isMobile ? 500 : 200;
+    setTimeout(checkVoices, initialDelay);
   });
 };
 
@@ -241,11 +246,13 @@ export const stopCurrentSpeech = () => {
   }
 };
 
-// TTS 컨트롤러 클래스
+// TTS 컨트롤러 클래스 (모바일 환경 개선)
 class TTSController {
   constructor() {
     this.isActive = true;
     this.currentUtterance = null;
+    this.isMobile = isMobile;
+    this.isIOS = isIOS;
   }
   
   stop() {
@@ -254,10 +261,28 @@ class TTSController {
       speechSynthesis.cancel();
       this.currentUtterance = null;
     }
+    
+    // 모바일에서는 추가적인 정리 작업 필요
+    if (this.isMobile) {
+      setTimeout(() => {
+        speechSynthesis.cancel();
+      }, 100);
+    }
   }
   
   isRunning() {
+    // 모바일에서는 speechSynthesis.speaking 상태도 확인
+    if (this.isMobile) {
+      return this.isActive && !speechSynthesis.paused;
+    }
     return this.isActive;
+  }
+  
+  // 모바일 환경에서 TTS 재개 함수
+  resume() {
+    if (this.isMobile && speechSynthesis.paused) {
+      speechSynthesis.resume();
+    }
   }
 }
 
@@ -271,6 +296,10 @@ if (typeof window !== 'undefined') {
     globalTTSController = new TTSController();
     return globalTTSController;
   };
+  
+  // 모바일 환경 정보 노출
+  window.isMobileTTS = isMobile;
+  window.isIOSTTS = isIOS;
 }
 
 // 향상된 발음 함수 (상태 관리 포함)

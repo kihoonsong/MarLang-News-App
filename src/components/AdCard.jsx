@@ -43,8 +43,8 @@ const AdCard = ({
   const adsenseConfig = getAdsenseConfig();
   
   useEffect(() => {
-    // 개발 환경이거나 애드센스가 비활성화된 경우 플레이스홀더 표시
-    if (!adsenseConfig.enabled || process.env.NODE_ENV === 'development') {
+    // 애드센스가 비활성화된 경우 플레이스홀더 표시
+    if (!adsenseConfig.enabled) {
       return;
     }
 
@@ -89,8 +89,8 @@ const AdCard = ({
     loadAd();
   }, [adSlot, adsenseConfig]);
 
-  // 개발 환경이거나 애드센스가 비활성화된 경우 플레이스홀더 표시
-  if (!adsenseConfig.enabled || process.env.NODE_ENV === 'development') {
+  // 애드센스가 비활성화된 경우 플레이스홀더 표시
+  if (!adsenseConfig.enabled) {
     return (
       <AdCardContainer 
         variant="outlined" 

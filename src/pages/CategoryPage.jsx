@@ -14,6 +14,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import ArticleCard from '../components/ArticleCard';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
+import { SidebarAdComponent, InlineAdComponent } from '../components/AdComponents';
 
 const CategoryPage = () => {
   const navigate = useNavigate();
@@ -101,6 +102,9 @@ const CategoryPage = () => {
             </Breadcrumbs>
           </BreadcrumbContainer>
 
+          {/* 사이드바 광고 - 기사가 있을 때만 표시 */}
+          <SidebarAdComponent hasContent={sortedArticles.length > 0} />
+
           <CategorySection>
             <CategoryHeader>
               <HeaderLeft>
@@ -123,16 +127,24 @@ const CategoryPage = () => {
             </CategoryHeader>
             
             {sortedArticles.length > 0 ? (
-              <ArticleGrid>
-                {sortedArticles.map((article) => (
-                  <ArticleCard key={article.id} {...article} navigate={navigate} />
-                ))}
-              </ArticleGrid>
+              <>
+                {/* 기사가 있을 때만 광고 표시 */}
+                <InlineAdComponent hasContent={true} />
+                <ArticleGrid>
+                  {sortedArticles.map((article) => (
+                    <ArticleCard key={article.id} {...article} navigate={navigate} />
+                  ))}
+                </ArticleGrid>
+              </>
             ) : (
-              <EmptyState>
-                <EmptyIcon>📰</EmptyIcon>
-                <EmptyTitle>No articles in {currentCategory.name}</EmptyTitle>
-              </EmptyState>
+              <>
+                {/* 기사가 없을 때는 광고 표시 안함 */}
+                <InlineAdComponent hasContent={false} />
+                <EmptyState>
+                  <EmptyIcon>📰</EmptyIcon>
+                  <EmptyTitle>No articles in {currentCategory.name}</EmptyTitle>
+                </EmptyState>
+              </>
             )}
           </CategorySection>
         </ContentContainer>

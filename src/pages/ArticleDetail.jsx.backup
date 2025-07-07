@@ -386,7 +386,7 @@ const ArticleDetail = () => {
       // 모바일 환경 감지
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      if (false) { // 모바일 TTS 컨트롤러 비활성화
+      if (isMobile && controller instanceof MobileTTSController) {
         // 모바일 TTS 컨트롤러 사용
         console.log('📱 모바일 TTS 컨트롤러로 배속 변경 재생');
         
@@ -564,7 +564,7 @@ const ArticleDetail = () => {
     setCurrentChunk(0);
 
     try {
-      if (false) { // 모바일 TTS 컨트롤러 비활성화
+      if (isMobile && ttsController instanceof MobileTTSController) {
         // 모바일 TTS 컨트롤러 사용
         console.log('📱 모바일 TTS 컨트롤러로 재생 시작');
         

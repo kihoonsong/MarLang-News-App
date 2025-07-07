@@ -91,7 +91,7 @@ export const useAdInjector = (items) => {
 };
 
 // 특정 위치에 광고 삽입을 위한 훅
-export const useAdPlacement = (position = 'articleBanner', hasContent = true) => {
+export const useAdPlacement = (position = 'articleBanner', hasContent = false) => {
   const { user } = useAuth();
   const adsenseConfig = getAdsenseConfig();
   const isPremium = false; // TODO: 실제 구독 상태로 교체
