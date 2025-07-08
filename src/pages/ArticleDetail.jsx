@@ -356,41 +356,28 @@ const ArticleDetail = () => {
 
   // DOM 직접 조작으로 문장 하이라이트 (iOS/iPad 최적화)
   const highlightSentence = (sentenceIdx) => {
-    // 이전 하이라이트 제거
+    // 현재 활성 카드 찾기
+    const activeCard = document.querySelector('[data-active="true"]');
+    if (!activeCard) return;
+
+    // 이전 하이라이트 제거 (활성 카드 범위 내에서만)
     if (activeSentenceRef.current) {
       activeSentenceRef.current.classList.remove('active-sentence');
     }
 
-    // 새 문장 DOM 찾기 (현재 활성 레벨에서만)
-    const selector = `[data-sentence="${sentenceIdx}"]`;
-    const elements = document.querySelectorAll(selector);
-    
-    // 현재 선택된 레벨의 문장만 하이라이트
-    let targetElement = null;
-    for (const el of elements) {
-      // 가장 가까운 SwipeCard를 찾아서 활성 상태인지 확인
-      const card = el.closest('[data-testid="swipe-card"]') || el.closest('div[style*="z-index: 10"]');
-      if (card && card.style.zIndex === '10') {
-        targetElement = el;
-        break;
-      }
-    }
-    
-    // 폴백: 첫 번째 요소 사용
-    if (!targetElement && elements.length > 0) {
-      targetElement = elements[0];
-    }
+    // 활성 카드 범위 내에서 문장 찾기
+    const targetElement = activeCard.querySelector(`[data-sentence="${sentenceIdx}"]`);
     
     if (targetElement) {
       targetElement.classList.add('active-sentence');
       activeSentenceRef.current = targetElement;
       
-      // iOS Safari 최적화된 스크롤 (부드러운 스크롤)
+      // iOS Safari 최적화된 스크롤 (수평 이동 최소화)
       try {
         targetElement.scrollIntoView({ 
           block: 'nearest', 
           behavior: 'smooth',
-          inline: 'nearest'
+          inline: 'nearest' // 수평 이동 최소화
         });
       } catch (error) {
         // 스크롤 실패 시 조용히 무시
@@ -1472,6 +1459,7 @@ const ArticleDetail = () => {
                   $dragOffset={swipeState.dragOffset}
                   $isTransitioning={swipeState.isTransitioning}
                   $isActive={isActive}
+                  data-active={isActive}
                   onClick={(e) => !isMobile && handleCardClick(e, level)}
                 >
                   <ContentHeader>
@@ -2235,6 +2223,7 @@ const SwipeCard = styled.div`
   @media (max-width: 768px) {
     width: 100%;
     padding: 1.5rem;
+    box-sizing: border-box; /* 패딩을 너비 안에 포함 */
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     cursor: default;
     opacity: ${props => props.$isActive ? 1 : 0};
@@ -2252,6 +2241,7 @@ const SwipeCard = styled.div`
 
   @media (max-width: 600px) {
     padding: 1rem;
+    box-sizing: border-box; /* 패딩을 너비 안에 포함 */
   }
 `;
 

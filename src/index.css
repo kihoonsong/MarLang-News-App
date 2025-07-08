@@ -61,12 +61,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* 가로 스크롤 차단 */
 }
 
 #root {
   width: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden; /* 가로 스크롤 차단 */
 }
 
 /* 스크롤바 스타일링 */
