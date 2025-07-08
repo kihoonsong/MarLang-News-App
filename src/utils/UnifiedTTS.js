@@ -9,7 +9,7 @@ class UnifiedTTS {
   constructor(options = {}) {
     // 기본 설정
     this.options = {
-      rate: 0.8,
+      rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
       ...options
@@ -118,17 +118,29 @@ class UnifiedTTS {
     const words = text.split(/\s+/).length;
     const characters = text.length;
     
-    // 모든 플랫폼에서 동일한 계산 (데스크톱 방식 적용)
-    const baseWPM = 100;
+    // 플랫폼별 더 정확한 계산
+    let baseWPM = 100;
+    let charMultiplier = 0.08;
+    
+    // 모바일에서 더 보수적인 계산
+    if (this.getPlatform() === 'iOS') {
+      baseWPM = 80; // iOS는 더 느리게 계산
+      charMultiplier = 0.12; // 문자당 더 많은 시간 할당
+    } else if (isMobile) {
+      baseWPM = 90;
+      charMultiplier = 0.10;
+    }
+    
     const wordsPerMinute = baseWPM * rate;
     const wordBasedTime = (words / wordsPerMinute) * 60;
-    const charBasedTime = characters * 0.08;
+    const charBasedTime = characters * charMultiplier;
     
-    // 더 긴 시간 선택 (안전한 타이머)
+    // 더 긴 시간 선택 + 추가 안전 마진
     const estimatedTime = Math.max(wordBasedTime, charBasedTime);
-    const finalTime = Math.max(Math.min(estimatedTime, 30), 2);
+    const safetyMargin = this.getPlatform() === 'iOS' ? 2 : 1; // iOS는 더 긴 안전 마진
+    const finalTime = Math.max(Math.min(estimatedTime + safetyMargin, 30), 3);
     
-    console.log(`⏱️ 예상 재생 시간: ${finalTime.toFixed(1)}초`);
+    console.log(`⏱️ 예상 재생 시간: ${finalTime.toFixed(1)}초 (단어: ${words}, 문자: ${characters}, 플랫폼: ${this.getPlatform()})`);
     return finalTime * 1000;
   }
 
@@ -232,6 +244,10 @@ class UnifiedTTS {
     // 이벤트 핸들러 설정
     utterance.onstart = () => {
       console.log(`▶️ 문장 ${this.currentIndex + 1} 재생 시작`);
+      // 실제 재생 시작 플래그 설정
+      if (this.currentUtterance) {
+        this.currentUtterance._hasStarted = true;
+      }
     };
 
     utterance.onend = () => {
@@ -376,8 +392,8 @@ class UnifiedTTS {
 
     // 백업 타이머 설정 (onend 이벤트 실패 대비)
     const expectedDuration = this.calculatePlayTime(sentence.text);
-    // iOS에서는 조기 감지 타이머가 있으므로 백업 타이머 대폭 단축
-    const bufferTime = this.getPlatform() === 'iOS' ? 500 : 500;
+    // iOS에서는 더 긴 백업 타이머 (조기 감지가 있으므로 충분한 시간 제공)
+    const bufferTime = this.getPlatform() === 'iOS' ? 3000 : 1000; // iOS: 3초, 기타: 1초 추가
     const timerDuration = expectedDuration + bufferTime;
     
     console.log(`⏰ [${this.getPlatform()}] 백업 타이머 설정: ${timerDuration}ms (예상: ${expectedDuration}ms + 여유: ${bufferTime}ms)`);
@@ -390,15 +406,23 @@ class UnifiedTTS {
       }
     }, timerDuration);
     
-    // iOS에서 조기 감지 타이머 (무음 재생 빠른 감지)
+    // iOS에서 조기 감지 타이머 (무음 재생 빠른 감지) - 더 보수적으로 설정
     if (this.getPlatform() === 'iOS') {
-      const earlyDetectionTime = 500; // 0.5초 후 무음 재생 의심 (초고속 감지)
-      console.log(`🚨 [iOS] 조기 감지 타이머 설정: ${earlyDetectionTime}ms`);
+      // 문장 길이에 따라 조기 감지 시간 조정 (짧은 문장은 더 빨리, 긴 문장은 더 늦게)
+      const minDetectionTime = 1500; // 최소 1.5초 대기
+      const maxDetectionTime = 3000; // 최대 3초 대기
+      const wordCount = sentence.text.split(/\s+/).length;
+      const earlyDetectionTime = Math.min(maxDetectionTime, Math.max(minDetectionTime, wordCount * 200));
+      
+      console.log(`🚨 [iOS] 조기 감지 타이머 설정: ${earlyDetectionTime}ms (단어수: ${wordCount})`);
       
       this.earlyDetectionTimer = setTimeout(() => {
-        // 아직 재생 중이고 onstart나 실제 음성이 나오지 않은 것으로 의심되면 재시도
-        if (this.isActive && this.isPlaying && !this.isPaused && this.retryCount === 0) {
-          console.log(`🚨 [iOS] 조기 감지: 무음 재생 의심 - 즉시 재시도`);
+        // 실제로 speechSynthesis가 speaking 상태가 아니고 onstart가 호출되지 않았을 때만 재시도
+        const isSpeaking = speechSynthesis.speaking;
+        const hasStarted = this.currentUtterance?._hasStarted;
+        
+        if (this.isActive && this.isPlaying && !this.isPaused && !isSpeaking && !hasStarted && this.retryCount === 0) {
+          console.log(`🚨 [iOS] 조기 감지: 실제 무음 재생 감지 - 재시도 (speaking: ${isSpeaking}, started: ${hasStarted})`);
           
           // 기존 타이머들 정리
           if (this.backupTimer) {
@@ -411,9 +435,6 @@ class UnifiedTTS {
             speechSynthesis.cancel();
           }
           
-          // 강제로 재시도 로직 실행
-          this.retryCount = 0; // 재시도 카운터 초기화하여 즉시 재시도 가능하게
-          
           // 현재 utterance 정리
           if (this.currentUtterance) {
             this.currentUtterance.onstart = null;
@@ -422,13 +443,15 @@ class UnifiedTTS {
             this.currentUtterance = null;
           }
           
-          // 즉시 다음 문장 재시도 (초고속)
+          // 재시도
           setTimeout(() => {
             if (this.isActive && this.isPlaying && !this.isPaused) {
-              console.log(`🔄 [iOS] 조기 감지 후 즉시 재시도`);
+              console.log(`🔄 [iOS] 조기 감지 후 재시도`);
               this.playNextSentence();
             }
-          }, 50);
+          }, 100);
+        } else {
+          console.log(`🚨 [iOS] 조기 감지 건너뜀: speaking=${isSpeaking}, started=${hasStarted}, retryCount=${this.retryCount}`);
         }
       }, earlyDetectionTime);
     }

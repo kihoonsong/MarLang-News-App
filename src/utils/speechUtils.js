@@ -134,7 +134,7 @@ export const speakText = async (text, options = {}) => {
   
   // 기본 설정
   const settings = {
-    rate: 0.8, // 조금 느리게 (단어 학습용)
+    rate: 1.0, // 기본 배속으로 변경
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -172,7 +172,7 @@ export const speakText = async (text, options = {}) => {
 // 단어 발음 함수 (단어장용)
 export const speakWord = async (word, options = {}) => {
   const wordSettings = {
-    rate: 0.7, // 단어는 더 천천히
+    rate: 1.0, // 기본 배속으로 변경
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -184,7 +184,7 @@ export const speakWord = async (word, options = {}) => {
 // 문장 발음 함수 (예문용)
 export const speakSentence = async (sentence, options = {}) => {
   const sentenceSettings = {
-    rate: 0.8,
+    rate: 1.0,
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -206,7 +206,7 @@ export const loadVoiceSettings = () => {
   try {
     const saved = localStorage.getItem('marlang_voice_settings');
     return saved ? JSON.parse(saved) : {
-      rate: 0.8,
+      rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
       autoPlay: false
@@ -214,7 +214,7 @@ export const loadVoiceSettings = () => {
   } catch (error) {
     console.error('Failed to load voice settings:', error);
     return {
-      rate: 0.8,
+      rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
       autoPlay: false
