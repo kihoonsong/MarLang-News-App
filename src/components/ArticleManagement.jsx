@@ -85,10 +85,10 @@ const ArticleManagement = ({
 
     switch (type) {
       case 'bold':
-        inserted = `**${originalValue.slice(start, end)}**`;
+        inserted = `<strong>${originalValue.slice(start, end) || '굵게'}</strong>`;
         break;
       case 'italic':
-        inserted = `*${originalValue.slice(start, end)}*`;
+        inserted = `<em>${originalValue.slice(start, end) || '기울임'}</em>`;
         break;
       case 'ul':
         inserted = originalValue.slice(start, end)
@@ -681,8 +681,8 @@ const ArticleManagement = ({
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={3}>
-              {/* 기본 정보 */}
-              <Grid item xs={12} md={9}>
+              {/* 기본 정보 + 설정 */}
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="제목 *"
@@ -774,100 +774,7 @@ const ArticleManagement = ({
                 </Box>
               </Grid>
 
-              {/* 설정 */}
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <InputLabel>카테고리</InputLabel>
-                  <Select
-                    value={articleForm.category}
-                    label="카테고리"
-                    onChange={(e) => setArticleForm({ ...articleForm, category: e.target.value })}
-                  >
-                    {(editableCategories || []).map((category) => (
-                      <MenuItem key={category} value={category}>{category}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <InputLabel>상태</InputLabel>
-                  <Select
-                    value={articleForm.status}
-                    label="상태"
-                    onChange={(e) => setArticleForm({ ...articleForm, status: e.target.value })}
-                  >
-                    <MenuItem value="published">✅ 발행됨</MenuItem>
-                    <MenuItem value="draft">📄 초안</MenuItem>
-                    <MenuItem value="scheduled">⏰ 예약됨</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {/* 발행 옵션 */}
-                <Box sx={{ mb: 3 }}>
-                  <FormLabel component="legend" sx={{ mb: 2 }}>발행 설정</FormLabel>
-                  <RadioGroup
-                    value={articleForm.publishType}
-                    onChange={(e) => setArticleForm({ ...articleForm, publishType: e.target.value })}
-                  >
-                    <FormControlLabel value="immediate" control={<Radio />} label="즉시 발행" />
-                    <FormControlLabel value="scheduled" control={<Radio />} label="예약 발행" />
-                  </RadioGroup>
-                  
-                  {articleForm.publishType === 'scheduled' && (
-                    <TextField
-                      fullWidth
-                      label="발행 예정일"
-                      type="datetime-local"
-                      value={articleForm.publishedAt}
-                      onChange={(e) => setArticleForm({ ...articleForm, publishedAt: e.target.value })}
-                      InputLabelProps={{ shrink: true }}
-                      sx={{ mt: 2 }}
-                    />
-                  )}
-                </Box>
-
-                {/* 이미지 업로드 */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2 }}>대표 이미지</Typography>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    startIcon={<CloudUpload />}
-                    sx={{ mb: 2, width: '100%' }}
-                  >
-                    이미지 업로드
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                  </Button>
-                  
-                  {articleForm.image && (
-                    <Box sx={{ textAlign: 'center' }}>
-                      <img 
-                        src={articleForm.image} 
-                        alt="Preview" 
-                        style={{ 
-                          maxWidth: '100%', 
-                          maxHeight: '200px', 
-                          borderRadius: '8px',
-                          objectFit: 'cover'
-                        }} 
-                      />
-                    </Box>
-                  )}
-                </Box>
-
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  💡 <strong>작성 팁:</strong><br/>
-                  • 각 난이도별로 적절한 어휘 수준을 맞춰주세요<br/>
-                  • 초급: 기본 단어, 간단한 문장<br/>
-                  • 중급: 일반적 단어, 표준 문장<br/>
-                  • 고급: 전문 용어, 복잡한 구조
-                </Alert>
-              </Grid>
+              {/* 우측 설정 패널 제거 완료 */}
             </Grid>
           </Box>
         </DialogContent>
