@@ -31,8 +31,24 @@ import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
+import DOMPurify from 'dompurify';
 
-
+// HTML 태그 제거 및 텍스트 정리 함수
+const cleanHtmlContent = (htmlContent) => {
+  if (!htmlContent) return '';
+  
+  // HTML 태그를 모두 제거하고 텍스트만 추출
+  const cleanHtml = DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: [],        // 모든 태그 제거
+    ALLOWED_ATTR: []         // 모든 속성 제거
+  });
+  
+  // 여러 공백을 하나로 정리하고 줄바꿈 정리
+  return cleanHtml
+    .replace(/\s+/g, ' ')     // 여러 공백을 하나로
+    .replace(/\n\s*\n/g, '\n\n') // 여러 줄바꿈을 최대 2개로
+    .trim();
+};
 
 // 기사 내용에서 3개 레벨 생성 (개선된 버전)
 const generateLevelsFromContent = (article) => {
@@ -45,39 +61,40 @@ const generateLevelsFromContent = (article) => {
     const levels = {
       1: {
         title: 'Level 1 - Beginner',
-        content: article.content.beginner || ''
+        content: cleanHtmlContent(article.content.beginner || '')
       },
       2: {
         title: 'Level 2 - Intermediate', 
-        content: article.content.intermediate || ''
+        content: cleanHtmlContent(article.content.intermediate || '')
       },
       3: {
         title: 'Level 3 - Advanced',
-        content: article.content.advanced || ''
+        content: cleanHtmlContent(article.content.advanced || '')
       }
     };
-    console.log('✅ 객체 형태 레벨 생성 완료:', levels);
+    console.log('✅ 객체 형태 레벨 생성 완료 (HTML 태그 제거):', levels);
     return levels;
   } else {
     // 기존 단일 문자열 구조인 경우 모든 소스에서 콘텐츠 찾기
     const baseContent = article.content || article.summary || article.description || 'No content available';
-    console.log('📝 기본 콘텐츠 사용:', baseContent.substring(0, 100), '...');
+    const cleanContent = cleanHtmlContent(baseContent);
+    console.log('📝 기본 콘텐츠 사용 (HTML 태그 제거):', cleanContent.substring(0, 100), '...');
     
     const levels = {
       1: {
         title: 'Level 1 - Beginner',
-        content: baseContent
+        content: cleanContent
       },
       2: {
         title: 'Level 2 - Intermediate',
-        content: baseContent
+        content: cleanContent
       },
       3: {
         title: 'Level 3 - Advanced',
-        content: baseContent
+        content: cleanContent
       }
     };
-    console.log('✅ 단일 형태 레벨 생성 완료:', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
+    console.log('✅ 단일 형태 레벨 생성 완료 (HTML 태그 제거):', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
     return levels;
   }
 };
@@ -1492,7 +1509,7 @@ const ArticleDetail = () => {
             <ContentText>
               {(() => {
                       const content = articleData.levels[level].content;
-                // UltraSimpleTTS와 동일한 문장 분할 방식 사용
+                // HTML 태그가 이미 제거된 텍스트를 사용하여 문장 분할
                 const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
                 
                 console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
