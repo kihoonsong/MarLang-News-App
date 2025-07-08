@@ -12,9 +12,10 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 초기 로드 시 네이버 서버 인증 사용자 확인
+  // 초기 로드 시 인증 확인 (localStorage 방식만 사용)
   useEffect(() => {
-    const checkNaverServerAuth = () => {
+    const checkAuth = () => {
+      // 네이버 인증 사용자 확인
       const naverAuthUser = localStorage.getItem('naverAuthUser');
       
       if (naverAuthUser) {
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }) => {
           setIsLoading(false);
           return true;
         } catch (err) {
-          console.error('네이버 서버 인증 사용자 처리 오류:', err);
+          console.error('네이버 인증 사용자 처리 오류:', err);
           localStorage.removeItem('naverAuthUser');
         }
       }
@@ -45,24 +46,18 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('tempNaverUser');
       localStorage.removeItem('pendingNaverUser');
       
+      setIsLoading(false);
       return false;
     };
 
-    // 네이버 서버 인증 사용자 체크
-    const hasNaverUser = checkNaverServerAuth();
-    
-    // 네이버 사용자가 없을 때만 Firebase 인증 체크 시작
-    if (!hasNaverUser) {
-      setIsLoading(true);
-    }
+    checkAuth();
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // 네이버 서버 인증 사용자가 있으면 Firebase 인증 무시
-      const naverAuthUser = localStorage.getItem('naverAuthUser');
-      if (naverAuthUser) {
-        console.log('🔍 네이버 서버 인증 사용자 있음, Firebase 인증 건너뜀');
+      // JWT 토큰 기반 인증 사용자가 있으면 Firebase 인증 무시
+      if (user && user.isServerAuth) {
+        console.log('🔍 JWT 토큰 인증 사용자 있음, Firebase 인증 건너뜀');
         return;
       }
       
@@ -71,7 +66,10 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser) {
         await handleUser(firebaseUser);
       } else {
-        setUser(null);
+        // Firebase 사용자가 없고 JWT 사용자도 없을 때만 로그아웃 처리
+        if (!user || !user.isServerAuth) {
+          setUser(null);
+        }
       }
       setIsLoading(false);
     });
@@ -87,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handleUser = async (firebaseUser) => {
     if (!firebaseUser) return;
@@ -240,10 +238,9 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       // 네이버 서버 인증 사용자 로그아웃
-      const naverAuthUser = localStorage.getItem('naverAuthUser');
-      if (naverAuthUser) {
-        localStorage.removeItem('naverAuthUser');
+      if (user && user.isServerAuth) {
         console.log('✅ 네이버 서버 인증 사용자 로그아웃');
+        localStorage.removeItem('naverAuthUser');
       }
       
       // Firebase 로그아웃

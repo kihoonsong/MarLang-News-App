@@ -35,6 +35,7 @@ const NaverCallback = () => {
         // Firebase Cloud Function에서 네이버 토큰 교환 및 사용자 정보 획득
         const response = await fetch('https://us-central1-marlang-app.cloudfunctions.net/naverAuth', {
           method: 'POST',
+          credentials: 'include', // 쿠키 포함
           headers: {
             'Content-Type': 'application/json',
           },
@@ -53,18 +54,31 @@ const NaverCallback = () => {
 
         console.log('🔍 서버 응답 데이터:', data);
 
-        if (!data.customToken && data.tokenType !== 'server_auth') {
-          console.log('🚨 토큰이 없습니다. tokenType:', data.tokenType);
-          throw new Error('인증 토큰을 받지 못했습니다. 관리자에게 문의하세요.');
-        }
-
-        // Firebase 인증 처리
-        if (data.tokenType === 'custom') {
+        if (data.authType === 'jwt') {
+          // JWT 기반 인증 - 토큰은 이미 HttpOnly 쿠키로 설정됨
+          console.log('✅ JWT 기반 인증 - 토큰이 쿠키에 저장됨');
+          console.log('🔍 응답에서 받은 사용자 정보:', data.user);
+          
+          // 쿠키 확인
+          console.log('🍪 브라우저 쿠키:', document.cookie);
+          
+          setStatus('success');
+          
+          // 원래 페이지로 리디렉션
+          const originalPath = sessionStorage.getItem('preNaverLoginPath') || '/';
+          sessionStorage.removeItem('preNaverLoginPath');
+          sessionStorage.removeItem('naverOAuthState');
+          
+          setTimeout(() => {
+            window.location.href = originalPath;
+          }, 1000);
+          return;
+        } else if (data.tokenType === 'custom') {
           console.log('✅ 커스텀 토큰으로 로그인');
           await signInWithCustomToken(auth, data.customToken);
         } else if (data.tokenType === 'server_auth') {
-          // 서버 기반 인증 - 네이버 사용자 정보를 직접 저장
-          console.log('✅ 서버 기반 인증 - 네이버 사용자 정보 저장');
+          // 서버 기반 인증 폴백 - 네이버 사용자 정보를 직접 저장
+          console.log('✅ 서버 기반 인증 폴백 - 네이버 사용자 정보 저장');
           
           // 네이버 사용자 정보를 로컬에 저장 (AuthContext에서 인식)
           localStorage.setItem('naverAuthUser', JSON.stringify({
@@ -85,8 +99,8 @@ const NaverCallback = () => {
           }, 1000);
           return;
         } else {
-          console.log('🚨 지원되지 않는 토큰 타입:', data.tokenType);
-          throw new Error(`지원되지 않는 토큰 타입입니다: ${data.tokenType}`);
+          console.log('🚨 지원되지 않는 인증 타입:', data.authType || data.tokenType);
+          throw new Error(`지원되지 않는 인증 타입입니다: ${data.authType || data.tokenType}`);
         }
 
         setStatus('success');

@@ -123,7 +123,7 @@ const Profile = () => {
     <>
       <MobileNavigation showBackButton={true} />
       <MobileContentWrapper>
-        <PageContainer>
+          <PageContainer>
           <ProfileContainer>
             <ProfileHeader 
               user={user}
@@ -150,7 +150,7 @@ const Profile = () => {
             />
             
           </ProfileContainer>
-        </PageContainer>
+          </PageContainer>
       </MobileContentWrapper>
     </>
   );
@@ -209,4 +209,4 @@ const LoginButton = styled.button`
   }
 `;
 
-export default Profile;
+export default Profile; 

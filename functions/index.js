@@ -2,6 +2,7 @@ const functions = require("firebase-functions");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
 
 // Firebase Admin 초기화
 if (!admin.apps.length) {
@@ -62,12 +63,13 @@ exports.synthesizeSpeech = functions.https.onCall(async (data, context) => {
   }
 });
 
-// 네이버 소셜 로그인 인증 함수
+// 네이버 소셜 로그인 인증 함수 (업데이트됨)
 exports.naverAuth = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
@@ -206,30 +208,23 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
     
     await userRef.set(userDoc, { merge: true });
 
-    // 6. 클라이언트에 커스텀 토큰과 사용자 정보 반환
+    // 6. 기존 localStorage 방식 응답
     const responseData = { 
       success: true,
-      customToken: customToken,
-      tokenType: tokenType,
+      tokenType: 'server_auth',
       user: {
         uid: uid,
         email: naverUser.email || null,
         name: naverUser.name || naverUser.nickname || 'Unknown',
         picture: naverUser.profile_image || null,
         provider: 'naver',
-        naverAccessToken: access_token
-      },
-      debug: {
-        hasCustomToken: !!customToken,
-        tokenType: tokenType,
-        userId: uid
+        isServerAuth: true
       }
     };
 
-    console.log('📤 클라이언트로 전송할 응답:', {
+    console.log('📤 서버 인증 응답:', {
       success: responseData.success,
       tokenType: responseData.tokenType,
-      hasCustomToken: !!responseData.customToken,
       userEmail: responseData.user.email
     });
 
@@ -363,6 +358,312 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     console.error('Get user data error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// JWT 토큰 생성 함수
+exports.createJWTToken = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { userId, userInfo } = req.body;
+    
+    if (!userId || !userInfo) {
+      res.status(400).json({ error: 'Missing userId or userInfo' });
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const accessTokenExpiry = '15m'; // 15분
+    const refreshTokenExpiry = '7d'; // 7일
+
+    // Access Token 생성
+    const accessToken = jwt.sign(
+      { 
+        userId: userId,
+        email: userInfo.email,
+        provider: userInfo.provider,
+        type: 'access'
+      },
+      jwtSecret,
+      { expiresIn: accessTokenExpiry }
+    );
+
+    // Refresh Token 생성
+    const refreshToken = jwt.sign(
+      { 
+        userId: userId,
+        type: 'refresh'
+      },
+      jwtSecret,
+      { expiresIn: refreshTokenExpiry }
+    );
+
+    // HttpOnly 쿠키 설정
+    const isProduction = req.get('host')?.includes('cloudfunctions.net');
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 15 * 60 * 1000, // 15분
+      path: '/'
+    };
+
+    res.cookie('accessToken', accessToken, cookieOptions);
+
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7일
+    });
+
+    res.json({ 
+      success: true,
+      message: 'JWT tokens created successfully',
+      user: {
+        uid: userId,
+        email: userInfo.email,
+        name: userInfo.name,
+        provider: userInfo.provider
+      }
+    });
+
+  } catch (error) {
+    console.error('Create JWT token error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// JWT 토큰 검증 함수
+exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    console.log('🔍 쿠키 확인:', req.cookies);
+    const accessToken = req.cookies?.accessToken;
+    
+    if (!accessToken) {
+      console.log('❌ Access token이 쿠키에 없음');
+      res.status(401).json({ error: 'No access token found' });
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    
+    try {
+      const decoded = jwt.verify(accessToken, jwtSecret);
+      console.log('✅ JWT 토큰 검증 성공:', decoded.userId);
+      
+      if (decoded.type !== 'access') {
+        res.status(401).json({ error: 'Invalid token type' });
+        return;
+      }
+
+      // Firestore에서 최신 사용자 정보 가져오기
+      const userRef = admin.firestore().collection('users').doc(decoded.userId);
+      const userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        res.status(401).json({ error: 'User not found' });
+        return;
+      }
+
+      const userInfo = userDoc.data();
+
+      res.json({
+        success: true,
+        user: {
+          uid: decoded.userId,
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture,
+          provider: userInfo.provider
+        }
+      });
+
+    } catch (jwtError) {
+      console.error('JWT 검증 오류:', jwtError);
+      if (jwtError.name === 'TokenExpiredError') {
+        res.status(401).json({ error: 'Token expired' });
+      } else {
+        res.status(401).json({ error: 'Invalid token' });
+      }
+    }
+
+  } catch (error) {
+    console.error('Verify JWT token error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// JWT 토큰 갱신 함수
+exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (!refreshToken) {
+      res.status(401).json({ error: 'No refresh token found' });
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    
+    try {
+      const decoded = jwt.verify(refreshToken, jwtSecret);
+      
+      if (decoded.type !== 'refresh') {
+        res.status(401).json({ error: 'Invalid token type' });
+        return;
+      }
+
+      // 사용자 정보 다시 가져오기
+      const userRef = admin.firestore().collection('users').doc(decoded.userId);
+      const userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        res.status(401).json({ error: 'User not found' });
+        return;
+      }
+
+      const userInfo = userDoc.data();
+
+      // 새 Access Token 생성
+      const newAccessToken = jwt.sign(
+        { 
+          userId: decoded.userId,
+          email: userInfo.email,
+          provider: userInfo.provider,
+          type: 'access'
+        },
+        jwtSecret,
+        { expiresIn: '15m' }
+      );
+
+      // 새 Access Token 쿠키 설정
+      const isProduction = req.get('host')?.includes('cloudfunctions.net');
+      res.cookie('accessToken', newAccessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 15 * 60 * 1000, // 15분
+        path: '/'
+      });
+
+      res.json({ 
+        success: true,
+        message: 'Token refreshed successfully',
+        user: {
+          uid: decoded.userId,
+          email: userInfo.email,
+          name: userInfo.name,
+          provider: userInfo.provider
+        }
+      });
+
+    } catch (jwtError) {
+      if (jwtError.name === 'TokenExpiredError') {
+        res.status(401).json({ error: 'Refresh token expired' });
+      } else {
+        res.status(401).json({ error: 'Invalid refresh token' });
+      }
+    }
+
+  } catch (error) {
+    console.error('Refresh JWT token error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// 사용자 로그아웃 함수
+exports.logoutUser = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    // 쿠키 삭제
+    const isProduction = req.get('host')?.includes('cloudfunctions.net');
+    const clearOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/'
+    };
+
+    res.clearCookie('accessToken', clearOptions);
+    res.clearCookie('refreshToken', clearOptions);
+
+    res.json({ 
+      success: true,
+      message: 'Logged out successfully'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
     res.status(500).json({ 
       error: 'Internal server error', 
       message: error.message 
