@@ -151,6 +151,9 @@ const ArticleDetail = () => {
   
   // 통합 TTS 인스턴스
   const unifiedTTSRef = useRef(null);
+  
+  // 활성 문장 DOM 참조 (DOM 직접 조작용)
+  const activeSentenceRef = useRef(null);
 
   // userSettings 변경 시 TTS 설정 업데이트
   useEffect(() => {
@@ -178,6 +181,12 @@ const ArticleDetail = () => {
       if (unifiedTTSRef.current) {
         unifiedTTSRef.current.stop();
         unifiedTTSRef.current = null;
+      }
+      
+      // DOM 하이라이트 정리
+      if (activeSentenceRef.current) {
+        activeSentenceRef.current.classList.remove('active-sentence');
+        activeSentenceRef.current = null;
       }
       
       console.log('✅ 언마운트 TTS 정지 완료');
@@ -345,6 +354,50 @@ const ArticleDetail = () => {
 
   // 이전 UltraSimpleTTS 관련 코드 제거 - UnifiedTTS만 사용
 
+  // DOM 직접 조작으로 문장 하이라이트 (iOS/iPad 최적화)
+  const highlightSentence = (sentenceIdx) => {
+    // 이전 하이라이트 제거
+    if (activeSentenceRef.current) {
+      activeSentenceRef.current.classList.remove('active-sentence');
+    }
+
+    // 새 문장 DOM 찾기 (현재 활성 레벨에서만)
+    const selector = `[data-sentence="${sentenceIdx}"]`;
+    const elements = document.querySelectorAll(selector);
+    
+    // 현재 선택된 레벨의 문장만 하이라이트
+    let targetElement = null;
+    for (const el of elements) {
+      // 가장 가까운 SwipeCard를 찾아서 활성 상태인지 확인
+      const card = el.closest('[data-testid="swipe-card"]') || el.closest('div[style*="z-index: 10"]');
+      if (card && card.style.zIndex === '10') {
+        targetElement = el;
+        break;
+      }
+    }
+    
+    // 폴백: 첫 번째 요소 사용
+    if (!targetElement && elements.length > 0) {
+      targetElement = elements[0];
+    }
+    
+    if (targetElement) {
+      targetElement.classList.add('active-sentence');
+      activeSentenceRef.current = targetElement;
+      
+      // iOS Safari 최적화된 스크롤 (부드러운 스크롤)
+      try {
+        targetElement.scrollIntoView({ 
+          block: 'nearest', 
+          behavior: 'smooth',
+          inline: 'nearest'
+        });
+      } catch (error) {
+        // 스크롤 실패 시 조용히 무시
+        console.log('스크롤 실패:', error);
+      }
+    }
+  };
 
   // 단순화된 TTS 시작 함수
   const startTTS = async () => {
@@ -402,6 +455,12 @@ const ArticleDetail = () => {
           console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
           console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);
           
+          // DOM 직접 조작으로 변경 (React 상태 업데이트 제거)
+          requestAnimationFrame(() => {
+            highlightSentence(sentenceIndex);
+          });
+          
+          // 진행률 표시용 상태는 유지 (UI 영향 최소화)
           setCurrentSentence(sentenceIndex);
           setTotalSentences(totalSentences);
         },
@@ -411,6 +470,12 @@ const ArticleDetail = () => {
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
           setTotalSentences(0);
+          
+          // DOM 하이라이트 정리
+          if (activeSentenceRef.current) {
+            activeSentenceRef.current.classList.remove('active-sentence');
+            activeSentenceRef.current = null;
+          }
         },
         onError: (error) => {
           console.error('❌ TTS 에러:', error);
@@ -418,6 +483,12 @@ const ArticleDetail = () => {
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
           setTotalSentences(0);
+          
+          // DOM 하이라이트 정리
+          if (activeSentenceRef.current) {
+            activeSentenceRef.current.classList.remove('active-sentence');
+            activeSentenceRef.current = null;
+          }
         }
       });
       
@@ -454,6 +525,12 @@ const ArticleDetail = () => {
       setIsTTSLoading(false);
       setCurrentSentence(-1);
       setTotalSentences(0);
+      
+      // DOM 하이라이트 정리
+      if (activeSentenceRef.current) {
+        activeSentenceRef.current.classList.remove('active-sentence');
+        activeSentenceRef.current = null;
+      }
       
       console.log('✅ TTS 중지 완료');
     } else {
@@ -494,6 +571,12 @@ const ArticleDetail = () => {
     setCurrentSentence(-1);
     setTotalSentences(0);
     setSelectedLevel(level);
+    
+    // DOM 하이라이트 정리
+    if (activeSentenceRef.current) {
+      activeSentenceRef.current.classList.remove('active-sentence');
+      activeSentenceRef.current = null;
+    }
     try {
       stopAllTTS();
     } catch (error) {
@@ -1437,7 +1520,8 @@ const ArticleDetail = () => {
                   return (
                     <SentenceSpan 
                       key={sentenceIdx}
-                      $isActive={isCurrentSentence}
+                      data-sentence={sentenceIdx}
+                      $isActive={false}
                     >
                       {sentence.trim().split(' ').map((word, wordIdx) => {
                         const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
@@ -2009,12 +2093,19 @@ const ContentText = styled.div`
 
 const SentenceSpan = styled.span`
   display: inline;
-  transition: all 0.2s ease;
   
+  /* React 상태 기반 스타일 제거 - DOM 클래스로 대체 */
   ${props => props.$isActive && `
     border-bottom: 2px solid #1976d2;
     background-color: rgba(25, 118, 210, 0.1);
   `}
+  
+  /* CSS 클래스 기반 하이라이트 (DOM 직접 조작용) */
+  &.active-sentence {
+    border-bottom: 2px solid #1976d2;
+    background-color: rgba(25, 118, 210, 0.1);
+    transition: border-bottom-color 0.05s linear; /* 트랜지션 최소화 */
+  }
 `;
 
 const WordPopupContent = styled(Paper)`
