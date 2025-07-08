@@ -227,7 +227,7 @@ export const DataProvider = ({ children }) => {
     await saveData('savedWords', updatedWords);
   };
 
-  const toggleLike = async (article) => {
+  const toggleLike = async (article, incrementArticleLikes = null) => {
     const isLiked = likedArticles.some(a => a.id === article.id);
     let updatedLikes;
     if (isLiked) {
@@ -237,6 +237,12 @@ export const DataProvider = ({ children }) => {
     }
     setLikedArticles(updatedLikes);
     await saveData('likedArticles', updatedLikes);
+    
+    // 기사 좋아요 수 업데이트 (함수가 제공된 경우)
+    if (incrementArticleLikes && typeof incrementArticleLikes === 'function') {
+      await incrementArticleLikes(article.id, !isLiked);
+    }
+    
     return !isLiked;
   };
   

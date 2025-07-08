@@ -100,7 +100,7 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth() || {};
-  const { allArticles, loading: articlesLoading } = useArticles();
+  const { allArticles, loading: articlesLoading, incrementArticleViews, incrementArticleLikes } = useArticles();
   const { 
     savedWords, 
     addWord, 
@@ -221,6 +221,11 @@ const ArticleDetail = () => {
         if (user?.uid) {
           addViewRecord(foundArticle);
           updateActivityTime && updateActivityTime();
+        }
+        
+        // 기사 조회수 증가 (로그인 여부와 관계없이)
+        if (incrementArticleViews) {
+          incrementArticleViews(foundArticle.id);
         }
       }
     }
@@ -613,7 +618,7 @@ const ArticleDetail = () => {
     }
     
     try {
-      const newLikeStatus = toggleLike(articleData);
+      const newLikeStatus = toggleLike(articleData, incrementArticleLikes);
       setIsLiked(newLikeStatus);
       
       // 활동 시간 업데이트

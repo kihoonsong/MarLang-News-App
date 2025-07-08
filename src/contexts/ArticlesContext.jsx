@@ -194,6 +194,66 @@ export const ArticlesProvider = ({ children }) => {
     return allArticles.find(article => article.id === articleId) || null;
   }, [allArticles]);
 
+  // 기사 조회수 증가
+  const incrementArticleViews = useCallback(async (articleId) => {
+    try {
+      const articleDocRef = doc(db, 'articles', articleId);
+      const articleDoc = await getDoc(articleDocRef);
+      
+      if (articleDoc.exists()) {
+        const currentViews = articleDoc.data().views || 0;
+        await updateDoc(articleDocRef, { 
+          views: currentViews + 1,
+          updatedAt: new Date().toISOString()
+        });
+        
+        // 로컬 상태 업데이트
+        setAllArticles(prev => prev.map(article => 
+          article.id === articleId 
+            ? { ...article, views: currentViews + 1 }
+            : article
+        ));
+        
+        console.log(`✅ 기사 ${articleId} 조회수 증가: ${currentViews} → ${currentViews + 1}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('기사 조회수 증가 실패:', error);
+      return false;
+    }
+  }, []);
+
+  // 기사 좋아요 수 증가/감소
+  const incrementArticleLikes = useCallback(async (articleId, increment = true) => {
+    try {
+      const articleDocRef = doc(db, 'articles', articleId);
+      const articleDoc = await getDoc(articleDocRef);
+      
+      if (articleDoc.exists()) {
+        const currentLikes = articleDoc.data().likes || 0;
+        const newLikes = increment ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+        
+        await updateDoc(articleDocRef, { 
+          likes: newLikes,
+          updatedAt: new Date().toISOString()
+        });
+        
+        // 로컬 상태 업데이트
+        setAllArticles(prev => prev.map(article => 
+          article.id === articleId 
+            ? { ...article, likes: newLikes }
+            : article
+        ));
+        
+        console.log(`✅ 기사 ${articleId} 좋아요 ${increment ? '증가' : '감소'}: ${currentLikes} → ${newLikes}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('기사 좋아요 업데이트 실패:', error);
+      return false;
+    }
+  }, []);
+
   const value = useMemo(() => ({
     allArticles,
     categories,
@@ -208,7 +268,9 @@ export const ArticlesProvider = ({ children }) => {
     updateArticle,
     deleteArticle,
     updateCategories,
-  }), [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories]);
+    incrementArticleViews,
+    incrementArticleLikes,
+  }), [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories, incrementArticleViews, incrementArticleLikes]);
 
   return (
     <ArticlesContext.Provider value={value}>
