@@ -55,11 +55,13 @@ const NavigationHeader = ({
         </LeftSection>
 
         <CenterSection>
-          {/* 센터에는 별도 타이틀 표시하지 않음 */}
+          {/* 모바일에서는 검색창을 센터에 배치 */}
+          {isMobile && <SearchDropdown />}
         </CenterSection>
 
         <RightSection>
-          <SearchDropdown />
+          {/* 데스크톱에서만 검색창 표시 */}
+          {!isMobile && <SearchDropdown />}
           
           {isAuthenticated ? (
             <UserAvatar
@@ -108,12 +110,25 @@ const LeftSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  
+  /* 모바일에서 로고 영역 축소 */
+  @media (max-width: 767px) {
+    flex: 0 0 auto;
+    min-width: fit-content;
+  }
 `;
 
 const CenterSection = styled.div`
   flex: 1;
   display: flex;
   justify-content: center;
+  
+  /* 모바일에서 센터 섹션을 검색창으로 활용 */
+  @media (max-width: 767px) {
+    flex: 1;
+    max-width: 65%;
+    margin: 0 1rem;
+  }
 `;
 
 const RightSection = styled.div`
@@ -123,9 +138,10 @@ const RightSection = styled.div`
   flex: 1;
   justify-content: flex-end;
   
-  /* 스마트폰에서 검색창 영역 확대 */
+  /* 스마트폰에서 우측 영역 최소화 */
   @media (max-width: 767px) {
-    flex: 3;
+    flex: 0 0 auto;
+    min-width: fit-content;
     gap: 0.5rem;
   }
 `;
