@@ -1438,7 +1438,7 @@ const ArticleDetail = () => {
                           />
                         );
                       })}
-                      {sentenceIdx < sentences.length - 1 && '. '}
+                      {sentenceIdx < sentences.length - 1 && ' '}
                     </SentenceSpan>
                   );
                 });
