@@ -25,7 +25,7 @@ class ErrorBoundary extends React.Component {
     console.error('Error caught by boundary:', error, errorInfo);
     
     // 개발 환경에서만 상세 정보 표시
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.group('🐛 Error Boundary Details');
       console.error('Error:', error);
       console.error('Error Info:', errorInfo);
@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component {
               <Typography variant="body2">
                 <strong>Error:</strong> {this.state.error?.message || 'Unknown error occurred'}
               </Typography>
-              {process.env.NODE_ENV === 'development' && this.state.error?.stack && (
+              {import.meta.env.DEV && this.state.error?.stack && (
                 <details style={{ marginTop: 8 }}>
                   <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>
                     Technical Details (Dev Mode)

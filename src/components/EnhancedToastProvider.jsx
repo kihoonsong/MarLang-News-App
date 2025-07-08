@@ -103,7 +103,7 @@ export const EnhancedToastProvider = ({ children }) => {
     setErrorLog(prev => [errorEntry, ...prev.slice(0, 49)]); // 최대 50개 유지
     
     // 개발 환경에서는 콘솔에도 출력
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.group('🚨 Enhanced Toast Error Log');
       console.error('Error:', error);
       console.log('Context:', context);
@@ -198,8 +198,8 @@ export const EnhancedToastProvider = ({ children }) => {
 
     // 일반 에러 처리
     const toastOptions = {
-      expandable: process.env.NODE_ENV === 'development',
-      details: process.env.NODE_ENV === 'development' ? error?.stack : null,
+      expandable: import.meta.env.DEV,
+      details: import.meta.env.DEV ? error?.stack : null,
       group: errorType,
       ...options
     };

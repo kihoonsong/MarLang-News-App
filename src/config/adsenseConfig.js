@@ -51,7 +51,7 @@ export const adsenseConfig = {
 
 // 환경별 설정 함수
 export const getAdsenseConfig = () => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
   
   return {
     ...adsenseConfig,
@@ -62,7 +62,7 @@ export const getAdsenseConfig = () => {
   };
 };
 
-// 광고 로드 함수
+// 광고 로드 함수 (보안 강화)
 export const loadAdsenseScript = () => {
   return new Promise((resolve, reject) => {
     if (window.adsbygoogle) {
@@ -70,24 +70,43 @@ export const loadAdsenseScript = () => {
       return;
     }
     
+    const config = getAdsenseConfig();
+    
+    // 클라이언트 ID 검증
+    if (!config.clientId || !config.clientId.startsWith('ca-pub-')) {
+      reject(new Error('Invalid AdSense client ID'));
+      return;
+    }
+    
     const script = document.createElement('script');
-    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${getAdsenseConfig().clientId}`;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${config.clientId}`;
     script.async = true;
     script.crossOrigin = 'anonymous';
     
+    // CSP 호환성을 위한 nonce 설정 (있을 경우)
+    const nonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
+    if (nonce) {
+      script.nonce = nonce;
+    }
+    
     // 타임아웃 설정으로 무한 대기 방지
     const timeoutId = setTimeout(() => {
-      reject(new Error('AdSense script loading timeout'));
-    }, 10000); // 10초 타임아웃
+      document.head.removeChild(script);
+      reject(new Error('AdSense script loading timeout (10s)'));
+    }, 10000);
     
     script.onload = () => {
       clearTimeout(timeoutId);
+      console.log('✅ AdSense script loaded successfully');
       resolve();
     };
     
     script.onerror = () => {
       clearTimeout(timeoutId);
-      reject(new Error('AdSense script loading failed - likely blocked by ad blocker'));
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      reject(new Error('AdSense script loading failed - likely blocked by ad blocker or CSP'));
     };
     
     document.head.appendChild(script);

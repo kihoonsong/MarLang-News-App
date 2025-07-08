@@ -111,7 +111,7 @@ const GlobalErrorHandler = () => {
     setupGlobalErrorHandling(error);
 
     // 개발 환경에서만 추가 로깅
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('🛡️ Global error handling initialized');
     }
   }, [error]);

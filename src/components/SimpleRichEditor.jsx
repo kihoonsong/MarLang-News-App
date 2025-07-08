@@ -29,12 +29,39 @@ const SimpleRichEditor = ({ value, onChange, placeholder, label }) => {
     handleContentChange();
   };
 
+  // 안전한 URL 스킴 검증
+  const isSafeUrl = (url) => {
+    if (!url) return false;
+    
+    try {
+      const urlObj = new URL(url);
+      const safeSchemes = ['http:', 'https:', 'mailto:', 'tel:'];
+      return safeSchemes.includes(urlObj.protocol);
+    } catch {
+      // 상대 URL이나 fragment는 안전하다고 가정
+      return url.startsWith('/') || url.startsWith('#') || url.startsWith('?');
+    }
+  };
+
   const handleContentChange = () => {
     if (editorRef.current && onChange) {
       const content = editorRef.current.innerHTML;
       const sanitizedContent = DOMPurify.sanitize(content, {
         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'blockquote', 'ol', 'ul', 'li', 'a'],
-        ALLOWED_ATTR: ['href', 'target']
+        ALLOWED_ATTR: ['href', 'target'],
+        HOOK_AFTER_SANITIZE: (fragment) => {
+          // href 속성이 있는 모든 링크 검증
+          const links = fragment.querySelectorAll('a[href]');
+          links.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!isSafeUrl(href)) {
+              link.removeAttribute('href');
+              link.style.color = '#999';
+              link.style.textDecoration = 'none';
+              link.title = 'Link removed for security';
+            }
+          });
+        }
       });
       onChange(sanitizedContent);
     }
@@ -50,7 +77,11 @@ const SimpleRichEditor = ({ value, onChange, placeholder, label }) => {
   const addLink = () => {
     const url = prompt('링크 URL을 입력하세요:');
     if (url) {
-      executeCommand('createLink', url);
+      if (isSafeUrl(url)) {
+        executeCommand('createLink', url);
+      } else {
+        alert('보안상 허용되지 않는 링크입니다. http://, https://, mailto:, tel: 스킴만 사용 가능합니다.');
+      }
     }
   };
 

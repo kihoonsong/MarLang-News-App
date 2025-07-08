@@ -3,6 +3,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { membershipConfig } from '../config/membershipConfig';
 import { getAdsenseConfig } from '../config/adsenseConfig';
 
+// 소수 테이블 캐싱 (성능 최적화)
+const primeCache = new Map();
+const isPrime = (num) => {
+  if (primeCache.has(num)) {
+    return primeCache.get(num);
+  }
+  
+  if (num < 2) {
+    primeCache.set(num, false);
+    return false;
+  }
+  
+  for (let i = 2; i <= Math.sqrt(num); i++) {
+    if (num % i === 0) {
+      primeCache.set(num, false);
+      return false;
+    }
+  }
+  
+  primeCache.set(num, true);
+  return true;
+};
+
 export const useAdInjector = (items) => {
   const { user } = useAuth();
   const adsenseConfig = getAdsenseConfig();
@@ -34,29 +57,17 @@ export const useAdInjector = (items) => {
     
     // 광고를 표시하지 않거나, 아이템이 없거나, 아이템이 최소 임계값 미만인 경우
     if (!shouldShowAds || !items || items.length === 0 || items.length < minThreshold) {
-      return items || [];
+      // 안전한 복사본 반환 (참조 문제 해결)
+      return items ? [...items] : [];
     }
 
     const newItems = [];
-    
-    // 소수 생성 함수
-    const isPrime = (num) => {
-      if (num < 2) return false;
-      for (let i = 2; i <= Math.sqrt(num); i++) {
-        if (num % i === 0) return false;
-      }
-      return true;
-    };
-    
-    // 소수 자리에 광고 배치
     let adCount = 0;
     
     items.forEach((item, index) => {
-      newItems.push(item);
-      
       // 현재 위치가 소수인지 확인 (1-based index)
       const position = index + 1;
-      if (isPrime(position) && position >= 3 && index < items.length - 1) {
+      if (isPrime(position) && position >= 3 && index < items.length) {
         newItems.push({ 
           type: 'ad', 
           id: `ad-${adCount}`,
@@ -65,6 +76,8 @@ export const useAdInjector = (items) => {
         });
         adCount++;
       }
+      
+      newItems.push(item);
     });
     
     return newItems;
