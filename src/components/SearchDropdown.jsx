@@ -204,12 +204,22 @@ const Input = styled(InputBase)`
   width: 100%;
   background: #f5f5f5;
   border-radius: ${props => props.$compact ? '8px' : '25px'};
-  padding: ${props => props.$compact ? '0.25rem 0.75rem' : '0.5rem 1rem'};
+  padding: ${props => props.$compact ? '0.5rem 1rem' : '1rem 1.5rem'};
   transition: all 0.2s;
   
   &:focus-within {
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* 스마트폰에서 검색창 크기 2배로 확대 */
+  @media (max-width: 767px) {
+    padding: ${props => props.$compact ? '0.8rem 1.2rem' : '1.2rem 1.8rem'};
+    font-size: 1.1rem;
+    
+    .MuiInputBase-input {
+      font-size: 1.1rem;
+    }
   }
   
   /* 풀스크린에서 더 큰 패딩과 폰트 크기 */

@@ -125,7 +125,7 @@ const RightSection = styled.div`
   
   /* 스마트폰에서 검색창 영역 확대 */
   @media (max-width: 767px) {
-    flex: 2;
+    flex: 3;
     gap: 0.5rem;
   }
 `;
