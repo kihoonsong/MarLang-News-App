@@ -4,13 +4,25 @@ import {
   MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, 
   DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Paper, Chip, IconButton, Tabs, Tab, RadioGroup, Radio, 
-  FormControlLabel, FormLabel, Alert
+  FormControlLabel, FormLabel, Alert, ButtonGroup
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Preview, Publish, 
-  Visibility, CloudUpload, Image
+  Visibility, CloudUpload, Image, FormatBold, FormatItalic, 
+  FormatListBulleted, FormatListNumbered, Link as LinkIcon
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
+
+// 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
+const truncateSummary = (text, limit = 50) => {
+  if (!text) return '';
+  if (text.length <= limit) return text;
+  let truncated = text.substring(0, limit).trimEnd();
+  if (/[.!?]$/.test(truncated)) {
+    truncated = truncated.slice(0, -1); // 끝에 . ! ? 가 있으면 제거
+  }
+  return `${truncated}...`;
+};
 
 const ArticleManagement = ({ 
   articles,
@@ -48,6 +60,76 @@ const ArticleManagement = ({
     publishedAt: new Date().toISOString().slice(0, 16),
     status: 'published'
   });
+
+  // Textarea refs (본문 각 난이도)
+  const beginnerRef = React.useRef(null);
+  const intermediateRef = React.useRef(null);
+  const advancedRef = React.useRef(null);
+
+  // 현재 활성 탭의 textarea ref 반환
+  const getActiveTextarea = () => {
+    if (activeContentTab === 0) return beginnerRef.current;
+    if (activeContentTab === 1) return intermediateRef.current;
+    return advancedRef.current;
+  };
+
+  // 포맷 삽입 핸들러
+  const handleInsertFormatting = (type) => {
+    const textarea = getActiveTextarea();
+    if (!textarea) return;
+
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const originalValue = textarea.value;
+    let inserted = '';
+
+    switch (type) {
+      case 'bold':
+        inserted = `**${originalValue.slice(start, end)}**`;
+        break;
+      case 'italic':
+        inserted = `*${originalValue.slice(start, end)}*`;
+        break;
+      case 'ul':
+        inserted = originalValue.slice(start, end)
+          .split('\n')
+          .map(line => line ? `- ${line}` : '')
+          .join('\n');
+        break;
+      case 'ol':
+        inserted = originalValue.slice(start, end)
+          .split('\n')
+          .map((line, idx) => line ? `${idx + 1}. ${line}` : '')
+          .join('\n');
+        break;
+      case 'link':
+        inserted = `[${originalValue.slice(start, end) || '텍스트'}](url)`;
+        break;
+      default:
+        inserted = originalValue.slice(start, end);
+    }
+
+    const newValue = originalValue.slice(0, start) + inserted + originalValue.slice(end);
+
+    // 상태 업데이트
+    setArticleForm(prev => {
+      const key = activeContentTab === 0 ? 'beginner' : activeContentTab === 1 ? 'intermediate' : 'advanced';
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          [key]: newValue
+        }
+      };
+    });
+
+    // 포커스 유지 및 커서 위치 조정
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursorPos = start + inserted.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    });
+  };
 
   // 기사 폼 초기화
   const resetArticleForm = () => {
@@ -477,7 +559,7 @@ const ArticleManagement = ({
                           {article.title}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
-                          {article.summary?.substring(0, 50)}...
+                          {truncateSummary(article.summary)}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -590,7 +672,7 @@ const ArticleManagement = ({
       </Card>
 
       {/* 기사 추가/편집 다이얼로그 */}
-      <Dialog open={articleDialog} onClose={() => setArticleDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={articleDialog} onClose={() => setArticleDialog(false)} maxWidth="xl" fullWidth>
         <DialogTitle>
           <Typography variant="h5" fontWeight="bold">
             {editingArticle ? '✏️ 기사 수정' : '📝 새 기사 작성'}
@@ -600,7 +682,7 @@ const ArticleManagement = ({
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={3}>
               {/* 기본 정보 */}
-              <Grid item xs={12} md={8}>
+              <Grid item xs={12} md={9}>
                 <TextField
                   fullWidth
                   label="제목 *"
@@ -633,6 +715,15 @@ const ArticleManagement = ({
                     <Tab label="🔴 고급자용" />
                   </Tabs>
                   
+                  {/* 텍스트 서식 툴바 */}
+                  <ButtonGroup variant="outlined" size="small" sx={{ mb: 1 }}>
+                    <Button onClick={() => handleInsertFormatting('bold')}><FormatBold /></Button>
+                    <Button onClick={() => handleInsertFormatting('italic')}><FormatItalic /></Button>
+                    <Button onClick={() => handleInsertFormatting('ul')}><FormatListBulleted /></Button>
+                    <Button onClick={() => handleInsertFormatting('ol')}><FormatListNumbered /></Button>
+                    <Button onClick={() => handleInsertFormatting('link')}><LinkIcon /></Button>
+                  </ButtonGroup>
+
                   {activeContentTab === 0 && (
                     <TextField
                       fullWidth
@@ -643,8 +734,9 @@ const ArticleManagement = ({
                         content: { ...articleForm.content, beginner: e.target.value }
                       })}
                       multiline
-                      rows={8}
+                      minRows={14}
                       placeholder="쉬운 단어와 짧은 문장으로 작성해주세요"
+                      inputRef={beginnerRef}
                     />
                   )}
                   
@@ -658,8 +750,9 @@ const ArticleManagement = ({
                         content: { ...articleForm.content, intermediate: e.target.value }
                       })}
                       multiline
-                      rows={8}
+                      minRows={14}
                       placeholder="표준적인 어휘와 문장 구조로 작성해주세요"
+                      inputRef={intermediateRef}
                     />
                   )}
                   
@@ -673,15 +766,16 @@ const ArticleManagement = ({
                         content: { ...articleForm.content, advanced: e.target.value }
                       })}
                       multiline
-                      rows={8}
+                      minRows={14}
                       placeholder="고급 어휘와 복잡한 문장 구조를 사용해주세요"
+                      inputRef={advancedRef}
                     />
                   )}
                 </Box>
               </Grid>
 
               {/* 설정 */}
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <FormControl fullWidth sx={{ mb: 3 }}>
                   <InputLabel>카테고리</InputLabel>
                   <Select

@@ -4,6 +4,17 @@ import { Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { designTokens, getShadow, getBorderRadius, getColor } from '../utils/designTokens';
 
+// 요약 트렁케이트 (중복 마침표 제거)
+const truncateSummary = (text, limit = 100) => {
+  if (!text) return '';
+  if (text.length <= limit) return text;
+  let truncated = text.substring(0, limit).trimEnd();
+  if (/[.!?]$/.test(truncated)) {
+    truncated = truncated.slice(0, -1);
+  }
+  return `${truncated}...`;
+};
+
 const ArticleCard = ({ 
   id, 
   image, 
@@ -56,9 +67,7 @@ const ArticleCard = ({
         <CardTitle>{title}</CardTitle>
         
         {summary && (
-          <CardSummary>
-            {summary.length > 100 ? `${summary.substring(0, 100)}...` : summary}
-          </CardSummary>
+          <CardSummary>{truncateSummary(summary)}</CardSummary>
         )}
       </CardContent>
     </CardContainer>
