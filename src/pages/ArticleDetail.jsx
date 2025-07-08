@@ -24,13 +24,31 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
 import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
 import { createUnifiedTTS } from '../utils/UnifiedTTS';
+import { optimizeTextForTTS, debugTTSOptimization } from '../utils/ttsTextPatch';
+import { getTTSOptimizationSettings } from '../utils/deviceDetect';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
+import DOMPurify from 'dompurify';
 
-
+// HTML 태그 제거 및 텍스트 정리 함수
+const cleanHtmlContent = (htmlContent) => {
+  if (!htmlContent) return '';
+  
+  // HTML 태그를 모두 제거하고 텍스트만 추출
+  const cleanHtml = DOMPurify.sanitize(htmlContent, {
+    ALLOWED_TAGS: [],        // 모든 태그 제거
+    ALLOWED_ATTR: []         // 모든 속성 제거
+  });
+  
+  // 여러 공백을 하나로 정리하고 줄바꿈 정리
+  return cleanHtml
+    .replace(/\s+/g, ' ')     // 여러 공백을 하나로
+    .replace(/\n\s*\n/g, '\n\n') // 여러 줄바꿈을 최대 2개로
+    .trim();
+};
 
 // 기사 내용에서 3개 레벨 생성 (개선된 버전)
 const generateLevelsFromContent = (article) => {
@@ -43,39 +61,40 @@ const generateLevelsFromContent = (article) => {
     const levels = {
       1: {
         title: 'Level 1 - Beginner',
-        content: article.content.beginner || ''
+        content: cleanHtmlContent(article.content.beginner || '')
       },
       2: {
         title: 'Level 2 - Intermediate', 
-        content: article.content.intermediate || ''
+        content: cleanHtmlContent(article.content.intermediate || '')
       },
       3: {
         title: 'Level 3 - Advanced',
-        content: article.content.advanced || ''
+        content: cleanHtmlContent(article.content.advanced || '')
       }
     };
-    console.log('✅ 객체 형태 레벨 생성 완료:', levels);
+    console.log('✅ 객체 형태 레벨 생성 완료 (HTML 태그 제거):', levels);
     return levels;
   } else {
     // 기존 단일 문자열 구조인 경우 모든 소스에서 콘텐츠 찾기
     const baseContent = article.content || article.summary || article.description || 'No content available';
-    console.log('📝 기본 콘텐츠 사용:', baseContent.substring(0, 100), '...');
+    const cleanContent = cleanHtmlContent(baseContent);
+    console.log('📝 기본 콘텐츠 사용 (HTML 태그 제거):', cleanContent.substring(0, 100), '...');
     
     const levels = {
       1: {
         title: 'Level 1 - Beginner',
-        content: baseContent
+        content: cleanContent
       },
       2: {
         title: 'Level 2 - Intermediate',
-        content: baseContent
+        content: cleanContent
       },
       3: {
         title: 'Level 3 - Advanced',
-        content: baseContent
+        content: cleanContent
       }
     };
-    console.log('✅ 단일 형태 레벨 생성 완료:', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
+    console.log('✅ 단일 형태 레벨 생성 완료 (HTML 태그 제거):', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
     return levels;
   }
 };
@@ -149,6 +168,9 @@ const ArticleDetail = () => {
   
   // 통합 TTS 인스턴스
   const unifiedTTSRef = useRef(null);
+  
+  // 활성 문장 DOM 참조 (DOM 직접 조작용)
+  const activeSentenceRef = useRef(null);
 
   // userSettings 변경 시 TTS 설정 업데이트
   useEffect(() => {
@@ -176,6 +198,12 @@ const ArticleDetail = () => {
       if (unifiedTTSRef.current) {
         unifiedTTSRef.current.stop();
         unifiedTTSRef.current = null;
+      }
+      
+      // DOM 하이라이트 정리
+      if (activeSentenceRef.current) {
+        activeSentenceRef.current.classList.remove('active-sentence');
+        activeSentenceRef.current = null;
       }
       
       console.log('✅ 언마운트 TTS 정지 완료');
@@ -343,6 +371,37 @@ const ArticleDetail = () => {
 
   // 이전 UltraSimpleTTS 관련 코드 제거 - UnifiedTTS만 사용
 
+  // DOM 직접 조작으로 문장 하이라이트 (iOS/iPad 최적화)
+  const highlightSentence = (sentenceIdx) => {
+    // 현재 활성 카드 찾기
+    const activeCard = document.querySelector('[data-active="true"]');
+    if (!activeCard) return;
+
+    // 이전 하이라이트 제거 (활성 카드 범위 내에서만)
+    if (activeSentenceRef.current) {
+      activeSentenceRef.current.classList.remove('active-sentence');
+    }
+
+    // 활성 카드 범위 내에서 문장 찾기
+    const targetElement = activeCard.querySelector(`[data-sentence="${sentenceIdx}"]`);
+    
+    if (targetElement) {
+      targetElement.classList.add('active-sentence');
+      activeSentenceRef.current = targetElement;
+      
+      // iOS Safari 최적화된 스크롤 (수평 이동 최소화)
+      try {
+        targetElement.scrollIntoView({ 
+          block: 'nearest', 
+          behavior: 'smooth',
+          inline: 'nearest' // 수평 이동 최소화
+        });
+      } catch (error) {
+        // 스크롤 실패 시 조용히 무시
+        console.log('스크롤 실패:', error);
+      }
+    }
+  };
 
   // 단순화된 TTS 시작 함수
   const startTTS = async () => {
@@ -372,6 +431,18 @@ const ArticleDetail = () => {
     try {
       console.log('🚀 UnifiedTTS 서비스로 재생 시작 (모든 플랫폼)');
       
+      // 플랫폼별 TTS 최적화 설정 가져오기
+      const ttsSettings = getTTSOptimizationSettings();
+      console.log('📱 TTS 최적화 설정:', ttsSettings);
+      
+      // 텍스트 최적화 (시각적 변화 없이 TTS만 최적화)
+      const optimizedContent = optimizeTextForTTS(currentContent, ttsSettings);
+      
+      // 개발 환경에서 최적화 결과 디버깅
+      if (import.meta.env.DEV) {
+        debugTTSOptimization(currentContent, optimizedContent);
+      }
+      
       // UnifiedTTS 인스턴스 생성
       if (unifiedTTSRef.current) {
         unifiedTTSRef.current.stop();
@@ -388,6 +459,12 @@ const ArticleDetail = () => {
           console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
           console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);
           
+          // DOM 직접 조작으로 변경 (React 상태 업데이트 제거)
+          requestAnimationFrame(() => {
+            highlightSentence(sentenceIndex);
+          });
+          
+          // 진행률 표시용 상태는 유지 (UI 영향 최소화)
           setCurrentSentence(sentenceIndex);
           setTotalSentences(totalSentences);
         },
@@ -397,6 +474,12 @@ const ArticleDetail = () => {
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
           setTotalSentences(0);
+          
+          // DOM 하이라이트 정리
+          if (activeSentenceRef.current) {
+            activeSentenceRef.current.classList.remove('active-sentence');
+            activeSentenceRef.current = null;
+          }
         },
         onError: (error) => {
           console.error('❌ TTS 에러:', error);
@@ -404,11 +487,17 @@ const ArticleDetail = () => {
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
           setTotalSentences(0);
+          
+          // DOM 하이라이트 정리
+          if (activeSentenceRef.current) {
+            activeSentenceRef.current.classList.remove('active-sentence');
+            activeSentenceRef.current = null;
+          }
         }
       });
       
-      // TTS 재생 시작
-      const success = await unifiedTTSRef.current.play(currentContent);
+      // TTS 재생 시작 (최적화된 텍스트 사용)
+      const success = await unifiedTTSRef.current.play(optimizedContent);
       
       if (!success) {
         console.error('❌ TTS 재생 실패');
@@ -440,6 +529,12 @@ const ArticleDetail = () => {
       setIsTTSLoading(false);
       setCurrentSentence(-1);
       setTotalSentences(0);
+      
+      // DOM 하이라이트 정리
+      if (activeSentenceRef.current) {
+        activeSentenceRef.current.classList.remove('active-sentence');
+        activeSentenceRef.current = null;
+      }
       
       console.log('✅ TTS 중지 완료');
     } else {
@@ -480,6 +575,12 @@ const ArticleDetail = () => {
     setCurrentSentence(-1);
     setTotalSentences(0);
     setSelectedLevel(level);
+    
+    // DOM 하이라이트 정리
+    if (activeSentenceRef.current) {
+      activeSentenceRef.current.classList.remove('active-sentence');
+      activeSentenceRef.current = null;
+    }
     try {
       stopAllTTS();
     } catch (error) {
@@ -1375,6 +1476,7 @@ const ArticleDetail = () => {
                   $dragOffset={swipeState.dragOffset}
                   $isTransitioning={swipeState.isTransitioning}
                   $isActive={isActive}
+                  data-active={isActive}
                   onClick={(e) => !isMobile && handleCardClick(e, level)}
                 >
                   <ContentHeader>
@@ -1407,7 +1509,7 @@ const ArticleDetail = () => {
             <ContentText>
               {(() => {
                       const content = articleData.levels[level].content;
-                // UltraSimpleTTS와 동일한 문장 분할 방식 사용
+                // HTML 태그가 이미 제거된 텍스트를 사용하여 문장 분할
                 const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
                 
                 console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
@@ -1423,7 +1525,8 @@ const ArticleDetail = () => {
                   return (
                     <SentenceSpan 
                       key={sentenceIdx}
-                      $isActive={isCurrentSentence}
+                      data-sentence={sentenceIdx}
+                      $isActive={false}
                     >
                       {sentence.trim().split(' ').map((word, wordIdx) => {
                         const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
@@ -1995,12 +2098,19 @@ const ContentText = styled.div`
 
 const SentenceSpan = styled.span`
   display: inline;
-  transition: all 0.2s ease;
   
+  /* React 상태 기반 스타일 제거 - DOM 클래스로 대체 */
   ${props => props.$isActive && `
     border-bottom: 2px solid #1976d2;
     background-color: rgba(25, 118, 210, 0.1);
   `}
+  
+  /* CSS 클래스 기반 하이라이트 (DOM 직접 조작용) */
+  &.active-sentence {
+    border-bottom: 2px solid #1976d2;
+    background-color: rgba(25, 118, 210, 0.1);
+    transition: border-bottom-color 0.05s linear; /* 트랜지션 최소화 */
+  }
 `;
 
 const WordPopupContent = styled(Paper)`
@@ -2130,6 +2240,7 @@ const SwipeCard = styled.div`
   @media (max-width: 768px) {
     width: 100%;
     padding: 1.5rem;
+    box-sizing: border-box; /* 패딩을 너비 안에 포함 */
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     cursor: default;
     opacity: ${props => props.$isActive ? 1 : 0};
@@ -2147,6 +2258,7 @@ const SwipeCard = styled.div`
 
   @media (max-width: 600px) {
     padding: 1rem;
+    box-sizing: border-box; /* 패딩을 너비 안에 포함 */
   }
 `;
 
