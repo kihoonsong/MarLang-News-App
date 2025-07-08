@@ -48,7 +48,7 @@ const NavigationHeader = ({
           )}
           <LogoSection onClick={() => navigate('/')}>
             <LogoText>
-              {isMobile ? 'MarLang' : (title || 'MarLang Eng News')}
+              {isMobile ? 'News' : (title || 'News')}
             </LogoText>
             <BetaLabel>beta</BetaLabel>
           </LogoSection>
@@ -120,6 +120,14 @@ const RightSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
+  justify-content: flex-end;
+  
+  /* 스마트폰에서 검색창 영역 확대 */
+  @media (max-width: 767px) {
+    flex: 2;
+    gap: 0.5rem;
+  }
 `;
 
 const LogoSection = styled.div`
@@ -148,13 +156,13 @@ const LogoText = styled(Typography)`
 const BetaLabel = styled.span`
   background: #dc3545;
   color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.625rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.5rem;
   font-weight: bold;
   text-transform: uppercase;
   line-height: 1.2;
-  margin-left: 0.5rem;
+  margin-left: 0.4rem;
 `;
 
 const TitleText = styled(Typography)`

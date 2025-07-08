@@ -186,7 +186,13 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
 const Container = styled('div')`
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
+  
+  /* 스마트폰에서 더 넓게 */
+  @media (max-width: 767px) {
+    max-width: 100%;
+    flex: 1;
+  }
   
   /* 풀스크린(데스크톱)에서 크기 50% 확대 */
   @media (min-width: 1024px) {
