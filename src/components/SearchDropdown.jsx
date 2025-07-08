@@ -261,13 +261,15 @@ const Input = styled(InputBase)`
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   
-  /* 스마트폰에서 검색창 크기 2배로 확대 */
+  /* 스마트폰에서 검색창 크기를 로그인 버튼과 통일 */
   @media (max-width: 767px) {
-    padding: ${props => props.$compact ? '0.8rem 1.2rem' : '1.2rem 1.8rem'};
-    font-size: 1.1rem;
+    padding: ${props => props.$compact ? '6px 12px' : '6px 12px'};
+    font-size: 0.875rem;
+    min-height: auto;
     
     .MuiInputBase-input {
-      font-size: 1.1rem;
+      font-size: 0.875rem;
+      padding: 0;
     }
     
     /* 포커스 상태일 때 더 큰 스타일 */
@@ -276,6 +278,12 @@ const Input = styled(InputBase)`
       box-shadow: none;
       border-radius: 12px;
       flex: 1;
+      padding: 8px 12px;
+      font-size: 1rem;
+      
+      .MuiInputBase-input {
+        font-size: 1rem;
+      }
     `}
   }
   

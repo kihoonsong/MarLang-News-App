@@ -201,7 +201,7 @@ const LoginButton = styled.button`
   color: inherit;
   border: 1px solid #1976d2;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 25px;
   cursor: pointer;
   font-weight: 500;
   font-size: 0.875rem;
@@ -209,10 +209,18 @@ const LoginButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-height: 36px;
+  box-sizing: border-box;
   
   &:hover {
     background: #1976d2;
     color: white;
+  }
+  
+  /* 모바일에서 검색창과 동일한 높이 */
+  @media (max-width: 767px) {
+    border-radius: 25px;
+    min-height: 36px;
   }
 `;
 
