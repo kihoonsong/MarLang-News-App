@@ -1,17 +1,25 @@
 // 통합 TTS 엔진 - 모든 기능을 하나로 통합
 // 밑줄 하이라이팅, 배속 조절, 정지 등 모든 기존 기능 유지
 
-const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+// iPad UA 감지 보정 (iPadOS 13+ 데스크톱 UA 문제 해결)
+const iPadDesktopUA = /Macintosh/.test(navigator.userAgent) && 'ontouchend' in document;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || iPadDesktopUA;
+const isIPad = /iPad/.test(navigator.userAgent) || iPadDesktopUA;
+const isIPhone = /iPhone/.test(navigator.userAgent);
+const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || iPadDesktopUA;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 class UnifiedTTS {
   constructor(options = {}) {
+    // 플랫폼별 기본 sentenceGapMs 설정
+    const defaultSentenceGapMs = this.getDefaultSentenceGapMs();
+    
     // 기본 설정
     this.options = {
       rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
+      sentenceGapMs: defaultSentenceGapMs,
       ...options
     };
     
@@ -39,15 +47,36 @@ class UnifiedTTS {
     this.onResume = options.onResume || null;
     
     console.log('🎵 UnifiedTTS 초기화 - 플랫폼:', this.getPlatform());
-    console.log('🔍 모바일 감지:', isMobile, 'iOS:', isIOS, 'Android:', isAndroid);
+    console.log('🔍 기기 감지:', { 
+      isMobile, 
+      isIOS, 
+      isIPad, 
+      isIPhone, 
+      isAndroid, 
+      iPadDesktopUA,
+      sentenceGapMs: this.options.sentenceGapMs 
+    });
     console.log('🔍 User Agent:', navigator.userAgent);
     this.initializeVoice();
+  }
+
+  /**
+   * 플랫폼별 기본 sentenceGapMs 값 반환
+   */
+  getDefaultSentenceGapMs() {
+    if (isIPhone) return 8; // iPhone: 매우 짧은 텀
+    if (isIPad) return 12; // iPad: 약간 긴 텀
+    if (isIOS) return 10; // 기타 iOS 기기
+    if (isAndroid) return 15; // Android: 기본값
+    return 25; // Desktop: 기존 값
   }
 
   /**
    * 플랫폼 감지
    */
   getPlatform() {
+    if (isIPhone) return 'iPhone';
+    if (isIPad) return 'iPad';
     if (isIOS) return 'iOS';
     if (isAndroid) return 'Android';
     if (isMobile) return 'Mobile';
@@ -475,9 +504,9 @@ class UnifiedTTS {
     console.log(`➡️ [${this.getPlatform()}] 다음 문장으로 이동: ${this.currentIndex}/${this.sentences.length}`);
     
     if (this.currentIndex < this.sentences.length) {
-      // 모바일에서 매우 빠른 전환 시간 (절반으로 단축)
-      const delay = this.getPlatform() === 'iOS' ? 25 : 50;
-      console.log(`⏳ [${this.getPlatform()}] ${delay}ms 후 다음 문장 재생`);
+      // 플랫폼별 최적화된 문장 간 간격 (sentenceGapMs 옵션 사용)
+      const delay = this.options.sentenceGapMs;
+      console.log(`⏳ [${this.getPlatform()}] ${delay}ms 후 다음 문장 재생 (sentenceGapMs: ${delay})`);
       
       this.playTimer = setTimeout(() => {
         if (this.isActive && this.isPlaying && !this.isPaused) {
@@ -665,6 +694,15 @@ class UnifiedTTS {
   }
 
   /**
+   * 문장 간 간격 변경
+   */
+  setSentenceGapMs(gapMs) {
+    this.options.sentenceGapMs = Math.max(0, Math.min(1000, gapMs));
+    console.log(`⏳ 문장 간 간격 변경: ${gapMs}ms`);
+    return true;
+  }
+
+  /**
    * 특정 문장으로 이동
    */
   seekToSentence(index) {
@@ -770,13 +808,37 @@ class UnifiedTTS {
 let globalUnifiedTTS = null;
 
 /**
- * 전역 TTS 인스턴스 생성
+ * 전역 TTS 인스턴스 생성 (플랫폼별 최적화 옵션 자동 적용)
  */
 export const createUnifiedTTS = (options = {}) => {
   if (globalUnifiedTTS) {
     globalUnifiedTTS.stop();
   }
-  globalUnifiedTTS = new UnifiedTTS(options);
+  
+  // 플랫폼별 최적화된 기본 옵션 설정
+  const optimizedOptions = {
+    // 기본값들
+    rate: 1.0,
+    pitch: 1.0,
+    volume: 1.0,
+    
+    // 플랫폼별 sentenceGapMs 최적화
+    sentenceGapMs: (() => {
+      if (isIPhone) return 8; // iPhone: 매우 짧은 텀으로 자연스러운 흐름
+      if (isIPad) return 12; // iPad: 약간 긴 텀으로 안정성 확보
+      if (isIOS) return 10; // 기타 iOS 기기
+      if (isAndroid) return 15; // Android: 기본값
+      return 25; // Desktop: 기존 값
+    })(),
+    
+    // 사용자 옵션으로 오버라이드
+    ...options
+  };
+  
+  console.log('🎵 createUnifiedTTS 호출 - 최적화된 옵션:', optimizedOptions);
+  console.log('🔍 감지된 플랫폼:', { isIPhone, isIPad, isIOS, isAndroid, iPadDesktopUA });
+  
+  globalUnifiedTTS = new UnifiedTTS(optimizedOptions);
   return globalUnifiedTTS;
 };
 
@@ -801,6 +863,27 @@ if (typeof window !== 'undefined') {
   window.createUnifiedTTS = createUnifiedTTS;
   window.getCurrentUnifiedTTS = getCurrentUnifiedTTS;
   window.stopCurrentUnifiedTTS = stopCurrentUnifiedTTS;
+  
+  // 디버깅을 위한 플랫폼 정보 함수
+  window.getUnifiedTTSPlatformInfo = () => {
+    return {
+      userAgent: navigator.userAgent,
+      isIPhone,
+      isIPad,
+      isIOS,
+      isAndroid,
+      isMobile,
+      iPadDesktopUA,
+      recommendedSentenceGapMs: (() => {
+        if (isIPhone) return 8;
+        if (isIPad) return 12;
+        if (isIOS) return 10;
+        if (isAndroid) return 15;
+        return 25;
+      })(),
+      hasTouch: 'ontouchend' in document
+    };
+  };
 }
 
 export default UnifiedTTS;
