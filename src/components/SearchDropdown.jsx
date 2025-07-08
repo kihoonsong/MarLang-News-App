@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { InputBase, Paper, Typography, CircularProgress } from '@mui/material';
+import { InputBase, Paper, Typography, CircularProgress, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { useArticles } from '../contexts/ArticlesContext';
 
@@ -13,6 +14,8 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   const searchRef = useRef(null);
   const navigate = useNavigate();
   const { allArticles } = useArticles();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // 간단한 검색 함수 - 무한 로딩 방지
   const doSearch = (searchQuery) => {
@@ -73,47 +76,58 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   }, []);
 
   return (
-    <Container ref={searchRef} className={className} style={style}>
-      <Input
-        placeholder={placeholder}
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          if (!isOpen) setIsOpen(true);
-        }}
-        onFocus={() => setIsOpen(true)}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            
-            // 빈 검색창일 때는 아무 동작 안 함
-            if (!query.trim()) {
-              return;
-            }
-            
-            // 검색 결과가 있으면 첫 번째 기사로 이동
-            if (results.length > 0) {
-              setIsOpen(false);
-              setQuery('');
-              navigate(`/article/${results[0].id}`);
-            }
-          }
-        }}
-        startAdornment={
-          <SearchIcon 
-            sx={{ mr: 1, color: '#666', cursor: 'pointer' }} 
-            onClick={() => {
-              if (!isOpen) {
-                setIsOpen(true);
-                if (query.trim()) {
-                  doSearch(query);
-                }
+    <Container ref={searchRef} className={className} style={style} $isFocused={isOpen && isMobile}>
+      <SearchInputWrapper $isFocused={isOpen && isMobile}>
+        {isMobile && isOpen && (
+          <CloseButton onClick={() => {
+            setIsOpen(false);
+            setQuery('');
+          }}>
+            <CloseIcon />
+          </CloseButton>
+        )}
+        <Input
+          placeholder={placeholder}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              
+              // 빈 검색창일 때는 아무 동작 안 함
+              if (!query.trim()) {
+                return;
               }
-            }}
-          />
-        }
-        $compact={compact}
-      />
+              
+              // 검색 결과가 있으면 첫 번째 기사로 이동
+              if (results.length > 0) {
+                setIsOpen(false);
+                setQuery('');
+                navigate(`/article/${results[0].id}`);
+              }
+            }
+          }}
+          startAdornment={
+            <SearchIcon 
+              sx={{ mr: 1, color: '#666', cursor: 'pointer' }} 
+              onClick={() => {
+                if (!isOpen) {
+                  setIsOpen(true);
+                  if (query.trim()) {
+                    doSearch(query);
+                  }
+                }
+              }}
+            />
+          }
+          $compact={compact}
+          $isFocused={isOpen && isMobile}
+        />
+      </SearchInputWrapper>
       
       {isOpen && (
         <Dropdown>
@@ -192,11 +206,46 @@ const Container = styled('div')`
   @media (max-width: 767px) {
     max-width: 100%;
     flex: 1;
+    
+    /* 포커스 상태일 때 전체 헤더를 덮도록 확장 */
+    ${props => props.$isFocused && `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1100;
+      background: white;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      max-width: none;
+      width: 100vw;
+    `}
   }
   
   /* 풀스크린(데스크톱)에서 크기 50% 확대 */
   @media (min-width: 1024px) {
     max-width: 600px; /* 400px → 600px (50% 증가) */
+  }
+`;
+
+const SearchInputWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  
+  @media (max-width: 767px) {
+    ${props => props.$isFocused && `
+      gap: 0.5rem;
+    `}
+  }
+`;
+
+const CloseButton = styled(IconButton)`
+  color: #666 !important;
+  padding: 8px !important;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
   }
 `;
 
@@ -220,6 +269,14 @@ const Input = styled(InputBase)`
     .MuiInputBase-input {
       font-size: 1.1rem;
     }
+    
+    /* 포커스 상태일 때 더 큰 스타일 */
+    ${props => props.$isFocused && `
+      background: white;
+      box-shadow: none;
+      border-radius: 12px;
+      flex: 1;
+    `}
   }
   
   /* 풀스크린에서 더 큰 패딩과 폰트 크기 */
@@ -240,12 +297,27 @@ const Dropdown = styled('div')`
   right: 0;
   z-index: 1000;
   margin-top: 4px;
+  
+  /* 모바일 포커스 상태에서 드롭다운 조정 */
+  @media (max-width: 767px) {
+    /* 컨테이너가 fixed일 때를 위한 추가 스타일 */
+    ${props => props.theme && `
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    `}
+  }
 `;
 
 const DropdownPaper = styled(Paper)`
   max-height: 300px;
   overflow-y: auto;
   border-radius: 12px !important;
+  
+  /* 모바일에서 더 큰 검색 결과 */
+  @media (max-width: 767px) {
+    max-height: calc(100vh - 140px);
+    border-radius: 0 0 12px 12px !important;
+  }
   
   /* 풀스크린에서 더 넓게 */
   @media (min-width: 1024px) {
