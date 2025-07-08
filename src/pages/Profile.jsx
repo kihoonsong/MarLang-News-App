@@ -80,7 +80,7 @@ const Profile = () => {
   if (!isAuthenticated) {
     return (
       <>
-        <MobileNavigation showBackButton={true} />
+        <MobileNavigation />
         <MobileContentWrapper>
           <PageContainer>
             <LoginPrompt>
@@ -121,7 +121,7 @@ const Profile = () => {
 
   return (
     <>
-      <MobileNavigation showBackButton={true} />
+      <MobileNavigation />
       <MobileContentWrapper>
           <PageContainer>
           <ProfileContainer>
