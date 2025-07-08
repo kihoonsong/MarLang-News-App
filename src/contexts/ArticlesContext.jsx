@@ -176,8 +176,18 @@ export const ArticlesProvider = ({ children }) => {
   }, [allArticles]);
 
   const getPopularArticles = useCallback((limit = 10) => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return [...allArticles].filter(article => new Date(article.publishedAt) >= weekAgo).sort((a, b) => b.likes - a.likes).slice(0, limit);
+    // 지난 이틀 (48시간) 기준으로 변경
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    
+    return [...allArticles]
+      .filter(article => new Date(article.publishedAt) >= twoDaysAgo)
+      .sort((a, b) => {
+        // 좋아요 + 조회수를 합산한 인기도 점수로 정렬
+        const scoreA = (a.likes || 0) + (a.views || 0);
+        const scoreB = (b.likes || 0) + (b.views || 0);
+        return scoreB - scoreA;
+      })
+      .slice(0, limit);
   }, [allArticles]);
 
   const getArticleById = useCallback((articleId) => {
