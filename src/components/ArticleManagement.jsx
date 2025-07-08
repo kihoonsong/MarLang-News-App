@@ -4,13 +4,13 @@ import {
   MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, 
   DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Paper, Chip, IconButton, Tabs, Tab, RadioGroup, Radio, 
-  FormControlLabel, FormLabel, Alert, ButtonGroup
+  FormControlLabel, FormLabel, Alert, ButtonGroup, Collapse, Tooltip, useMediaQuery, useTheme
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Preview, Publish, 
   Visibility, CloudUpload, Image, FormatBold, FormatItalic, 
   FormatListBulleted, FormatListNumbered, Link as LinkIcon,
-  FormatUnderlined, Title, FormatQuote
+  FormatUnderlined, Title, FormatQuote, ExpandLess, ExpandMore
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 
@@ -46,6 +46,11 @@ const ArticleManagement = ({
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
   const [articleStats, setArticleStats] = useState({});
+  const [toolbarOpen, setToolbarOpen] = useState(!isTablet);
+  
+  // 반응형 디자인
+  const theme = useTheme();
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [articleForm, setArticleForm] = useState({
     title: '',
     summary: '',
@@ -334,12 +339,12 @@ const ArticleManagement = ({
       console.log('📝 기사 폼 데이터:', articleForm);
       
       const newArticleData = {
-        title: articleForm.title,
-        summary: articleForm.summary,
+        title: articleForm.title.trim(),
+        summary: truncateSummary(articleForm.summary.trim(), 100), // 저장 시 트림 로직 적용
         content: {
-          beginner: articleForm.content?.beginner || '',
-          intermediate: articleForm.content?.intermediate || '',
-          advanced: articleForm.content?.advanced || ''
+          beginner: articleForm.content?.beginner?.trim() || '',
+          intermediate: articleForm.content?.intermediate?.trim() || '',
+          advanced: articleForm.content?.advanced?.trim() || ''
         },
         category: articleForm.category,
         image: articleForm.image || '/placeholder-image.svg',
@@ -462,9 +467,13 @@ const ArticleManagement = ({
 
     try {
       const updatedData = {
-        title: articleForm.title,
-        summary: articleForm.summary,
-        content: articleForm.content,
+        title: articleForm.title.trim(),
+        summary: truncateSummary(articleForm.summary.trim(), 100), // 저장 시 트림 로직 적용
+        content: {
+          beginner: articleForm.content?.beginner?.trim() || '',
+          intermediate: articleForm.content?.intermediate?.trim() || '',
+          advanced: articleForm.content?.advanced?.trim() || ''
+        },
         category: articleForm.category,
         image: articleForm.image,
         status: articleForm.status,
@@ -812,76 +821,88 @@ const ArticleManagement = ({
                     <Tab label="🔴 고급자용" />
                   </Tabs>
                   
-                  {/* 개선된 텍스트 서식 툴바 */}
-                  <Box sx={{ 
-                    mb: 2, 
-                    p: 2, 
-                    border: '1px solid #e0e0e0', 
-                    borderRadius: '8px',
-                    bgcolor: '#f8f9fa'
-                  }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>✨ 텍스트 서식</Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <ButtonGroup variant="outlined" size="small">
-                        <Button 
-                          onClick={() => handleInsertFormatting('bold')}
-                          title="굵게 (Ctrl+B)"
-                        >
-                          <FormatBold />
-                        </Button>
-                        <Button 
-                          onClick={() => handleInsertFormatting('italic')}
-                          title="기울임 (Ctrl+I)"
-                        >
-                          <FormatItalic />
-                        </Button>
-                        <Button 
-                          onClick={() => handleInsertFormatting('underline')}
-                          title="밑줄 (Ctrl+U)"
-                        >
-                          <FormatUnderlined />
-                        </Button>
-                      </ButtonGroup>
-                      
-                      <ButtonGroup variant="outlined" size="small">
-                        <Button 
-                          onClick={() => handleInsertFormatting('heading')}
-                          title="제목"
-                        >
-                          <Title />
-                        </Button>
-                        <Button 
-                          onClick={() => handleInsertFormatting('blockquote')}
-                          title="인용문"
-                        >
-                          <FormatQuote />
-                        </Button>
-                      </ButtonGroup>
-                      
-                      <ButtonGroup variant="outlined" size="small">
-                        <Button 
-                          onClick={() => handleInsertFormatting('ul')}
-                          title="글머리 기호"
-                        >
-                          <FormatListBulleted />
-                        </Button>
-                        <Button 
-                          onClick={() => handleInsertFormatting('ol')}
-                          title="번호 목록"
-                        >
-                          <FormatListNumbered />
-                        </Button>
-                      </ButtonGroup>
-                      
-                      <Button 
-                        variant="outlined" 
+                  {/* 개선된 텍스트 서식 툴바 (접힘/펼침 기능) */}
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      mb: 1
+                    }}>
+                      <Typography variant="subtitle2">✨ 텍스트 서식</Typography>
+                      <IconButton 
+                        onClick={() => setToolbarOpen(prev => !prev)} 
                         size="small"
-                        onClick={() => handleInsertFormatting('link')}
-                        title="링크 삽입"
+                        sx={{ ml: 1 }}
                       >
-                        <LinkIcon />
-                      </Button>
+                        {toolbarOpen ? <ExpandLess /> : <ExpandMore />}
+                      </IconButton>
                     </Box>
+                    
+                    <Collapse in={toolbarOpen}>
+                      <Box sx={{ 
+                        p: 2, 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px',
+                        bgcolor: '#f8f9fa'
+                      }}>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <ButtonGroup variant="outlined" size="small">
+                            <Tooltip title="굵게 (Ctrl+B)" arrow>
+                              <Button onClick={() => handleInsertFormatting('bold')}>
+                                <FormatBold />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip title="기울임 (Ctrl+I)" arrow>
+                              <Button onClick={() => handleInsertFormatting('italic')}>
+                                <FormatItalic />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip title="밑줄 (Ctrl+U)" arrow>
+                              <Button onClick={() => handleInsertFormatting('underline')}>
+                                <FormatUnderlined />
+                              </Button>
+                            </Tooltip>
+                          </ButtonGroup>
+                          
+                          <ButtonGroup variant="outlined" size="small">
+                            <Tooltip title="제목" arrow>
+                              <Button onClick={() => handleInsertFormatting('heading')}>
+                                <Title />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip title="인용문" arrow>
+                              <Button onClick={() => handleInsertFormatting('blockquote')}>
+                                <FormatQuote />
+                              </Button>
+                            </Tooltip>
+                          </ButtonGroup>
+                          
+                          <ButtonGroup variant="outlined" size="small">
+                            <Tooltip title="글머리 기호" arrow>
+                              <Button onClick={() => handleInsertFormatting('ul')}>
+                                <FormatListBulleted />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip title="번호 목록" arrow>
+                              <Button onClick={() => handleInsertFormatting('ol')}>
+                                <FormatListNumbered />
+                              </Button>
+                            </Tooltip>
+                          </ButtonGroup>
+                          
+                          <Tooltip title="링크 삽입" arrow>
+                            <Button 
+                              variant="outlined" 
+                              size="small"
+                              onClick={() => handleInsertFormatting('link')}
+                            >
+                              <LinkIcon />
+                            </Button>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Collapse>
                   </Box>
 
                   {/* 확장된 텍스트 에디터 */}
