@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import styled from 'styled-components';
 import { 
   AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Button, Chip,
@@ -491,15 +491,68 @@ const ArticleDetail = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // iPad/태블릿 감지 (더 정확한 감지)
+  const isTablet = useMemo(() => {
+    const userAgent = navigator.userAgent;
+    const isIPad = /iPad|Macintosh/.test(userAgent) && 'ontouchend' in document;
+    const isAndroidTablet = /Android/i.test(userAgent) && !/Mobile/i.test(userAgent);
+    const isLargeScreen = window.innerWidth >= 768 && window.innerWidth <= 1024;
+    return isIPad || isAndroidTablet || (isLargeScreen && 'ontouchend' in document);
+  }, []);
 
-  // 스와이프 핸들러 추가
+  // Visual Viewport 높이 관리 (Safari PWA 대응)
+  const [viewportHeight, setViewportHeight] = useState(
+    window.visualViewport?.height || window.innerHeight
+  );
+
+  // Visual Viewport 리사이즈 대응
+  useEffect(() => {
+    const handleViewportResize = () => {
+      const newHeight = window.visualViewport?.height || window.innerHeight;
+      setViewportHeight(newHeight);
+      console.log('📱 Viewport 높이 변경:', newHeight);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+      };
+    } else {
+      // Fallback for browsers without visual viewport support
+      window.addEventListener('resize', handleViewportResize);
+      return () => {
+        window.removeEventListener('resize', handleViewportResize);
+      };
+    }
+  }, []);
+
+  // 스와이프 핸들러 추가 (iPad/태블릿 최적화)
   const createSwipeHandlers = () => {
+    // iPad/태블릿에서는 스와이프 비활성화
+    if (isTablet) {
+      return {
+        onTouchStart: () => {},
+        onTouchMove: () => {},
+        onTouchEnd: () => {},
+        onMouseDown: () => {},
+        onMouseMove: () => {},
+        onMouseUp: () => {},
+        onMouseLeave: () => {}
+      };
+    }
+
     const handleStart = (e, clientX) => {
-      // 단어 자체를 클릭했을 때는 스와이프를 시작하지 않음
+      // 단어 클릭 요소나 UI 컨트롤에서는 스와이프 비활성화
       if (e.target.classList.contains('clickable-word-span') || 
           e.target.classList.contains('highlighted-word') ||
           e.target.closest('.clickable-word-span') ||
-          e.target.closest('.highlighted-word')) {
+          e.target.closest('.highlighted-word') ||
+          e.target.closest('[role="button"]') ||
+          e.target.closest('button') ||
+          e.target.closest('input') ||
+          e.target.closest('textarea')) {
         e.stopPropagation();
         return;
       }
@@ -552,32 +605,39 @@ const ArticleDetail = () => {
     };
 
     return {
-      // 터치 이벤트 (passive event listener 문제 해결)
+      // 터치 이벤트 (iPad/태블릿 최적화)
       onTouchStart: (e) => {
-        // 단어 클릭 요소인지 확인
+        // 단어 클릭이나 UI 요소 터치시 스와이프 방지
         if (e.target.classList.contains('clickable-word-span') || 
             e.target.classList.contains('highlighted-word') ||
             e.target.closest('.clickable-word-span') ||
-            e.target.closest('.highlighted-word')) {
+            e.target.closest('.highlighted-word') ||
+            e.target.closest('[role="button"]') ||
+            e.target.closest('button')) {
           return;
         }
-        handleStart(e, e.touches[0].clientX);
+        // 터치 시작 지연으로 의도적인 스와이프만 처리
+        setTimeout(() => {
+          if (e.touches && e.touches.length === 1) {
+            handleStart(e, e.touches[0].clientX);
+          }
+        }, 50);
       },
       onTouchMove: (e) => {
-        if (swipeState.isDragging) {
-          // passive event listener에서는 preventDefault 사용 안 함
+        if (swipeState.isDragging && e.touches && e.touches.length === 1) {
           handleMove(e.touches[0].clientX);
         }
       },
       onTouchEnd: (e) => {
-        // 단어 클릭 요소인지 확인
+        // 단어 클릭이나 UI 요소 터치시 스와이프 종료 방지
         if (e.target.classList.contains('clickable-word-span') || 
             e.target.classList.contains('highlighted-word') ||
             e.target.closest('.clickable-word-span') ||
-            e.target.closest('.highlighted-word')) {
+            e.target.closest('.highlighted-word') ||
+            e.target.closest('[role="button"]') ||
+            e.target.closest('button')) {
           return;
         }
-        // passive event listener에서는 preventDefault 사용 안 함
         handleEnd();
       },
       
@@ -1285,7 +1345,7 @@ const ArticleDetail = () => {
           <InlineAdComponent hasContent={!!articleData} />
 
           {/* 스와이프 카드 시스템 */}
-          <SwipeCardContainer {...swipeHandlers}>
+          <SwipeCardContainer $isTablet={isTablet} {...(!isTablet ? swipeHandlers : {})}>
             {[1, 2, 3].map(level => {
               // 순환 구조를 위한 position 계산 (3→1→2→3)
               let position = level - selectedLevel;
@@ -1418,6 +1478,25 @@ const ArticleDetail = () => {
         transformOrigin={{
           vertical: 'top',
           horizontal: 'center',
+        }}
+        disablePortal={isTablet} // iPad에서 위치 문제 최소화
+        slotProps={{
+          paper: {
+            style: {
+              maxHeight: viewportHeight * 0.6, // 뷰포트 높이의 60%로 제한
+              marginTop: isTablet ? 12 : 8, // iPad에서 여유 공간 확보
+              touchAction: 'pan-y', // 수직 스크롤만 허용
+            }
+          }
+        }}
+        sx={{
+          '& .MuiPopover-paper': {
+            overflow: 'auto',
+            ...(isTablet && {
+              maxWidth: '90vw', // 태블릿에서 너비 제한
+              transform: 'translateY(8px) !important', // 강제 오프셋
+            })
+          }
         }}
       >
         <WordPopupContent>
@@ -1753,17 +1832,31 @@ const StyledWordSpan = styled.span`
   transition: background-color 0.2s;
   border-radius: 3px;
   padding: 1px 2px;
+  touch-action: manipulation; /* 터치 동작 최적화 */
+  -webkit-tap-highlight-color: transparent; /* iOS 터치 하이라이트 제거 */
   
   ${props => props.$isHighlighted ? `
     background-color: #fff9c4;
     &:hover {
       background-color: #fff59d;
     }
+    &:active {
+      background-color: #fff176;
+    }
   ` : `
     &:hover {
       background-color: #f0f0f0;
     }
+    &:active {
+      background-color: #e0e0e0;
+    }
   `}
+  
+  /* 터치 디바이스에서 더 큰 터치 영역 제공 */
+  @media (pointer: coarse) {
+    padding: 3px 4px;
+    margin: 1px;
+  }
 `;
 
 
@@ -1975,7 +2068,7 @@ const SwipeCardContainer = styled.div`
   align-items: center;
   justify-content: center;
   user-select: none;
-  touch-action: manipulation; /* passive event listener 호환을 위한 변경 */
+  touch-action: ${props => props.$isTablet ? 'pan-y' : 'manipulation'}; /* 태블릿에서는 수직 스크롤만 허용 */
 
   /* Desktop styles */
   height: 700px;
@@ -1986,7 +2079,7 @@ const SwipeCardContainer = styled.div`
     min-height: 500px;
     height: auto;
     overflow: hidden;
-    touch-action: manipulation; /* 수직 스크롤 허용, 수평 스와이프는 JavaScript로 처리 */
+    touch-action: ${props => props.$isTablet ? 'pan-y' : 'manipulation'}; /* 태블릿: 수직만, 폰: JavaScript 제어 */
   }
 `;
 
