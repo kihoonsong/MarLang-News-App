@@ -24,6 +24,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
 import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
 import { createUnifiedTTS } from '../utils/UnifiedTTS';
+import { optimizeTextForTTS, debugTTSOptimization } from '../utils/ttsTextPatch';
+import { getTTSOptimizationSettings } from '../utils/deviceDetect';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -372,6 +374,18 @@ const ArticleDetail = () => {
     try {
       console.log('🚀 UnifiedTTS 서비스로 재생 시작 (모든 플랫폼)');
       
+      // 플랫폼별 TTS 최적화 설정 가져오기
+      const ttsSettings = getTTSOptimizationSettings();
+      console.log('📱 TTS 최적화 설정:', ttsSettings);
+      
+      // 텍스트 최적화 (시각적 변화 없이 TTS만 최적화)
+      const optimizedContent = optimizeTextForTTS(currentContent, ttsSettings);
+      
+      // 개발 환경에서 최적화 결과 디버깅
+      if (import.meta.env.DEV) {
+        debugTTSOptimization(currentContent, optimizedContent);
+      }
+      
       // UnifiedTTS 인스턴스 생성
       if (unifiedTTSRef.current) {
         unifiedTTSRef.current.stop();
@@ -407,8 +421,8 @@ const ArticleDetail = () => {
         }
       });
       
-      // TTS 재생 시작
-      const success = await unifiedTTSRef.current.play(currentContent);
+      // TTS 재생 시작 (최적화된 텍스트 사용)
+      const success = await unifiedTTSRef.current.play(optimizedContent);
       
       if (!success) {
         console.error('❌ TTS 재생 실패');
