@@ -67,16 +67,7 @@ const MemberManagement = ({
     name: '',
     email: '',
     role: 'User',
-    status: 'active',
-    // 유료 서비스 관련 필드
-    subscriptionPlan: 'Free',
-    subscriptionStatus: 'active',
-    subscriptionExpiry: '',
-    monthlyArticleLimit: 10,
-    monthlyWordLimit: 50,
-    hasAITranslation: false,
-    hasOfflineAccess: false,
-    hasPrioritySupport: false
+    status: 'active'
   });
 
   // 회원 폼 초기화
@@ -85,15 +76,7 @@ const MemberManagement = ({
       name: '',
       email: '',
       role: 'User',
-      status: 'active',
-      subscriptionPlan: 'Free',
-      subscriptionStatus: 'active',
-      subscriptionExpiry: '',
-      monthlyArticleLimit: 10,
-      monthlyWordLimit: 50,
-      hasAITranslation: false,
-      hasOfflineAccess: false,
-      hasPrioritySupport: false
+      status: 'active'
     });
     setEditingMember(null);
   };
@@ -204,44 +187,15 @@ const MemberManagement = ({
     loadMembers();
   }, []);
 
-  // 새 회원 추가
+  // 새 회원 추가 (실제로는 Firebase에서 사용자가 등록되므로 이 기능은 사용되지 않음)
   const handleAddMember = () => {
-    if (!memberForm.name.trim() || !memberForm.email.trim()) {
-      setSnackbar({ open: true, message: '이름과 이메일을 입력해주세요.', severity: 'error' });
-      return;
-    }
-
-    try {
-      const newMember = {
-        id: 'admin_' + Date.now(),
-        name: memberForm.name.trim(),
-        email: memberForm.email.trim(),
-        role: memberForm.role,
-        status: memberForm.status,
-        joinDate: new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-        likedArticles: [],
-        savedWords: [],
-        readArticles: 0,
-        subscriptionPlan: memberForm.subscriptionPlan,
-        subscriptionStatus: memberForm.subscriptionStatus,
-        subscriptionExpiry: memberForm.subscriptionExpiry,
-        monthlyArticleLimit: memberForm.monthlyArticleLimit,
-        monthlyWordLimit: memberForm.monthlyWordLimit,
-        hasAITranslation: memberForm.hasAITranslation,
-        hasOfflineAccess: memberForm.hasOfflineAccess,
-        hasPrioritySupport: memberForm.hasPrioritySupport
-      };
-
-      localStorage.setItem(`marlang_user_${newMember.id}`, JSON.stringify(newMember));
-      
-      setSnackbar({ open: true, message: `${newMember.name}님이 추가되었습니다!`, severity: 'success' });
-      setMemberDialog(false);
-      resetMemberForm();
-    } catch (error) {
-      console.error('Error adding member:', error);
-      setSnackbar({ open: true, message: '회원 추가 중 오류가 발생했습니다.', severity: 'error' });
-    }
+    setSnackbar({ 
+      open: true, 
+      message: '회원은 실제 가입 과정을 통해서만 추가할 수 있습니다.', 
+      severity: 'info' 
+    });
+    setMemberDialog(false);
+    resetMemberForm();
   };
 
   // 회원 편집
@@ -250,16 +204,7 @@ const MemberManagement = ({
     setMemberForm({
       name: member.name,
       email: member.email,
-      role: member.role || 'User',
-      status: member.status || 'active',
-      subscriptionPlan: member.subscriptionPlan || 'Free',
-      subscriptionStatus: member.subscriptionStatus || 'active',
-      subscriptionExpiry: member.subscriptionExpiry || '',
-      monthlyArticleLimit: member.monthlyArticleLimit || 10,
-      monthlyWordLimit: member.monthlyWordLimit || 50,
-      hasAITranslation: member.hasAITranslation || false,
-      hasOfflineAccess: member.hasOfflineAccess || false,
-      hasPrioritySupport: member.hasPrioritySupport || false
+      role: member.role || 'User'
     });
     setMemberDialog(true);
   };
@@ -322,33 +267,28 @@ const MemberManagement = ({
   };
 
   // 회원 정보 업데이트
-  const handleUpdateMember = () => {
+  const handleUpdateMember = async () => {
     if (!memberForm.name.trim() || !memberForm.email.trim()) {
       setSnackbar({ open: true, message: '이름과 이메일을 입력해주세요.', severity: 'error' });
       return;
     }
 
     try {
-      const updatedMember = {
-        ...editingMember,
-        name: memberForm.name.trim(),
-        email: memberForm.email.trim(),
-        role: memberForm.role,
-        status: memberForm.status,
-        subscriptionPlan: memberForm.subscriptionPlan,
-        subscriptionStatus: memberForm.subscriptionStatus,
-        subscriptionExpiry: memberForm.subscriptionExpiry,
-        monthlyArticleLimit: memberForm.monthlyArticleLimit,
-        monthlyWordLimit: memberForm.monthlyWordLimit,
-        hasAITranslation: memberForm.hasAITranslation,
-        hasOfflineAccess: memberForm.hasOfflineAccess,
-        hasPrioritySupport: memberForm.hasPrioritySupport,
-        lastModified: new Date().toISOString()
-      };
-
-      localStorage.setItem(`marlang_user_${editingMember.id}`, JSON.stringify(updatedMember));
+      // Firebase의 실제 사용자 데이터 업데이트는 제한적이므로 role만 업데이트
+      if (editingMember.role !== memberForm.role) {
+        const success = await updateUserRole(editingMember.id, memberForm.role);
+        if (success) {
+          // 로컬 상태 업데이트
+          setMembers(prev => prev.map(m => 
+            m.id === editingMember.id ? { ...m, role: memberForm.role } : m
+          ));
+          setSnackbar({ open: true, message: `${editingMember.name}님의 권한이 ${memberForm.role}으로 변경되었습니다.`, severity: 'success' });
+        } else {
+          setSnackbar({ open: true, message: '권한 변경 중 오류가 발생했습니다.', severity: 'error' });
+          return;
+        }
+      }
       
-      setSnackbar({ open: true, message: `${updatedMember.name}님의 정보가 수정되었습니다!`, severity: 'success' });
       setMemberDialog(false);
       resetMemberForm();
     } catch (error) {
@@ -456,12 +396,10 @@ const MemberManagement = ({
                 <TableRow sx={{ bgcolor: '#f8f9fa' }}>
                   <TableCell><strong>회원 정보</strong></TableCell>
                   <TableCell><strong>권한</strong></TableCell>
-                  <TableCell><strong>구독</strong></TableCell>
                   <TableCell><strong>활동 점수</strong></TableCell>
                   <TableCell><strong>학습 데이터</strong></TableCell>
                   <TableCell><strong>참여도</strong></TableCell>
                   <TableCell><strong>가입일</strong></TableCell>
-                  <TableCell><strong>상태</strong></TableCell>
                   <TableCell><strong>작업</strong></TableCell>
                 </TableRow>
               </TableHead>
@@ -488,18 +426,6 @@ const MemberManagement = ({
                         }
                         size="small"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Chip 
-                          label={member.subscriptionPlan || 'Free'}
-                          color={SUBSCRIPTION_PLANS[member.subscriptionPlan || 'Free'].color}
-                          size="small"
-                        />
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {member.subscriptionStatus || 'active'}
-                        </Typography>
-                      </Box>
                     </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
@@ -562,13 +488,6 @@ const MemberManagement = ({
                       <Typography variant="caption" color="text.secondary" display="block">
                         {userActivity[member.id]?.daysSinceJoin || 0}일 경과
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={member.status || 'active'}
-                        color={member.status === 'active' ? 'success' : 'default'}
-                        size="small"
-                      />
                     </TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
@@ -653,19 +572,6 @@ const MemberManagement = ({
                     <MenuItem value="User">👤 User</MenuItem>
                     <MenuItem value="admin">👑 Admin</MenuItem>
                     <MenuItem value="super_admin">🔥 Super Admin</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>상태</InputLabel>
-                  <Select
-                    value={memberForm.status}
-                    label="상태"
-                    onChange={(e) => setMemberForm({ ...memberForm, status: e.target.value })}
-                  >
-                    <MenuItem value="active">✅ 활성</MenuItem>
-                    <MenuItem value="inactive">⚠️ 비활성</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

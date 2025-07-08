@@ -214,8 +214,9 @@ const Wordbook = () => {
                       <AdContent>
                         <AdCard 
                           adSlot="wordbook"
-                          minHeight="140px"
+                          minHeight="180px"
                           showLabel={false}
+                          className="wordbook-ad"
                           style={{ 
                             background: 'transparent',
                             border: 'none',
@@ -224,7 +225,7 @@ const Wordbook = () => {
                             boxShadow: 'none',
                             borderRadius: '0',
                             width: '100%',
-                            height: '100%'
+                            height: '180px'
                           }}
                         />
                       </AdContent>
@@ -378,10 +379,15 @@ const WordbookAdCard = styled.div`
   padding: 20px;
   transition: all 0.25s ease;
   cursor: default;
-  height: 180px;
+  height: 180px !important;
+  min-height: 180px !important;
+  max-height: 180px !important;
+  width: 100%;
   position: relative;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
   
   /* 단어카드와 완전히 동일한 호버 효과 */
   &:hover {
@@ -413,13 +419,42 @@ const AdContent = styled.div`
   align-items: center;
   justify-content: center;
   margin-top: 8px;
-  overflow: hidden;
+  overflow: hidden !important;
+  height: 180px !important;
+  min-height: 180px !important;
+  max-height: 180px !important;
+  width: 100% !important;
+  position: relative;
   
   /* 구글 애드센스 컨테이너 스타일 조정 */
-  .adsbygoogle {
+  .adsbygoogle,
+  ins {
     width: 100% !important;
-    height: 100% !important;
-    max-height: 140px !important;
+    height: 180px !important;
+    max-height: 180px !important;
+    min-height: 180px !important;
+    overflow: hidden !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+  
+  /* AdCard 내부 컨테이너도 고정 크기 적용 */
+  > * {
+    height: 180px !important;
+    min-height: 180px !important;
+    max-height: 180px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  /* 모든 하위 요소 크기 제한 */
+  * {
+    max-height: 180px !important;
+    overflow: hidden !important;
   }
 `;
 

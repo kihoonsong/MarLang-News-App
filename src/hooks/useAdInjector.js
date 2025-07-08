@@ -39,46 +39,33 @@ export const useAdInjector = (items) => {
 
     const newItems = [];
     
-    if (config.randomPlacement) {
-      // 랜덤 배치 로직
-      const { minGap, maxGap } = config;
-      let nextAdPosition = Math.floor(Math.random() * (maxGap - minGap + 1)) + minGap;
-      let adCount = 0;
+    // 소수 생성 함수
+    const isPrime = (num) => {
+      if (num < 2) return false;
+      for (let i = 2; i <= Math.sqrt(num); i++) {
+        if (num % i === 0) return false;
+      }
+      return true;
+    };
+    
+    // 소수 자리에 광고 배치
+    let adCount = 0;
+    
+    items.forEach((item, index) => {
+      newItems.push(item);
       
-      items.forEach((item, index) => {
-        newItems.push(item);
-        
-        // 다음 광고 위치에 도달하고 충분한 기사가 있는 경우
-        if (index + 1 === nextAdPosition && index < items.length - 1) {
-          newItems.push({ 
-            type: 'ad', 
-            id: `ad-${adCount}`,
-            adSlot: 'articleBanner',
-            position: index + 1
-          });
-          adCount++;
-          
-          // 다음 광고 위치 계산
-          nextAdPosition = index + 1 + Math.floor(Math.random() * (maxGap - minGap + 1)) + minGap;
-        }
-      });
-    } else {
-      // 기존 고정 빈도 배치 로직
-      const frequency = config.frequency;
-      
-      items.forEach((item, index) => {
-        newItems.push(item);
-        
-        if ((index + 1) % frequency === 0) {
-          newItems.push({ 
-            type: 'ad', 
-            id: `ad-${index}`,
-            adSlot: 'articleBanner',
-            position: index + 1
-          });
-        }
-      });
-    }
+      // 현재 위치가 소수인지 확인 (1-based index)
+      const position = index + 1;
+      if (isPrime(position) && position >= 3 && index < items.length - 1) {
+        newItems.push({ 
+          type: 'ad', 
+          id: `ad-${adCount}`,
+          adSlot: 'articleBanner',
+          position: position
+        });
+        adCount++;
+      }
+    });
     
     return newItems;
   }, [items, shouldShowAds]);

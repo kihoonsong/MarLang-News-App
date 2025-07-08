@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Paper, Typography, Box } from '@mui/material';
 import { getAdsenseConfig, loadAdsenseScript } from '../config/adsenseConfig';
@@ -15,6 +15,39 @@ const AdCardContainer = styled(Paper)`
   text-align: center;
   min-height: 200px; /* ArticleCard와 유사한 높이 */
   box-sizing: border-box;
+  
+  /* 단어장에서 사용될 때 WordCard와 동일한 스타일 */
+  &.wordbook-ad {
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    min-height: 180px !important;
+    height: 180px !important;
+    max-height: 180px !important;
+    width: 100% !important;
+    transition: none !important;
+    overflow: hidden !important;
+    
+    /* 모든 내부 요소도 크기 고정 */
+    * {
+      max-height: 180px !important;
+      overflow: hidden !important;
+    }
+    
+    /* AdSense 광고가 크기를 벗어나지 않도록 강제 */
+    .adsbygoogle,
+    ins {
+      width: 100% !important;
+      height: 180px !important;
+      max-height: 180px !important;
+      min-height: 180px !important;
+      overflow: hidden !important;
+      display: block !important;
+    }
+  }
 `;
 
 const AdLabel = styled(Typography)`
@@ -40,6 +73,7 @@ const AdCard = ({
   className = ''
 }) => {
   const adRef = useRef(null);
+  const [adLoadFailed, setAdLoadFailed] = useState(false);
   const adsenseConfig = getAdsenseConfig();
   
   useEffect(() => {
@@ -78,11 +112,18 @@ const AdCard = ({
           
           adRef.current.appendChild(adElement);
           
-          // 광고 로드
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          // 광고 로드 시도
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            setAdLoadFailed(false);
+          } catch (pushError) {
+            console.error('AdSense 광고 푸시 실패:', pushError);
+            setAdLoadFailed(true);
+          }
         }
       } catch (error) {
         console.error('AdSense 로드 실패:', error);
+        setAdLoadFailed(true);
       }
     };
 
@@ -108,11 +149,22 @@ const AdCard = ({
   return (
     <AdCardContainer 
       variant="outlined" 
-      style={{ minHeight, ...style }} 
+      style={{ 
+        minHeight, 
+        ...style,
+        // AdSense 로드 실패 시 고정 크기 유지로 레이아웃 시프트 방지
+        height: className?.includes('wordbook-ad') ? '180px' : (adLoadFailed ? minHeight : 'auto'),
+        overflow: 'hidden'
+      }} 
       className={className}
       ref={adRef}
     >
       {showLabel && <AdLabel>Advertisement</AdLabel>}
+      {adLoadFailed && (
+        <AdPlaceholderText>
+          광고를 불러올 수 없습니다.
+        </AdPlaceholderText>
+      )}
     </AdCardContainer>
   );
 };

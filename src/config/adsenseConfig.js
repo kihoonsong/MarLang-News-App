@@ -75,12 +75,19 @@ export const loadAdsenseScript = () => {
     script.async = true;
     script.crossOrigin = 'anonymous';
     
+    // 타임아웃 설정으로 무한 대기 방지
+    const timeoutId = setTimeout(() => {
+      reject(new Error('AdSense script loading timeout'));
+    }, 10000); // 10초 타임아웃
+    
     script.onload = () => {
+      clearTimeout(timeoutId);
       resolve();
     };
     
     script.onerror = () => {
-      reject(new Error('AdSense script loading failed'));
+      clearTimeout(timeoutId);
+      reject(new Error('AdSense script loading failed - likely blocked by ad blocker'));
     };
     
     document.head.appendChild(script);

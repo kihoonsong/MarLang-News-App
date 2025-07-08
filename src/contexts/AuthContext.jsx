@@ -11,10 +11,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [naverAuthInitialized, setNaverAuthInitialized] = useState(false);
 
   // 초기 로드 시 인증 확인 (localStorage 방식만 사용)
   useEffect(() => {
     const checkAuth = () => {
+      console.log('🔍 AuthContext 초기 인증 확인 시작');
+      
       // 네이버 인증 사용자 확인
       const naverAuthUser = localStorage.getItem('naverAuthUser');
       
@@ -22,8 +25,9 @@ export const AuthProvider = ({ children }) => {
         try {
           const naverUserData = JSON.parse(naverAuthUser);
           console.log('🔍 네이버 서버 인증 사용자 발견:', naverUserData.email);
+          console.log('🔍 네이버 사용자 데이터:', naverUserData);
           
-          setUser({
+          const userObj = {
             id: naverUserData.uid,
             uid: naverUserData.uid,
             email: naverUserData.email,
@@ -32,7 +36,11 @@ export const AuthProvider = ({ children }) => {
             provider: naverUserData.provider,
             role: 'user',
             isServerAuth: true
-          });
+          };
+          
+          console.log('✅ 네이버 사용자 상태 설정:', userObj);
+          setUser(userObj);
+          setNaverAuthInitialized(true);
           setIsLoading(false);
           return true;
         } catch (err) {
@@ -46,6 +54,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('tempNaverUser');
       localStorage.removeItem('pendingNaverUser');
       
+      console.log('🔍 네이버 인증 사용자 없음, 로딩 완료');
+      setNaverAuthInitialized(true);
       setIsLoading(false);
       return false;
     };
@@ -54,20 +64,51 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // 네이버 인증 초기화가 완료된 후에만 Firebase 인증 상태 감지 시작
+    if (!naverAuthInitialized) return;
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // JWT 토큰 기반 인증 사용자가 있으면 Firebase 인증 무시
-      if (user && user.isServerAuth) {
-        console.log('🔍 JWT 토큰 인증 사용자 있음, Firebase 인증 건너뜀');
+      console.log('🔍 Firebase 인증 상태 변경:', firebaseUser?.email || '로그아웃 상태');
+      
+      // 네이버 서버 인증이 이미 설정된 경우 Firebase 인증 무시
+      const naverAuthUser = localStorage.getItem('naverAuthUser');
+      if (naverAuthUser) {
+        console.log('🔍 네이버 인증이 이미 설정됨, Firebase 인증 변경 무시');
+        console.log('🔍 현재 user 상태:', user?.email || 'null');
+        
+        // 네이버 사용자가 설정되지 않았다면 다시 설정
+        if (!user || !user.isServerAuth) {
+          try {
+            const naverUserData = JSON.parse(naverAuthUser);
+            const userObj = {
+              id: naverUserData.uid,
+              uid: naverUserData.uid,
+              email: naverUserData.email,
+              name: naverUserData.name,
+              picture: naverUserData.picture,
+              provider: naverUserData.provider,
+              role: 'user',
+              isServerAuth: true
+            };
+            console.log('🔄 네이버 사용자 상태 재설정:', userObj);
+            setUser(userObj);
+          } catch (err) {
+            console.error('네이버 사용자 재설정 오류:', err);
+          }
+        }
+        
+        setIsLoading(false);
         return;
       }
       
-      console.log('🔍 인증 상태 변경:', firebaseUser?.email || '로그아웃 상태');
-      
       if (firebaseUser) {
+        console.log('✅ Firebase 사용자 처리');
         await handleUser(firebaseUser);
       } else {
-        // Firebase 사용자가 없고 JWT 사용자도 없을 때만 로그아웃 처리
-        if (!user || !user.isServerAuth) {
+        console.log('❌ Firebase 로그아웃 처리');
+        // 네이버 사용자가 없는 경우에만 setUser(null) 호출
+        const naverAuthUserCheck = localStorage.getItem('naverAuthUser');
+        if (!naverAuthUserCheck) {
           setUser(null);
         }
       }
@@ -85,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [naverAuthInitialized]); // naverAuthInitialized가 true가 된 후에만 실행
 
   const handleUser = async (firebaseUser) => {
     if (!firebaseUser) return;

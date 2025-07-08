@@ -62,6 +62,13 @@ const NaverCallback = () => {
           // 쿠키 확인
           console.log('🍪 브라우저 쿠키:', document.cookie);
           
+          // 네이버 사용자 정보를 로컬에도 저장 (AuthContext에서 인식)
+          localStorage.setItem('naverAuthUser', JSON.stringify({
+            ...data.user,
+            isServerAuth: true,
+            loginTime: new Date().toISOString()
+          }));
+          
           setStatus('success');
           
           // 원래 페이지로 리디렉션

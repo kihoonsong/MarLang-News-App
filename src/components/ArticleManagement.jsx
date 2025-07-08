@@ -4,15 +4,14 @@ import {
   MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, 
   DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Paper, Chip, IconButton, Tabs, Tab, RadioGroup, Radio, 
-  FormControlLabel, FormLabel, Alert, ButtonGroup, Collapse, Tooltip, useMediaQuery, useTheme
+  FormControlLabel, FormLabel, Alert, useMediaQuery, useTheme
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Preview, Publish, 
-  Visibility, CloudUpload, Image, FormatBold, FormatItalic, 
-  FormatListBulleted, FormatListNumbered, Link as LinkIcon,
-  FormatUnderlined, Title, FormatQuote, ExpandLess, ExpandMore
+  Visibility, CloudUpload, Image
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
+import RichTextEditor from './RichTextEditor';
 
 // 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
 const truncateSummary = (text, limit = 50) => {
@@ -46,8 +45,6 @@ const ArticleManagement = ({
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
   const [articleStats, setArticleStats] = useState({});
-  const [toolbarOpen, setToolbarOpen] = useState(!isTablet);
-  
   // 반응형 디자인
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -67,151 +64,19 @@ const ArticleManagement = ({
     status: 'published'
   });
 
-  // Textarea refs (본문 각 난이도)
-  const beginnerRef = React.useRef(null);
-  const intermediateRef = React.useRef(null);
-  const advancedRef = React.useRef(null);
-
-  // 키보드 단축키 핸들러
+  // 키보드 단축키 핸들러 (임시저장용)
   const handleKeyDown = (event) => {
-    if (event.ctrlKey || event.metaKey) {
-      switch (event.key.toLowerCase()) {
-        case 'b':
-          event.preventDefault();
-          handleInsertFormatting('bold');
-          break;
-        case 'i':
-          event.preventDefault();
-          handleInsertFormatting('italic');
-          break;
-        case 'u':
-          event.preventDefault();
-          handleInsertFormatting('underline');
-          break;
-        case 's':
-          event.preventDefault();
-          // 임시저장
-          const draftKey = `article_draft_${Date.now()}`;
-          const draftData = {
-            ...articleForm,
-            savedAt: new Date().toISOString()
-          };
-          localStorage.setItem(draftKey, JSON.stringify(draftData));
-          setSnackbar({ open: true, message: '임시저장되었습니다! (Ctrl+S)', severity: 'success' });
-          break;
-        default:
-          break;
-      }
-    }
-  };
-
-  // 현재 활성 탭의 textarea ref 반환
-  const getActiveTextarea = () => {
-    if (activeContentTab === 0) return beginnerRef.current;
-    if (activeContentTab === 1) return intermediateRef.current;
-    return advancedRef.current;
-  };
-
-  // 개선된 포맷 삽입 핸들러 (HTML 태그 사용)
-  const handleInsertFormatting = (type) => {
-    const textarea = getActiveTextarea();
-    if (!textarea) return;
-
-    const start = textarea.selectionStart || 0;
-    const end = textarea.selectionEnd || 0;
-    const originalValue = textarea.value;
-    const selectedText = originalValue.slice(start, end);
-    let inserted = '';
-    let cursorOffset = 0;
-
-    switch (type) {
-      case 'bold':
-        if (selectedText) {
-          inserted = `<strong>${selectedText}</strong>`;
-          cursorOffset = inserted.length;
-        } else {
-          inserted = '<strong></strong>';
-          cursorOffset = 8; // <strong> 태그 안으로
-        }
-        break;
-      case 'italic':
-        if (selectedText) {
-          inserted = `<em>${selectedText}</em>`;
-          cursorOffset = inserted.length;
-        } else {
-          inserted = '<em></em>';
-          cursorOffset = 4; // <em> 태그 안으로
-        }
-        break;
-      case 'underline':
-        if (selectedText) {
-          inserted = `<u>${selectedText}</u>`;
-          cursorOffset = inserted.length;
-        } else {
-          inserted = '<u></u>';
-          cursorOffset = 3; // <u> 태그 안으로
-        }
-        break;
-      case 'heading':
-        inserted = selectedText ? `<h3>${selectedText}</h3>` : '<h3></h3>';
-        cursorOffset = selectedText ? inserted.length : 4;
-        break;
-      case 'ul':
-        if (selectedText) {
-          const lines = selectedText.split('\n').filter(line => line.trim());
-          inserted = '<ul>\n' + lines.map(line => `  <li>${line.trim()}</li>`).join('\n') + '\n</ul>';
-        } else {
-          inserted = '<ul>\n  <li></li>\n</ul>';
-          cursorOffset = 9; // <li> 태그 안으로
-        }
-        break;
-      case 'ol':
-        if (selectedText) {
-          const lines = selectedText.split('\n').filter(line => line.trim());
-          inserted = '<ol>\n' + lines.map(line => `  <li>${line.trim()}</li>`).join('\n') + '\n</ol>';
-        } else {
-          inserted = '<ol>\n  <li></li>\n</ol>';
-          cursorOffset = 9; // <li> 태그 안으로
-        }
-        break;
-      case 'link':
-        if (selectedText) {
-          inserted = `<a href="">${selectedText}</a>`;
-          cursorOffset = 9; // href="" 안으로
-        } else {
-          inserted = '<a href="">링크 텍스트</a>';
-          cursorOffset = 9;
-        }
-        break;
-      case 'blockquote':
-        inserted = selectedText ? `<blockquote>${selectedText}</blockquote>` : '<blockquote></blockquote>';
-        cursorOffset = selectedText ? inserted.length : 12;
-        break;
-      default:
-        inserted = selectedText;
-        cursorOffset = inserted.length;
-    }
-
-    const newValue = originalValue.slice(0, start) + inserted + originalValue.slice(end);
-
-    // 상태 업데이트
-    setArticleForm(prev => {
-      const key = activeContentTab === 0 ? 'beginner' : activeContentTab === 1 ? 'intermediate' : 'advanced';
-      return {
-        ...prev,
-        content: {
-          ...prev.content,
-          [key]: newValue
-        }
+    if (event.ctrlKey || event.metaKey && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      // 임시저장
+      const draftKey = `article_draft_${Date.now()}`;
+      const draftData = {
+        ...articleForm,
+        savedAt: new Date().toISOString()
       };
-    });
-
-    // 포커스 유지 및 커서 위치 조정
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newCursorPos = selectedText ? start + cursorOffset : start + cursorOffset;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    });
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+      setSnackbar({ open: true, message: '임시저장되었습니다! (Ctrl+S)', severity: 'success' });
+    }
   };
 
   // 기사 폼 초기화
@@ -821,173 +686,42 @@ const ArticleManagement = ({
                     <Tab label="🔴 고급자용" />
                   </Tabs>
                   
-                  {/* 개선된 텍스트 서식 툴바 (접힘/펼침 기능) */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 1
-                    }}>
-                      <Typography variant="subtitle2">✨ 텍스트 서식</Typography>
-                      <IconButton 
-                        onClick={() => setToolbarOpen(prev => !prev)} 
-                        size="small"
-                        sx={{ ml: 1 }}
-                      >
-                        {toolbarOpen ? <ExpandLess /> : <ExpandMore />}
-                      </IconButton>
-                    </Box>
-                    
-                    <Collapse in={toolbarOpen}>
-                      <Box sx={{ 
-                        p: 2, 
-                        border: '1px solid #e0e0e0', 
-                        borderRadius: '8px',
-                        bgcolor: '#f8f9fa'
-                      }}>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <ButtonGroup variant="outlined" size="small">
-                            <Tooltip title="굵게 (Ctrl+B)" arrow>
-                              <Button onClick={() => handleInsertFormatting('bold')}>
-                                <FormatBold />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title="기울임 (Ctrl+I)" arrow>
-                              <Button onClick={() => handleInsertFormatting('italic')}>
-                                <FormatItalic />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title="밑줄 (Ctrl+U)" arrow>
-                              <Button onClick={() => handleInsertFormatting('underline')}>
-                                <FormatUnderlined />
-                              </Button>
-                            </Tooltip>
-                          </ButtonGroup>
-                          
-                          <ButtonGroup variant="outlined" size="small">
-                            <Tooltip title="제목" arrow>
-                              <Button onClick={() => handleInsertFormatting('heading')}>
-                                <Title />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title="인용문" arrow>
-                              <Button onClick={() => handleInsertFormatting('blockquote')}>
-                                <FormatQuote />
-                              </Button>
-                            </Tooltip>
-                          </ButtonGroup>
-                          
-                          <ButtonGroup variant="outlined" size="small">
-                            <Tooltip title="글머리 기호" arrow>
-                              <Button onClick={() => handleInsertFormatting('ul')}>
-                                <FormatListBulleted />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title="번호 목록" arrow>
-                              <Button onClick={() => handleInsertFormatting('ol')}>
-                                <FormatListNumbered />
-                              </Button>
-                            </Tooltip>
-                          </ButtonGroup>
-                          
-                          <Tooltip title="링크 삽입" arrow>
-                            <Button 
-                              variant="outlined" 
-                              size="small"
-                              onClick={() => handleInsertFormatting('link')}
-                            >
-                              <LinkIcon />
-                            </Button>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Collapse>
-                  </Box>
 
                   {/* 확장된 텍스트 에디터 */}
                   <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     {activeContentTab === 0 && (
-                      <TextField
-                        fullWidth
+                      <RichTextEditor
                         label="🟢 초급자용 본문 *"
                         value={articleForm.content.beginner}
-                        onChange={(e) => setArticleForm({ 
+                        onChange={(html) => setArticleForm({ 
                           ...articleForm, 
-                          content: { ...articleForm.content, beginner: e.target.value }
+                          content: { ...articleForm.content, beginner: html }
                         })}
-                        multiline
-                        minRows={20}
-                        maxRows={25}
-                        placeholder="쉬운 단어와 짧은 문장으로 작성해주세요\n\n예시:\n• 간단한 단어 사용\n• 짧은 문장 구조\n• 기본적인 문법"
-                        inputRef={beginnerRef}
-                        onKeyDown={handleKeyDown}
-                        sx={{
-                          '& .MuiInputBase-root': {
-                            fontSize: '16px',
-                            lineHeight: 1.6,
-                            fontFamily: 'monospace'
-                          },
-                          '& .MuiInputBase-input': {
-                            resize: 'vertical'
-                          }
-                        }}
+                        placeholder="쉬운 단어와 짧은 문장으로 작성해주세요. 간단한 단어와 짧은 문장 구조를 사용하세요."
                       />
                     )}
                     
                     {activeContentTab === 1 && (
-                      <TextField
-                        fullWidth
+                      <RichTextEditor
                         label="🟡 중급자용 본문 *"
                         value={articleForm.content.intermediate}
-                        onChange={(e) => setArticleForm({ 
+                        onChange={(html) => setArticleForm({ 
                           ...articleForm, 
-                          content: { ...articleForm.content, intermediate: e.target.value }
+                          content: { ...articleForm.content, intermediate: html }
                         })}
-                        multiline
-                        minRows={20}
-                        maxRows={25}
-                        placeholder="표준적인 어휘와 문장 구조로 작성해주세요\n\n예시:\n• 일반적인 어휘 사용\n• 표준 문장 길이\n• 중급 문법 구조"
-                        inputRef={intermediateRef}
-                        onKeyDown={handleKeyDown}
-                        sx={{
-                          '& .MuiInputBase-root': {
-                            fontSize: '16px',
-                            lineHeight: 1.6,
-                            fontFamily: 'monospace'
-                          },
-                          '& .MuiInputBase-input': {
-                            resize: 'vertical'
-                          }
-                        }}
+                        placeholder="표준적인 어휘와 문장 구조로 작성해주세요. 일반적인 어휘와 중급 문법 구조를 사용하세요."
                       />
                     )}
                     
                     {activeContentTab === 2 && (
-                      <TextField
-                        fullWidth
+                      <RichTextEditor
                         label="🔴 고급자용 본문 *"
                         value={articleForm.content.advanced}
-                        onChange={(e) => setArticleForm({ 
+                        onChange={(html) => setArticleForm({ 
                           ...articleForm, 
-                          content: { ...articleForm.content, advanced: e.target.value }
+                          content: { ...articleForm.content, advanced: html }
                         })}
-                        multiline
-                        minRows={20}
-                        maxRows={25}
-                        placeholder="고급 어휘와 복잡한 문장 구조를 사용해주세요\n\n예시:\n• 전문적인 어휘\n• 복합 문장 구조\n• 고급 문법 및 표현"
-                        inputRef={advancedRef}
-                        onKeyDown={handleKeyDown}
-                        sx={{
-                          '& .MuiInputBase-root': {
-                            fontSize: '16px',
-                            lineHeight: 1.6,
-                            fontFamily: 'monospace'
-                          },
-                          '& .MuiInputBase-input': {
-                            resize: 'vertical'
-                          }
-                        }}
+                        placeholder="고급 어휘와 복잡한 문장 구조를 사용해주세요. 전문적인 어휘와 고급 문법을 활용하세요."
                       />
                     )}
                   </Box>
@@ -1087,13 +821,12 @@ const ArticleManagement = ({
 
                 {/* 작성 가이드 */}
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  ⌨️ <strong>키보드 단축키:</strong><br/>
-                  • <code>Ctrl+B</code>: 굵게<br/>
-                  • <code>Ctrl+I</code>: 기울임<br/>
-                  • <code>Ctrl+U</code>: 밑줄<br/>
+                  ✨ <strong>리치 텍스트 에디터:</strong><br/>
+                  • 툴바 버튼으로 서식 적용 (굵게, 기울임, 밑줄 등)<br/>
+                  • <code>Ctrl+B</code>: 굵게, <code>Ctrl+I</code>: 기울임<br/>
                   • <code>Ctrl+S</code>: 임시저장<br/><br/>
-                  💡 <strong>HTML 서식:</strong><br/>
-                  • <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;u&gt;</code>, <code>&lt;h3&gt;</code>, <code>&lt;blockquote&gt;</code>
+                  💡 <strong>자동 HTML 변환:</strong><br/>
+                  텍스트 서식이 자동으로 HTML로 변환되어 저장됩니다.
                 </Alert>
                 
                 <Alert severity="success" sx={{ mb: 2 }}>
