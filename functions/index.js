@@ -89,9 +89,16 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    // 네이버 환경 변수 (환경 변수에서 가져옴)
+    // 네이버 환경 변수 (process.env에서 가져옴)
     const naverClientId = process.env.NAVER_CLIENT_ID || 'Y4ldejPFJ6JxAp95HtpR';
     const naverClientSecret = process.env.NAVER_CLIENT_SECRET || 'dz0e72Lrva';
+    
+    // 디버깅용 로그 (실제 값은 로그에 남기지 않음)
+    console.log('환경변수 확인:', {
+      hasClientId: !!naverClientId,
+      hasClientSecret: !!naverClientSecret,
+      envKeys: Object.keys(process.env).filter(key => key.includes('NAVER') || key.includes('JWT'))
+    });
     const redirectUri = 'https://marlang-app.web.app/auth/naver/callback';
 
     // 1. 네이버 액세스 토큰 요청
@@ -390,7 +397,7 @@ exports.createJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
     const accessTokenExpiry = '15m'; // 15분
     const refreshTokenExpiry = '7d'; // 7일
 
@@ -480,7 +487,7 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
     
     try {
       const decoded = jwt.verify(accessToken, jwtSecret);
@@ -556,7 +563,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
     
     try {
       const decoded = jwt.verify(refreshToken, jwtSecret);
