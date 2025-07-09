@@ -7,6 +7,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,6 +29,12 @@ const Wordbook = () => {
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
+  
+  // 뜻 가리기/보이기 상태 (localStorage 연동)
+  const [showMeaning, setShowMeaning] = useState(() => {
+    const saved = localStorage.getItem('wordbook_showMeaning');
+    return saved !== null ? JSON.parse(saved) : true; // 기본값: true (뜻 보이기)
+  });
 
   // 로그인된 사용자만 단어 목록 사용
   const _userWords = isAuthenticated ? savedWords : [];
@@ -34,6 +42,16 @@ const Wordbook = () => {
   // 광고가 포함된 단어 목록 생성 (로그인하고 단어가 있을 때만)
   const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
   const { itemsWithAds } = useAdInjector(hasContent ? sortedWords : []);
+  
+  // showMeaning 상태 변경 시 localStorage에 저장
+  useEffect(() => {
+    localStorage.setItem('wordbook_showMeaning', JSON.stringify(showMeaning));
+  }, [showMeaning]);
+
+  // 뜻 가리기/보이기 토글 함수
+  const toggleMeaningVisibility = () => {
+    setShowMeaning(!showMeaning);
+  };
 
   useEffect(() => {
     if (isAuthenticated && savedWords) {
@@ -129,21 +147,34 @@ const Wordbook = () => {
               <HeaderContent>
                 {/* 빈 공간 */}
               </HeaderContent>
-              <SortContainer>
-                <FilterListIcon sx={{ mr: 1, color: '#666' }} />
-                <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel>Sort by</InputLabel>
-                  <Select
-                    value={sortBy}
-                    label="Sort by"
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <MenuItem value="alphabetical">Alphabetical</MenuItem>
-                    <MenuItem value="recent">Recently Added</MenuItem>
-                    <MenuItem value="article">By Article</MenuItem>
-                  </Select>
-                </FormControl>
-              </SortContainer>
+              <HeaderControls>
+                {/* 뜻 가리기/보이기 토글 버튼 */}
+                <MeaningToggleButton
+                  onClick={toggleMeaningVisibility}
+                  $showMeaning={showMeaning}
+                  aria-pressed={showMeaning}
+                  aria-label={showMeaning ? "Hide word meanings" : "Show word meanings"}
+                  title={showMeaning ? "Hide meanings" : "Show meanings"}
+                >
+                  {showMeaning ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                </MeaningToggleButton>
+                
+                <SortContainer>
+                  <FilterListIcon sx={{ mr: 1, color: '#666' }} />
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <InputLabel>Sort by</InputLabel>
+                    <Select
+                      value={sortBy}
+                      label="Sort by"
+                      onChange={(e) => setSortBy(e.target.value)}
+                    >
+                      <MenuItem value="alphabetical">Alphabetical</MenuItem>
+                      <MenuItem value="recent">Recently Added</MenuItem>
+                      <MenuItem value="article">By Article</MenuItem>
+                    </Select>
+                  </FormControl>
+                </SortContainer>
+              </HeaderControls>
             </Header>
 
           {/* 단어 목록 */}
@@ -272,7 +303,9 @@ const Wordbook = () => {
                     </WordHeader>
                   
                     {/* 정의 */}
-                    <Definition>{word.definition}</Definition>
+                    <Definition $showMeaning={showMeaning}>
+                      {showMeaning ? word.definition : '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                    </Definition>
                     
                     {/* 예문 (있는 경우만) */}
                     {word.example && (
@@ -309,14 +342,68 @@ const Header = styled.div`
   
   @media (max-width: 480px) {
     margin-bottom: 1rem;
-    padding: 0 0.25rem;
+    padding: 0 0.5rem;
     min-height: 44px;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
   }
 `;
 
 const HeaderContent = styled.div`
   display: flex;
   align-items: center;
+`;
+
+const HeaderControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const MeaningToggleButton = styled.button`
+  background: none;
+  border: none;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #666;
+  border-radius: 4px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  .MuiSvgIcon-root {
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 6px;
+    
+    .MuiSvgIcon-root {
+      font-size: 1rem;
+    }
+  }
 `;
 
 const SortContainer = styled.div`
@@ -333,23 +420,22 @@ const SortContainer = styled.div`
   
   @media (max-width: 480px) {
     gap: 0.25rem;
-    min-width: 140px;
-    width: 100%;
-    justify-content: flex-end;
+    min-width: auto;
+    flex: 1;
   }
   
   .MuiFormControl-root {
     min-width: 120px !important;
     
     @media (max-width: 480px) {
-      min-width: 100px !important;
-      flex: 1;
+      min-width: 80px !important;
+      width: 100%;
     }
   }
   
   .MuiSvgIcon-root {
     @media (max-width: 480px) {
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
   }
 `;
@@ -599,6 +685,16 @@ const Definition = styled.p`
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   font-weight: 400;
+  transition: all 0.3s ease;
+  
+  ${props => !props.$showMeaning && `
+    filter: blur(4px);
+    opacity: 0.6;
+    user-select: none;
+    color: #999;
+    font-family: monospace;
+    letter-spacing: 2px;
+  `}
 `;
 
 const Example = styled.p`
