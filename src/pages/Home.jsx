@@ -44,6 +44,9 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
           }
         }} style={{ cursor: 'pointer' }}>
           {category.name}
+          {category.type === 'category' && isValidCategory(category) && (
+            <AllLabel>All</AllLabel>
+          )}
         </CategoryTitle>
       </CategoryHeader>
       
@@ -352,6 +355,22 @@ const CategoryTitle = styled.h2`
   color: #1976d2;
   margin: 0;
 `;
+
+const AllLabel = styled.span`
+  font-size: 0.6rem;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.87);
+  padding: 2px 4px;
+  border-radius: 6px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 12px;
+  line-height: 1;
+  pointer-events: none;
+`;
+
   
 const NoticeSection = styled.div`
   margin-bottom: ${designTokens.spacing.md};
