@@ -685,15 +685,12 @@ const Definition = styled.p`
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   font-weight: 400;
-  transition: all 0.3s ease;
+  transition: filter 0.3s ease, opacity 0.3s ease;
   
   ${props => !props.$showMeaning && `
     filter: blur(4px);
     opacity: 0.6;
     user-select: none;
-    color: #999;
-    font-family: monospace;
-    letter-spacing: 2px;
   `}
 `;
 
