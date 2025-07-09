@@ -304,7 +304,7 @@ const Wordbook = () => {
                   
                     {/* 정의 */}
                     <Definition $showMeaning={showMeaning}>
-                      {showMeaning ? word.definition : '•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                      {word.definition}
                     </Definition>
                     
                     {/* 예문 (있는 경우만) */}
@@ -686,11 +686,13 @@ const Definition = styled.p`
   -webkit-box-orient: vertical;
   font-weight: 400;
   transition: filter 0.3s ease, opacity 0.3s ease;
+  word-break: break-word;
   
   ${props => !props.$showMeaning && `
     filter: blur(4px);
-    opacity: 0.6;
+    opacity: 0.4;
     user-select: none;
+    pointer-events: none;
   `}
 `;
 
