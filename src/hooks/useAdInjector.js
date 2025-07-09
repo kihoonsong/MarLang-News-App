@@ -3,27 +3,58 @@ import { useAuth } from '../contexts/AuthContext';
 import { membershipConfig } from '../config/membershipConfig';
 import { getAdsenseConfig } from '../config/adsenseConfig';
 
-// 소수 테이블 캐싱 (성능 최적화)
-const primeCache = new Map();
-const isPrime = (num) => {
-  if (primeCache.has(num)) {
-    return primeCache.get(num);
-  }
+// 랜덤 광고 배치를 위한 유틸리티 함수들
+const generateRandomSeed = (items) => {
+  // 아이템 수와 현재 시간을 기반으로 시드 생성
+  const seed = items.length * Math.floor(Date.now() / (1000 * 60 * 60)); // 1시간마다 변경
+  return seed;
+};
+
+const seededRandom = (seed) => {
+  // 시드 기반 의사 랜덤 생성기 (일관된 결과를 위해)
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+const generateAdPositions = (itemCount, seed) => {
+  const positions = [];
   
-  if (num < 2) {
-    primeCache.set(num, false);
-    return false;
-  }
+  if (itemCount < 3) return positions; // 최소 3개 이상의 아이템이 있어야 광고 삽입
   
-  for (let i = 2; i <= Math.sqrt(num); i++) {
-    if (num % i === 0) {
-      primeCache.set(num, false);
-      return false;
+  // 광고 밀도 설정 (아이템 4-6개당 광고 1개)
+  const adDensity = Math.max(1, Math.floor(itemCount / (4 + seededRandom(seed) * 3))); // 4-7개당 1개
+  const maxAds = Math.min(adDensity, Math.floor(itemCount / 3)); // 최대 아이템/3 개
+  
+  if (maxAds === 0) return positions;
+  
+  // 첫 번째 광고는 3-7번째 위치 중 랜덤
+  const firstAdMin = 3;
+  const firstAdMax = Math.min(7, Math.floor(itemCount * 0.3));
+  const firstAdPosition = firstAdMin + Math.floor(seededRandom(seed + 1) * (firstAdMax - firstAdMin + 1));
+  positions.push(firstAdPosition);
+  
+  // 나머지 광고들은 균등하지만 랜덤한 간격으로 배치
+  if (maxAds > 1) {
+    const remainingItems = itemCount - firstAdPosition;
+    const interval = Math.floor(remainingItems / (maxAds - 1));
+    
+    for (let i = 1; i < maxAds; i++) {
+      const variance = Math.floor(interval * 0.3); // 30% 범위 내에서 변동
+      const randomOffset = Math.floor(seededRandom(seed + i + 10) * (variance * 2 + 1)) - variance;
+      const basePosition = firstAdPosition + (interval * i);
+      const finalPosition = Math.max(
+        firstAdPosition + 2, 
+        Math.min(itemCount - 1, basePosition + randomOffset)
+      );
+      
+      // 중복 위치 방지
+      if (!positions.includes(finalPosition) && finalPosition > positions[positions.length - 1] + 1) {
+        positions.push(finalPosition);
+      }
     }
   }
   
-  primeCache.set(num, true);
-  return true;
+  return positions.sort((a, b) => a - b);
 };
 
 export const useAdInjector = (items) => {
@@ -61,18 +92,31 @@ export const useAdInjector = (items) => {
       return items ? [...items] : [];
     }
 
+    // 랜덤 시드 생성 및 광고 위치 결정
+    const seed = generateRandomSeed(items);
+    const adPositions = generateAdPositions(items.length, seed);
+    
+    console.log('🎯 광고 배치 정보:', {
+      itemCount: items.length,
+      seed,
+      adPositions,
+      adDensity: `${adPositions.length}개/${items.length}개 아이템`
+    });
+
     const newItems = [];
     let adCount = 0;
     
     items.forEach((item, index) => {
-      // 현재 위치가 소수인지 확인 (1-based index)
-      const position = index + 1;
-      if (isPrime(position) && position >= 3 && index < items.length) {
+      const position = index + 1; // 1-based position
+      
+      // 현재 위치가 광고 위치인지 확인
+      if (adPositions.includes(position)) {
         newItems.push({ 
           type: 'ad', 
           id: `ad-${adCount}`,
           adSlot: 'articleBanner',
-          position: position
+          position: position,
+          seed: seed + adCount // 고유한 시드로 다양한 광고 스타일 가능
         });
         adCount++;
       }

@@ -25,7 +25,7 @@ import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../uti
 import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
 import { createUnifiedTTS } from '../utils/UnifiedTTS';
 import { optimizeTextForTTS, debugTTSOptimization } from '../utils/ttsTextPatch';
-import { getTTSOptimizationSettings } from '../utils/deviceDetect';
+import { getTTSOptimizationSettings, isIOS } from '../utils/deviceDetect';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
@@ -171,6 +171,12 @@ const ArticleDetail = () => {
   // 통합 TTS 인스턴스
   const unifiedTTSRef = useRef(null);
   
+  // iOS TTS utterance 참조
+  const iosUtteranceRef = useRef(null);
+  
+  // iOS TTS 현재 재생 위치 추적
+  const iosCurrentTextRef = useRef('');
+  
   // 활성 문장 DOM 참조 (DOM 직접 조작용)
   const activeSentenceRef = useRef(null);
 
@@ -196,10 +202,23 @@ const ArticleDetail = () => {
       setCurrentSentence(-1);
       setTotalSentences(0);
       
-      // UnifiedTTS 중지
-      if (unifiedTTSRef.current) {
-        unifiedTTSRef.current.stop();
-        unifiedTTSRef.current = null;
+      // iOS 감지 후 적절한 중지 방법 사용
+      const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOSDevice) {
+        // iOS에서는 speechSynthesis.cancel() 사용
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        // iOS utterance 참조 정리
+        iosUtteranceRef.current = null;
+        iosCurrentTextRef.current = '';
+      } else {
+        // 기존 UnifiedTTS 중지
+        if (unifiedTTSRef.current) {
+          unifiedTTSRef.current.stop();
+          unifiedTTSRef.current = null;
+        }
       }
       
       // DOM 하이라이트 정리
@@ -375,6 +394,13 @@ const ArticleDetail = () => {
 
   // DOM 직접 조작으로 문장 하이라이트 (iOS/iPad 최적화)
   const highlightSentence = (sentenceIdx) => {
+    // iOS에서는 문장 하이라이트 비활성화
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOSDevice) {
+      console.log('🍎 iOS 문장 하이라이트 비활성화');
+      return;
+    }
+    
     // 현재 활성 카드 찾기
     const activeCard = document.querySelector('[data-active="true"]');
     if (!activeCard) return;
@@ -414,9 +440,9 @@ const ArticleDetail = () => {
 
     setIsTTSLoading(true); // 로딩 시작
 
-    // 모바일 환경 감지
+    // iOS 플랫폼 감지 (향상된 감지 사용)
+    // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
     console.log('🔍 현재 레벨:', selectedLevel);
@@ -431,7 +457,90 @@ const ArticleDetail = () => {
     }
 
     try {
-      console.log('🚀 UnifiedTTS 서비스로 재생 시작 (모든 플랫폼)');
+      console.log('🚀 TTS 재생 시작 - 플랫폼:', isIOS ? 'iOS' : 'Other');
+      
+      // iOS에서 A안 적용: 문장 분할·밑줄 OFF, 단어 하이라이트 유지
+      if (isIOS) {
+        console.log('🍎 iOS 감지 - A안 적용: 전체 기사 한 번에 재생');
+        
+        // 1) 광고 push 차단 (선택적)
+        if (window.adsbygoogle) {
+          window.adsbygoogle = [];
+        }
+        
+        // 2) 정제된 기사 전체 문자열 준비 (HTML 태그 제거)
+        const cleanContent = cleanHtmlContent(currentContent);
+        console.log('🧹 HTML 태그 제거 완료:', cleanContent.substring(0, 100), '...');
+        
+        // iOS 현재 재생 텍스트 저장
+        iosCurrentTextRef.current = cleanContent;
+        
+        // 3) SpeechSynthesisUtterance로 직접 재생
+        const utterance = new SpeechSynthesisUtterance(cleanContent);
+        utterance.rate = ttsSpeed;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // 기존 음성 설정 적용
+        if (window.speechSynthesis) {
+          const voices = window.speechSynthesis.getVoices();
+          const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
+                              voices.find(v => v.lang.startsWith('en-GB')) || 
+                              voices.find(v => v.lang.startsWith('en')) || 
+                              voices[0];
+          if (englishVoice) {
+            utterance.voice = englishVoice;
+            utterance.lang = englishVoice.lang;
+          }
+        }
+        
+        // 이벤트 핸들러 설정
+        utterance.onstart = () => {
+          console.log('🎵 iOS TTS 재생 시작됨');
+          setIsTTSLoading(false);
+          setIsTTSPlaying(true);
+        };
+        
+        utterance.onend = () => {
+          console.log('✅ iOS TTS 재생 완료');
+          setIsTTSLoading(false);
+          setIsTTSPlaying(false);
+          setCurrentSentence(-1);
+          setTotalSentences(0);
+        };
+        
+        utterance.onerror = (error) => {
+          console.error('❌ iOS TTS 에러:', error);
+          setIsTTSLoading(false);
+          setIsTTSPlaying(false);
+          setCurrentSentence(-1);
+          setTotalSentences(0);
+        };
+        
+        // 기존 재생 중지 후 새로 시작
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          
+          // iOS utterance 참조 저장
+          iosUtteranceRef.current = utterance;
+          
+          // iOS에서 즉시 상태 업데이트 (onstart 이벤트가 신뢰할 수 없음)
+          setTimeout(() => {
+            setIsTTSLoading(false);
+            setIsTTSPlaying(true);
+          }, 100);
+          
+          window.speechSynthesis.speak(utterance);
+        }
+        
+        // 4) 상태 플래그 업데이트 (문장 밑줄 OFF)
+        setCurrentSentence(-1);    // 문장 밑줄 OFF
+        
+        return; // 이하 문장 분할 로직 스킵
+      }
+      
+      // 기존 UnifiedTTS 로직 (Android·데스크탑)
+      console.log('🚀 UnifiedTTS 서비스로 재생 시작 (Android·데스크탑)');
       
       // 플랫폼별 TTS 최적화 설정 가져오기
       const ttsSettings = getTTSOptimizationSettings();
@@ -518,13 +627,28 @@ const ArticleDetail = () => {
     }
   };
 
-  const handleTTS = () => {
+  const handleTTS = async () => {
     if (isTTSPlaying) {
       // TTS 중지
       console.log('🛑 TTS 중지 버튼 클릭');
       
-      if (unifiedTTSRef.current) {
-        unifiedTTSRef.current.stop();
+      // iOS 감지
+      // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
+      
+      if (isIOS) {
+        // iOS에서는 speechSynthesis.cancel() 사용
+        console.log('🍎 iOS TTS 중지');
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        // iOS utterance 참조 정리
+        iosUtteranceRef.current = null;
+        iosCurrentTextRef.current = '';
+      } else {
+        // 기존 UnifiedTTS 중지
+        if (unifiedTTSRef.current) {
+          unifiedTTSRef.current.stop();
+        }
       }
       
       setIsTTSPlaying(false);
@@ -552,23 +676,102 @@ const ArticleDetail = () => {
     }
   };
 
-  const handleSpeedChange = (newSpeed) => {
+  const handleSpeedChange = async (newSpeed) => {
     console.log('⚡ 배속 변경:', ttsSpeed, '→', newSpeed);
     setTtsSpeed(newSpeed);
     
+    // iOS 감지
+    // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
+    
     // 재생 중이면 새 속도로 업데이트
-    if (unifiedTTSRef.current && isTTSPlaying) {
+    if (isTTSPlaying) {
       console.log('🔄 재생 중 배속 변경');
-      unifiedTTSRef.current.setSpeed(newSpeed);
+      
+      if (isIOS) {
+        // iOS에서는 부드럽게 재시작하여 배속 변경 적용
+        console.log('🍎 iOS 배속 변경: 부드럽게 재시작');
+        if (iosCurrentTextRef.current && window.speechSynthesis.speaking) {
+          // 현재 재생 중지
+          window.speechSynthesis.cancel();
+          
+          // 새 배속으로 utterance 생성
+          const newUtterance = new SpeechSynthesisUtterance(iosCurrentTextRef.current);
+          newUtterance.rate = newSpeed;
+          newUtterance.pitch = 1.0;
+          newUtterance.volume = 1.0;
+          
+          // 음성 설정 적용
+          const voices = window.speechSynthesis.getVoices();
+          const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
+                              voices.find(v => v.lang.startsWith('en-GB')) || 
+                              voices.find(v => v.lang.startsWith('en')) || 
+                              voices[0];
+          if (englishVoice) {
+            newUtterance.voice = englishVoice;
+            newUtterance.lang = englishVoice.lang;
+          }
+          
+          // 이벤트 핸들러 설정
+          newUtterance.onend = () => {
+            console.log('✅ iOS TTS 재생 완료 (배속 변경 후)');
+            setIsTTSLoading(false);
+            setIsTTSPlaying(false);
+            setCurrentSentence(-1);
+            setTotalSentences(0);
+            iosUtteranceRef.current = null;
+          };
+          
+          newUtterance.onerror = (error) => {
+            console.error('❌ iOS TTS 에러 (배속 변경 후):', error);
+            setIsTTSLoading(false);
+            setIsTTSPlaying(false);
+            setCurrentSentence(-1);
+            setTotalSentences(0);
+            iosUtteranceRef.current = null;
+          };
+          
+          // 새 utterance 참조 저장 및 재생
+          iosUtteranceRef.current = newUtterance;
+          
+          // 짧은 지연 후 재생 시작
+          setTimeout(() => {
+            if (window.speechSynthesis && iosUtteranceRef.current) {
+              window.speechSynthesis.speak(iosUtteranceRef.current);
+              console.log('✅ iOS 배속 변경 후 재생 시작:', newSpeed);
+            }
+          }, 100);
+        } else {
+          // 재생 중이 아니면 다음 재생 시 적용
+          console.log('📝 iOS 다음 재생 시 새 배속 적용');
+        }
+      } else {
+        // 기존 UnifiedTTS 배속 변경
+        if (unifiedTTSRef.current) {
+          unifiedTTSRef.current.setSpeed(newSpeed);
+        }
+      }
     }
   };
 
-  const handleLevelChange = (level) => {
+  const handleLevelChange = async (level) => {
     console.log('🔄 레벨 변경:', selectedLevel, '→', level);
     
+    // iOS 감지
+    // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
+    
     // TTS 중지
-    if (unifiedTTSRef.current) {
-      unifiedTTSRef.current.stop();
+    if (isIOS) {
+      // iOS에서는 speechSynthesis.cancel() 사용
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      // iOS utterance 참조 정리
+      iosUtteranceRef.current = null;
+    } else {
+      // 기존 UnifiedTTS 중지
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+      }
     }
     
     // 상태 초기화
@@ -1517,8 +1720,15 @@ const ArticleDetail = () => {
                 console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
                 
                 return sentences.map((sentence, sentenceIdx) => {
-                        // 현재 선택된 레벨에서만 하이라이팅 활성화
-                        const isCurrentSentence = currentSentence === sentenceIdx && isTTSPlaying && isActive && level === selectedLevel;
+                        // iOS에서는 문장 하이라이팅 비활성화
+                        const useSentenceHighlight = !window.navigator.userAgent.match(/(iPad|iPhone|iPod)/);
+                        
+                        // 현재 선택된 레벨에서만 하이라이팅 활성화 (iOS 제외)
+                        const isCurrentSentence = useSentenceHighlight && 
+                                                 currentSentence === sentenceIdx && 
+                                                 isTTSPlaying && 
+                                                 isActive && 
+                                                 level === selectedLevel;
                         
                         if (isCurrentSentence) {
                           console.log(`🔥 현재 활성 문장: 레벨 ${level}, 인덱스 ${sentenceIdx} - "${sentence.substring(0, 30)}..."`);
