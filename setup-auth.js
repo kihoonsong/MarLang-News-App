@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Firebase Authentication 설정 스크립트
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, cert as _cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 async function setupFirebaseAuth() {

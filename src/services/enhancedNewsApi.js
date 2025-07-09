@@ -169,7 +169,7 @@ class EnhancedNewsApiService {
       await enhancedFetch(testUrl, {}, 1, 5000); // 1회만 시도, 5초 타임아웃
       this.apiStatus[apiName] = 'healthy';
       return 'healthy';
-    } catch (error) {
+    } catch (_error) {
       this.apiStatus[apiName] = 'unhealthy';
       return 'unhealthy';
     }

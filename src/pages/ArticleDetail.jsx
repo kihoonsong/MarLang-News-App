@@ -115,6 +115,8 @@ const WordSpan = memo(({ word, isHighlighted, onWordClick }) => {
   );
 });
 
+WordSpan.displayName = 'WordSpan';
+
 const ArticleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();

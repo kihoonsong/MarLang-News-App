@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography } from '@mui/material';
 import { getAdsenseConfig, loadAdsenseScript } from '../config/adsenseConfig';
 
 const AdCardContainer = styled(Paper)`

@@ -122,7 +122,7 @@ const GlobalErrorHandler = () => {
 // 네트워크 상태 모니터링 컴포넌트
 const NetworkMonitor = () => {
   const { isOnline, isSlowConnection } = useNetworkStatus();
-  const { warning, info } = useEnhancedToast();
+  const { warning } = useEnhancedToast();
 
   useEffect(() => {
     if (isSlowConnection) {

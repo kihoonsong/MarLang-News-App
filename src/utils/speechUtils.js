@@ -223,7 +223,7 @@ export const loadVoiceSettings = () => {
 };
 
 // 음성 상태 관리
-let currentUtterance = null;
+let _currentUtterance = null;
 let isPlaying = false;
 let globalTTSController = null;
 

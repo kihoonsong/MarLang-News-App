@@ -7,8 +7,8 @@ import {
   FormControlLabel, FormLabel, Alert, useMediaQuery, useTheme
 } from '@mui/material';
 import {
-  Article, Add, Edit, Delete, Save, Cancel, Preview, Publish, 
-  Visibility, CloudUpload, Image
+  Article, Add, Edit, Delete, Save, Cancel, Publish, 
+  Visibility, CloudUpload
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 import RichTextEditor from './RichTextEditor';
@@ -47,7 +47,7 @@ const ArticleManagement = ({
   const [articleStats, setArticleStats] = useState({});
   // 반응형 디자인
   const theme = useTheme();
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const _isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [articleForm, setArticleForm] = useState({
     title: '',
     summary: '',
@@ -65,7 +65,7 @@ const ArticleManagement = ({
   });
 
   // 키보드 단축키 핸들러 (임시저장용)
-  const handleKeyDown = (event) => {
+  const _handleKeyDown = (event) => {
     if (event.ctrlKey || event.metaKey && event.key.toLowerCase() === 's') {
       event.preventDefault();
       // 임시저장

@@ -13,9 +13,9 @@ import AuthModal from './AuthModal';
 const MobileNavigation = ({ 
   showBackButton = false, 
   title, 
-  showCategoryTabs = false, 
+  _showCategoryTabs = false, 
   children, 
-  searchCompact = true 
+  _searchCompact = true 
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));

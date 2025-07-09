@@ -378,7 +378,7 @@ const MainNavigation = ({ showBackButton = false, title, showCategoryTabs = fals
           {/* 네비게이션 탭 */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
             <Tabs value={tabValue} onChange={handleTabChange}>
-              {navigationTabs.map((nav, idx) => (
+              {navigationTabs.map((nav, _idx) => (
                 <Tab 
                   key={nav} 
                   label={nav}

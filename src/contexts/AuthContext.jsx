@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
+import { onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken as _signInWithCustomToken } from 'firebase/auth';
 import { auth, googleProvider, db } from '../config/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 
@@ -257,7 +257,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signUpWithEmail = async (email, password, displayName) => {
+  const signUpWithEmail = async (email, password, _displayName) => {
     setIsLoading(true);
     setError(null);
     try {

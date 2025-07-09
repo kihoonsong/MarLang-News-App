@@ -376,20 +376,15 @@ export const setupGlobalErrorHandling = (toastError) => {
   // Fetch 요청 인터셉트 (기본적인 네트워크 에러 처리)
   const originalFetch = window.fetch;
   window.fetch = async (...args) => {
-    try {
-      const response = await originalFetch(...args);
-      
-      if (!response.ok) {
-        const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        error.response = response;
-        throw error;
-      }
-      
-      return response;
-    } catch (error) {
-      // fetch 에러는 자동으로 토스트에 표시하지 않음 (각 컴포넌트에서 처리)
+    const response = await originalFetch(...args);
+    
+    if (!response.ok) {
+      const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      error.response = response;
       throw error;
     }
+    
+    return response;
   };
 };
 

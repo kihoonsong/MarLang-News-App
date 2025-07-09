@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { TextField as MuiTextField, Select as MuiSelect, FormControl, InputLabel, OutlinedInput } from '@mui/material';
+import { TextField as MuiTextField, Select as MuiSelect, FormControl as _FormControl, InputLabel as _MuiInputLabel, OutlinedInput as _OutlinedInput } from '@mui/material';
 import { designTokens, getColor, getBorderRadius } from '../utils/designTokens';
 
 // 표준 텍스트 필드

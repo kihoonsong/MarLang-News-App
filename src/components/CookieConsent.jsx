@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 // 구글 CMP (동의 관리 플랫폼) 컴포넌트
 const CookieConsent = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {

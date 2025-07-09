@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
   },
 
@@ -19,10 +19,11 @@ export default defineConfig({
     },
   ],
 
-  // 기존에 실행 중인 서버 사용
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://127.0.0.1:5173',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  // 개발 서버 자동 실행
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://127.0.0.1:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
 }); 

@@ -14,7 +14,7 @@ test.describe('Layout Consistency Tests', () => {
   ];
 
   // 예상 패딩 값들 (모바일과 데스크톱)
-  const expectedPadding = {
+  const _expectedPadding = {
     mobile: { left: '16px', right: '16px' }, // 1rem = 16px
     desktop: { left: '32px', right: '32px' } // 2rem = 32px
   };

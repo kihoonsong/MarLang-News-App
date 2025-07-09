@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  Select, MenuItem, FormControl, InputLabel, useMediaQuery, useTheme, CircularProgress,
-  Button
+  Select, MenuItem, FormControl, InputLabel, useMediaQuery, useTheme
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -15,26 +14,26 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import AdCard from '../components/AdCard';
 import { useAdInjector } from '../hooks/useAdInjector';
-import { speakWord, isSpeechSynthesisSupported, getCurrentPlayingStatus, stopCurrentSpeech } from '../utils/speechUtils';
-import { designTokens, getColor, getBorderRadius } from '../utils/designTokens';
+import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
+import { designTokens, getColor } from '../utils/designTokens';
 
 const Wordbook = () => {
   const navigate = useNavigate();
   const { isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { savedWords, removeWord } = useData();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
 
   // 로그인된 사용자만 단어 목록 사용
-  const userWords = isAuthenticated ? savedWords : [];
+  const _userWords = isAuthenticated ? savedWords : [];
   
   // 광고가 포함된 단어 목록 생성 (로그인하고 단어가 있을 때만)
   const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
-  const { itemsWithAds, shouldShowAds } = useAdInjector(hasContent ? sortedWords : []);
+  const { itemsWithAds } = useAdInjector(hasContent ? sortedWords : []);
 
   useEffect(() => {
     if (isAuthenticated && savedWords) {
@@ -648,7 +647,7 @@ const EmptySubtext = styled.p`
   margin: 0;
 `;
 
-const EmptyAuthState = styled.div`
+const _EmptyAuthState = styled.div`
   text-align: center;
   padding: ${designTokens.spacing.xxl} ${designTokens.spacing.lg};
 `;

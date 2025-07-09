@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
-  Box, Paper, Typography, Button, TextField, Divider, Alert,
-  Container, Avatar, IconButton, InputAdornment
+  Paper, Typography, Button, TextField, Divider, Alert,
+  Container, IconButton, InputAdornment
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import PersonIcon from '@mui/icons-material/Person';

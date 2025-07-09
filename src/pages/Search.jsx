@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { 
-  AppBar, Toolbar, Typography, IconButton, InputBase, Box, Card, CardMedia, 
-  CardContent, Chip, Grid, FormControl, Select, MenuItem, InputLabel,
+  AppBar, Toolbar, Typography, IconButton, InputBase, Box, 
+  Chip, Grid, FormControl, Select, MenuItem, InputLabel,
   Tabs, Tab, Paper, List, ListItem, ListItemText, ListItemIcon, Divider,
   useMediaQuery, useTheme
 } from '@mui/material';
@@ -87,7 +87,7 @@ const Search = () => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { userSettings, updateSettings } = useData();
+  const { userSettings: _userSettings } = useData();
   
   // URL에서 초기 검색어 가져오기
   const urlParams = new URLSearchParams(location.search);

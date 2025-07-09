@@ -343,7 +343,7 @@ export const NetworkError = ({
 
 // 로딩 상태가 있는 컴포넌트 래퍼
 export const withLoadingState = (Component) => {
-  return ({ isLoading, error, onRetry, ...props }) => {
+  const WithLoadingStateComponent = ({ isLoading, error, onRetry, ...props }) => {
     if (error) {
       return <NetworkError error={error} onRetry={onRetry} />;
     }
@@ -354,6 +354,10 @@ export const withLoadingState = (Component) => {
 
     return <Component {...props} />;
   };
+  
+  WithLoadingStateComponent.displayName = `withLoadingState(${Component.displayName || Component.name || 'Component'})`;
+  
+  return WithLoadingStateComponent;
 };
 
 export default SmartLoading; 

@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 
-const RecentActivity = ({ recentWords, recentArticles, translations, formatTimeAgo }) => {
+const RecentActivity = ({ recentWords, recentArticles, translations: _translations, formatTimeAgo }) => {
   const navigate = useNavigate();
 
   return (

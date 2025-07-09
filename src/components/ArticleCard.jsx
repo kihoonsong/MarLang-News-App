@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { designTokens, getShadow, getBorderRadius, getColor } from '../utils/designTokens';
 

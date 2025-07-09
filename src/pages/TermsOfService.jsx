@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Container, Typography, Box, Divider } from '@mui/material';
+import { Container, Typography, Divider } from '@mui/material';
 import MainNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 
 const TermsOfService = () => {

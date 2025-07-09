@@ -44,7 +44,16 @@
       "Bash(gcloud projects get-iam-policy:*)",
       "Bash(firebase projects:get-iam-policy:*)",
       "Bash(gcloud auth:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm ls:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase functions:list:*)",
+      "Bash(gcloud projects describe:*)",
+      "Bash(firebase apps:list:*)",
+      "Bash(cat:*)",
+      "Bash(firebase functions:config:get:*)",
+      "Bash(npm test)"
     ],
     "deny": []
   }

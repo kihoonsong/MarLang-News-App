@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const ProfileHeader = ({ user, isAdmin, translations, onLogout }) => {
+const ProfileHeader = ({ user, isAdmin, translations, onLogout: _onLogout }) => {
   return (
     <HeaderContainer>
       <UserInfo>

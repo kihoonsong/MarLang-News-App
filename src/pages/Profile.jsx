@@ -47,7 +47,6 @@ const Profile = () => {
   const { user, logout, isAdmin, isAuthenticated, signInWithGoogle } = useAuth();
   const { 
     userSettings, 
-    updateSettings, 
     getStats, 
     savedWords, 
     likedArticles 
