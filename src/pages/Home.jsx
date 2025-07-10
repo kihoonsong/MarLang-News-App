@@ -128,7 +128,9 @@ const Home = () => {
   // 카테고리 변경 감지 및 동기화
   useEffect(() => {
     const handleCategoryUpdate = (event) => {
-      console.log('🏠 Home 컴포넌트: 카테고리 업데이트 이벤트 수신', event.detail);
+      if (import.meta.env.DEV) {
+        console.log('🏠 Home 컴포넌트: 카테곣0리 업데이트 이벤트 수신', event.detail);
+      }
       if (event.detail && Array.isArray(event.detail.categories)) {
         setLocalCategories(event.detail.categories);
         toast.info('카테고리가 업데이트되었습니다!');
@@ -187,7 +189,9 @@ const Home = () => {
 
         setAllNewsData(categoryData);
       } catch (error) {
-        console.error('기사 데이터 로드 중 오류:', error);
+        if (import.meta.env.DEV) {
+          console.error('기사 데이터 로드 중 오류:', error);
+        }
         setAllNewsData({});
       }
     }
@@ -302,7 +306,9 @@ const Home = () => {
                             localStorage.setItem('marlang_notices', JSON.stringify(allNotices));
                           }
                         } catch (error) {
-                          console.error('공지사항 업데이트 중 오류:', error);
+                          if (import.meta.env.DEV) {
+                            console.error('공지사항 업데이트 중 오류:', error);
+                          }
                         }
                       }}
                     >

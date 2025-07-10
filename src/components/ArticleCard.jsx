@@ -26,11 +26,15 @@ const ArticleCard = ({
   const navigate = useNavigate();
 
   const handleClick = () => {
-    console.log('Card clicked, id:', id);
+    if (import.meta.env.DEV) {
+      console.log('Card clicked, id:', id);
+    }
     if (onClick) {
       onClick();
     } else {
-      console.log('Navigating to:', `/article/${id}`);
+      if (import.meta.env.DEV) {
+        console.log('Navigating to:', `/article/${id}`);
+      }
       navigate(`/article/${id}`);
     }
   };

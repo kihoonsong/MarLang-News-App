@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Paper, Typography } from '@mui/material';
-import { getAdsenseConfig, loadAdsenseScript } from '../config/adsenseConfig';
+import { getAdsenseConfig, loadAdsenseScript, isAdBlockerActive } from '../config/adsenseConfig';
 
 const AdCardContainer = styled(Paper)`
   padding: 1rem;
@@ -74,11 +74,18 @@ const AdCard = ({
 }) => {
   const adRef = useRef(null);
   const [adLoadFailed, setAdLoadFailed] = useState(false);
+  const [adBlockerDetected, setAdBlockerDetected] = useState(false);
   const adsenseConfig = getAdsenseConfig();
   
   useEffect(() => {
     // 애드센스가 비활성화된 경우 플레이스홀더 표시
     if (!adsenseConfig.enabled) {
+      return;
+    }
+
+    // 광고 차단기가 감지된 경우 더 이상 시도하지 않음
+    if (isAdBlockerActive()) {
+      setAdBlockerDetected(true);
       return;
     }
 
@@ -117,21 +124,23 @@ const AdCard = ({
             (window.adsbygoogle = window.adsbygoogle || []).push({});
             setAdLoadFailed(false);
           } catch (pushError) {
-            console.error('AdSense 광고 푸시 실패:', pushError);
+            if (import.meta.env.DEV) {
+              console.error('AdSense 광고 푸시 실패:', pushError);
+            }
             setAdLoadFailed(true);
           }
         }
       } catch (error) {
-        console.error('AdSense 로드 실패:', error);
         setAdLoadFailed(true);
+        setAdBlockerDetected(true);
       }
     };
 
     loadAd();
   }, [adSlot, adsenseConfig]);
 
-  // 애드센스가 비활성화된 경우 플레이스홀더 표시
-  if (!adsenseConfig.enabled) {
+  // 애드센스가 비활성화된 경우 또는 광고 차단기가 감지된 경우 플레이스홀더 표시
+  if (!adsenseConfig.enabled || adBlockerDetected) {
     return (
       <AdCardContainer 
         variant="outlined" 
@@ -140,7 +149,7 @@ const AdCard = ({
       >
         {showLabel && <AdLabel>Advertisement</AdLabel>}
         <AdPlaceholderText>
-          Ad content will be displayed here.
+          {adBlockerDetected ? '광고 차단기가 감지되었습니다.' : 'Ad content will be displayed here.'}
         </AdPlaceholderText>
       </AdCardContainer>
     );

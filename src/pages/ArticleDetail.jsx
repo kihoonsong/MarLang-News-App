@@ -61,9 +61,11 @@ const cleanHtmlContent = (htmlContent) => {
 
 // 기사 내용에서 3개 레벨 생성 (개선된 버전)
 const generateLevelsFromContent = (article) => {
-  console.log('🔧 기사 레벨 생성:', article.title);
-  console.log('🔧 원본 content 타입:', typeof article.content);
-  console.log('🔧 원본 content:', article.content);
+  if (import.meta.env.DEV) {
+    console.log('🔧 기사 레벨 생성:', article.title);
+    console.log('🔧 원본 content 타입:', typeof article.content);
+    console.log('🔧 원본 content:', article.content);
+  }
   
   // 새로운 3개 버전 구조를 그대로 사용
   if (article.content && typeof article.content === 'object') {
@@ -81,13 +83,17 @@ const generateLevelsFromContent = (article) => {
         content: cleanHtmlContent(article.content.advanced || '')
       }
     };
-    console.log('✅ 객체 형태 레벨 생성 완료 (HTML 태그 제거):', levels);
+    if (import.meta.env.DEV) {
+      console.log('✅ 객체 형태 레벨 생성 완료 (HTML 태그 제거):', levels);
+    }
     return levels;
   } else {
     // 기존 단일 문자열 구조인 경우 모든 소스에서 콘텐츠 찾기
     const baseContent = article.content || article.summary || article.description || 'No content available';
     const cleanContent = cleanHtmlContent(baseContent);
-    console.log('📝 기본 콘텐츠 사용 (HTML 태그 제거):', cleanContent.substring(0, 100), '...');
+    if (import.meta.env.DEV) {
+      console.log('📝 기본 콘텐츠 사용 (HTML 태그 제거):', cleanContent.substring(0, 100), '...');
+    }
     
     const levels = {
       1: {
@@ -103,7 +109,9 @@ const generateLevelsFromContent = (article) => {
         content: cleanContent
       }
     };
-    console.log('✅ 단일 형태 레벨 생성 완료 (HTML 태그 제거):', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
+    if (import.meta.env.DEV) {
+      console.log('✅ 단일 형태 레벨 생성 완료 (HTML 태그 제거):', Object.keys(levels).map(k => ({level: k, contentLength: levels[k].content.length})));
+    }
     return levels;
   }
 };
@@ -203,7 +211,9 @@ const ArticleDetail = () => {
   useEffect(() => {
     return () => {
       // 컴포넌트 언마운트 시 TTS 완전 정지
-      console.log('📤 ArticleDetail 언마운트 - 통합 TTS 정지');
+      if (import.meta.env.DEV) {
+        console.log('📤 ArticleDetail 언마운트 - 통합 TTS 정지');
+      }
       
       // 즉시 상태 초기화
       setIsTTSPlaying(false);
@@ -236,7 +246,9 @@ const ArticleDetail = () => {
         activeSentenceRef.current = null;
       }
       
-      console.log('✅ 언마운트 TTS 정지 완료');
+      if (import.meta.env.DEV) {
+        console.log('✅ 언마운트 TTS 정지 완료');
+      }
     };
   }, []); // 빈 배열로 마운트/언마운트에만 실행
 
@@ -253,7 +265,9 @@ const ArticleDetail = () => {
     if (!articlesLoading && allArticles && id) {
       const foundArticle = allArticles.find(article => article.id === id);
       if (foundArticle) {
-        console.log('🔍 원본 기사 데이터 확인:', foundArticle);
+        if (import.meta.env.DEV) {
+          console.log('🔍 원본 기사 데이터 확인:', foundArticle);
+        }
         
         // 기사 데이터를 ArticleDetail 형태로 변환
         const transformedArticle = {
@@ -272,7 +286,9 @@ const ArticleDetail = () => {
           levels: generateLevelsFromContent(foundArticle)
         };
         
-        console.log('🔧 변환된 기사 데이터:', transformedArticle);
+        if (import.meta.env.DEV) {
+          console.log('🔧 변환된 기사 데이터:', transformedArticle);
+        }
         setArticleData(transformedArticle);
         
         // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
@@ -293,7 +309,9 @@ const ArticleDetail = () => {
   useEffect(() => {
     if (isArticleLiked && articleData && user?.uid) {
       const likedStatus = isArticleLiked(articleData.id);
-      console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
+      if (import.meta.env.DEV) {
+        console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
+      }
       setIsLiked(likedStatus);
     }
   }, [isArticleLiked, articleData?.id, user?.uid]);
@@ -314,7 +332,9 @@ const ArticleDetail = () => {
         .map(word => word.word.toLowerCase());
       
       setHighlightedWords(new Set(articleWords));
-      console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
+      if (import.meta.env.DEV) {
+        console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
+      }
     }
   }, [articleData?.id, savedWords]);
 
@@ -327,7 +347,9 @@ const ArticleDetail = () => {
         .map(word => word.word.toLowerCase());
       
       if (articleWords.length > 0) {
-        console.log('🔄 단어장 동기화:', articleWords);
+        if (import.meta.env.DEV) {
+          console.log('🔄 단어장 동기화:', articleWords);
+        }
         setHighlightedWords(new Set(articleWords));
       }
     }
@@ -393,7 +415,9 @@ const ArticleDetail = () => {
         }
       });
       
-      console.log('🎨 DOM 하이라이트 업데이트:', highlightedWords.size, '개 단어');
+      if (import.meta.env.DEV) {
+        console.log('🎨 DOM 하이라이트 업데이트:', highlightedWords.size, '개 단어');
+      }
     }
   }, [highlightedWords, articleData?.id, userSettings?.highlightSavedWords]);
 
@@ -406,7 +430,9 @@ const ArticleDetail = () => {
     // iOS에서는 문장 하이라이트 비활성화
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOSDevice) {
-      console.log('🍎 iOS 문장 하이라이트 비활성화');
+      if (import.meta.env.DEV) {
+        console.log('🍎 iOS 문장 하이라이트 비활성화');
+      }
       return;
     }
     
@@ -435,7 +461,9 @@ const ArticleDetail = () => {
         });
       } catch (error) {
         // 스크롤 실패 시 조용히 무시
-        console.log('스크롤 실패:', error);
+        if (import.meta.env.DEV) {
+          console.log('스크롤 실패:', error);
+        }
       }
     }
   };
@@ -443,7 +471,9 @@ const ArticleDetail = () => {
   // 단순화된 TTS 시작 함수
   const startTTS = async () => {
     if (!articleData) {
-      console.error('❌ 기사 데이터 없음');
+      if (import.meta.env.DEV) {
+        console.error('❌ 기사 데이터 없음');
+      }
       return;
     }
 
@@ -454,23 +484,31 @@ const ArticleDetail = () => {
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
-    console.log('🔍 현재 레벨:', selectedLevel);
-    console.log('🔍 기사 데이터:', articleData?.levels);
-    console.log('🔍 현재 콘텐츠:', currentContent.substring(0, 100), '...');
+    if (import.meta.env.DEV) {
+      console.log('🔍 현재 레벨:', selectedLevel);
+      console.log('🔍 기사 데이터:', articleData?.levels);
+      console.log('🔍 현재 콘텐츠:', currentContent.substring(0, 100), '...');
+    }
     
     if (currentContent.trim().length === 0) {
-      console.warn('⚠️ 재생할 콘텐츠가 없습니다. 레벨:', selectedLevel);
-      console.warn('⚠️ 전체 콘텐츠:', currentContent);
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ 재생할 콘텐츠가 없습니다. 레벨:', selectedLevel);
+        console.warn('⚠️ 전체 콘텐츠:', currentContent);
+      }
       setIsTTSLoading(false);
       return;
     }
 
     try {
-      console.log('🚀 TTS 재생 시작 - 플랫폼:', isIOS ? 'iOS' : 'Other');
+      if (import.meta.env.DEV) {
+        console.log('🚀 TTS 재생 시작 - 플랫폼:', isIOS ? 'iOS' : 'Other');
+      }
       
       // iOS에서 A안 적용: 문장 분할·밑줄 OFF, 단어 하이라이트 유지
       if (isIOS) {
-        console.log('🍎 iOS 감지 - A안 적용: 전체 기사 한 번에 재생');
+        if (import.meta.env.DEV) {
+          console.log('🍎 iOS 감지 - A안 적용: 전체 기사 한 번에 재생');
+        }
         
         // 1) 광고 push 차단 (선택적)
         if (window.adsbygoogle) {
@@ -479,7 +517,9 @@ const ArticleDetail = () => {
         
         // 2) 정제된 기사 전체 문자열 준비 (HTML 태그 제거)
         const cleanContent = cleanHtmlContent(currentContent);
-        console.log('🧹 HTML 태그 제거 완료:', cleanContent.substring(0, 100), '...');
+        if (import.meta.env.DEV) {
+          console.log('🧹 HTML 태그 제거 완료:', cleanContent.substring(0, 100), '...');
+        }
         
         // iOS 현재 재생 텍스트 저장
         iosCurrentTextRef.current = cleanContent;
@@ -505,13 +545,17 @@ const ArticleDetail = () => {
         
         // 이벤트 핸들러 설정
         utterance.onstart = () => {
-          console.log('🎵 iOS TTS 재생 시작됨');
+          if (import.meta.env.DEV) {
+            console.log('🎵 iOS TTS 재생 시작됨');
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(true);
         };
         
         utterance.onend = () => {
-          console.log('✅ iOS TTS 재생 완료');
+          if (import.meta.env.DEV) {
+            console.log('✅ iOS TTS 재생 완료');
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
@@ -519,7 +563,9 @@ const ArticleDetail = () => {
         };
         
         utterance.onerror = (error) => {
-          console.error('❌ iOS TTS 에러:', error);
+          if (import.meta.env.DEV) {
+            console.error('❌ iOS TTS 에러:', error);
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
@@ -549,11 +595,15 @@ const ArticleDetail = () => {
       }
       
       // 기존 UnifiedTTS 로직 (Android·데스크탑)
-      console.log('🚀 UnifiedTTS 서비스로 재생 시작 (Android·데스크탑)');
+      if (import.meta.env.DEV) {
+        console.log('🚀 UnifiedTTS 서비스로 재생 시작 (Android·데스크탑)');
+      }
       
       // 플랫폼별 TTS 최적화 설정 가져오기
       const ttsSettings = getTTSOptimizationSettings();
-      console.log('📱 TTS 최적화 설정:', ttsSettings);
+      if (import.meta.env.DEV) {
+        console.log('📱 TTS 최적화 설정:', ttsSettings);
+      }
       
       // 텍스트 최적화 (시각적 변화 없이 TTS만 최적화)
       const optimizedContent = optimizeTextForTTS(currentContent, ttsSettings);
@@ -571,13 +621,17 @@ const ArticleDetail = () => {
       unifiedTTSRef.current = createUnifiedTTS({
         rate: ttsSpeed,
         onStart: () => {
-          console.log('🎵 TTS 재생 시작됨');
+          if (import.meta.env.DEV) {
+            console.log('🎵 TTS 재생 시작됨');
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(true);
         },
         onProgress: (sentenceIndex, totalSentences, sentenceText, sentenceInfo) => {
-          console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
-          console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);
+          if (import.meta.env.DEV) {
+            console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
+            console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);  
+          }
           
           // DOM 직접 조작으로 변경 (React 상태 업데이트 제거)
           requestAnimationFrame(() => {
@@ -589,7 +643,9 @@ const ArticleDetail = () => {
           setTotalSentences(totalSentences);
         },
         onComplete: () => {
-          console.log('✅ TTS 재생 완료');
+          if (import.meta.env.DEV) {
+            console.log('✅ TTS 재생 완료');
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
@@ -602,7 +658,9 @@ const ArticleDetail = () => {
           }
         },
         onError: (error) => {
-          console.error('❌ TTS 에러:', error);
+          if (import.meta.env.DEV) {
+            console.error('❌ TTS 에러:', error);
+          }
           setIsTTSLoading(false);
           setIsTTSPlaying(false);
           setCurrentSentence(-1);
@@ -620,7 +678,9 @@ const ArticleDetail = () => {
       const success = await unifiedTTSRef.current.play(optimizedContent);
       
       if (!success) {
-        console.error('❌ TTS 재생 실패');
+        if (import.meta.env.DEV) {
+          console.error('❌ TTS 재생 실패');
+        }
         setIsTTSLoading(false);
         setIsTTSPlaying(false);
         setCurrentSentence(-1);
@@ -628,7 +688,9 @@ const ArticleDetail = () => {
       }
       
     } catch (error) {
-      console.error('❌ TTS 시작 실패:', error);
+      if (import.meta.env.DEV) {
+        console.error('❌ TTS 시작 실패:', error);
+      }
       setIsTTSPlaying(false);
       setIsTTSLoading(false);
       setCurrentSentence(-1);
@@ -639,14 +701,18 @@ const ArticleDetail = () => {
   const handleTTS = async () => {
     if (isTTSPlaying) {
       // TTS 중지
-      console.log('🛑 TTS 중지 버튼 클릭');
+      if (import.meta.env.DEV) {
+        console.log('🛑 TTS 중지 버튼 클릭');
+      }
       
       // iOS 감지
       // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
       
       if (isIOS) {
         // iOS에서는 speechSynthesis.cancel() 사용
-        console.log('🍎 iOS TTS 중지');
+        if (import.meta.env.DEV) {
+          console.log('🍎 iOS TTS 중지');
+        }
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
         }
@@ -671,7 +737,9 @@ const ArticleDetail = () => {
         activeSentenceRef.current = null;
       }
       
-      console.log('✅ TTS 중지 완료');
+      if (import.meta.env.DEV) {
+        console.log('✅ TTS 중지 완료');
+      }
     } else {
       // TTS 시작
       startTTS();
@@ -686,7 +754,9 @@ const ArticleDetail = () => {
   };
 
   const handleSpeedChange = async (newSpeed) => {
-    console.log('⚡ 배속 변경:', ttsSpeed, '→', newSpeed);
+    if (import.meta.env.DEV) {
+      console.log('⚡ 배속 변경:', ttsSpeed, '→', newSpeed);
+    }
     setTtsSpeed(newSpeed);
     
     // iOS 감지
@@ -694,11 +764,15 @@ const ArticleDetail = () => {
     
     // 재생 중이면 새 속도로 업데이트
     if (isTTSPlaying) {
-      console.log('🔄 재생 중 배속 변경');
+      if (import.meta.env.DEV) {
+        console.log('🔄 재생 중 배속 변경');
+      }
       
       if (isIOS) {
         // iOS에서는 부드럽게 재시작하여 배속 변경 적용
-        console.log('🍎 iOS 배속 변경: 부드럽게 재시작');
+        if (import.meta.env.DEV) {
+          console.log('🍎 iOS 배속 변경: 부드럽게 재시작');
+        }
         if (iosCurrentTextRef.current && window.speechSynthesis.speaking) {
           // 현재 재생 중지
           window.speechSynthesis.cancel();
@@ -722,7 +796,9 @@ const ArticleDetail = () => {
           
           // 이벤트 핸들러 설정
           newUtterance.onend = () => {
-            console.log('✅ iOS TTS 재생 완료 (배속 변경 후)');
+            if (import.meta.env.DEV) {
+              console.log('✅ iOS TTS 재생 완료 (배속 변경 후)');
+            }
             setIsTTSLoading(false);
             setIsTTSPlaying(false);
             setCurrentSentence(-1);
@@ -731,7 +807,9 @@ const ArticleDetail = () => {
           };
           
           newUtterance.onerror = (error) => {
-            console.error('❌ iOS TTS 에러 (배속 변경 후):', error);
+            if (import.meta.env.DEV) {
+              console.error('❌ iOS TTS 에러 (배속 변경 후):', error);
+            }
             setIsTTSLoading(false);
             setIsTTSPlaying(false);
             setCurrentSentence(-1);
@@ -746,12 +824,16 @@ const ArticleDetail = () => {
           setTimeout(() => {
             if (window.speechSynthesis && iosUtteranceRef.current) {
               window.speechSynthesis.speak(iosUtteranceRef.current);
-              console.log('✅ iOS 배속 변경 후 재생 시작:', newSpeed);
+              if (import.meta.env.DEV) {
+                console.log('✅ iOS 배속 변경 후 재생 시작:', newSpeed);
+              }
             }
           }, 100);
         } else {
           // 재생 중이 아니면 다음 재생 시 적용
-          console.log('📝 iOS 다음 재생 시 새 배속 적용');
+          if (import.meta.env.DEV) {
+            console.log('📝 iOS 다음 재생 시 새 배속 적용');
+          }
         }
       } else {
         // 기존 UnifiedTTS 배속 변경
@@ -763,7 +845,9 @@ const ArticleDetail = () => {
   };
 
   const handleLevelChange = async (level) => {
-    console.log('🔄 레벨 변경:', selectedLevel, '→', level);
+    if (import.meta.env.DEV) {
+      console.log('🔄 레벨 변경:', selectedLevel, '→', level);
+    }
     
     // iOS 감지
     // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
@@ -798,10 +882,14 @@ const ArticleDetail = () => {
     try {
       stopAllTTS();
     } catch (error) {
-      console.warn('레벨 변경 시 TTS 중지 오류:', error);
+      if (import.meta.env.DEV) {
+        console.warn('레벨 변경 시 TTS 중지 오류:', error);
+      }
     }
     
-    console.log('✅ 레벨 변경 완료');
+    if (import.meta.env.DEV) {
+      console.log('✅ 레벨 변경 완료');
+    }
   };
 
   const theme = useTheme();
@@ -826,7 +914,9 @@ const ArticleDetail = () => {
     const handleViewportResize = () => {
       const newHeight = window.visualViewport?.height || window.innerHeight;
       setViewportHeight(newHeight);
-      console.log('📱 Viewport 높이 변경:', newHeight);
+      if (import.meta.env.DEV) {
+        console.log('📱 Viewport 높이 변경:', newHeight);
+      }
     };
 
     if (window.visualViewport) {
@@ -1011,7 +1101,9 @@ const ArticleDetail = () => {
         detail: { articleId: articleData.id, isLiked: newLikeStatus }
       }));
     } catch (error) {
-      console.error('Error toggling like:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error toggling like:', error);
+      }
       toast.error('좋아요 처리 중 오류가 발생했습니다.');
     }
   };
@@ -1033,7 +1125,9 @@ const ArticleDetail = () => {
         toast.success('링크가 클립보드에 복사되었습니다');
       }
     } catch (error) {
-      console.error('Share failed:', error);
+      if (import.meta.env.DEV) {
+        console.error('Share failed:', error);
+      }
       if (error.name !== 'AbortError') {
         toast.error('공유에 실패했습니다');
       }
@@ -1070,7 +1164,11 @@ const ArticleDetail = () => {
             await autoSaveWord(cleanWord, wordData);
           }
           if (userSettings?.autoPlay && wordData.audio) {
-            new Audio(wordData.audio).play().catch(e => console.error("Audio play failed", e));
+            new Audio(wordData.audio).play().catch(e => {
+              if (import.meta.env.DEV) {
+                console.error("Audio play failed", e);
+              }
+            });
           }
         }
       } catch (error) {
@@ -1146,7 +1244,9 @@ const ArticleDetail = () => {
                 const audio = new Audio(wordData.audio);
                 audio.volume = 0.7;
                 audio.play().catch(async (e) => {
-                  console.log('Auto-play failed, using TTS:', e);
+                  if (import.meta.env.DEV) {
+                    console.log('Auto-play failed, using TTS:', e);
+                  }
                   // API 오디오 실패 시 TTS로 폴백
                   const utterance = new SpeechSynthesisUtterance(cleanWord);
                   utterance.rate = userSettings?.ttsSpeed || 0.8;
@@ -1166,13 +1266,17 @@ const ArticleDetail = () => {
                   window.speechSynthesis.speak(utterance);
                 });
               } catch (error) {
-                console.log('Auto-play audio failed:', error);
+                if (import.meta.env.DEV) {
+                  console.log('Auto-play audio failed:', error);
+                }
               }
             }, 500); // 팝업이 완전히 열린 후 재생
           }
         }
       } catch (error) {
-        console.error('Error fetching word data:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching word data:', error);
+        }
         setWordPopup(prev => ({
           ...prev,
           isLoading: false,
@@ -1226,7 +1330,9 @@ const ArticleDetail = () => {
       // 활동 시간 업데이트
       updateActivityTime && updateActivityTime();
       
-      console.log('🔄 자동 저장:', cleanWord);
+      if (import.meta.env.DEV) {
+        console.log('🔄 자동 저장:', cleanWord);
+      }
       
       // 하이라이트된 단어 목록에 추가하고 로컬스토리지에 저장
       const newHighlights = new Set([...highlightedWords, cleanWord]);
@@ -1314,7 +1420,9 @@ const ArticleDetail = () => {
       // 활동 시간 업데이트
       updateActivityTime && updateActivityTime();
       
-      console.log('💾 단어 저장:', wordPopup.word);
+      if (import.meta.env.DEV) {
+        console.log('💾 단어 저장:', wordPopup.word);
+      }
       
       // 하이라이트된 단어 목록에 추가 (단어장 동기화는 위에서 자동 처리)
       const cleanWord = wordPopup.word.toLowerCase();
@@ -1364,7 +1472,9 @@ const ArticleDetail = () => {
         toast.success(message);
       }
     } else {
-      console.warn('단어 저장 실패');
+      if (import.meta.env.DEV) {
+        console.warn('단어 저장 실패');
+      }
       if (toast && toast.error) {
         toast.error('단어 저장에 실패했습니다.');
       }
@@ -1391,7 +1501,9 @@ const ArticleDetail = () => {
     event.stopPropagation();
     const cleanWord = word.trim().toLowerCase().replace(/[^\w]/g, '');
     
-    console.log('🗑️ 단어 삭제:', cleanWord);
+    if (import.meta.env.DEV) {
+      console.log('🗑️ 단어 삭제:', cleanWord);
+    }
     
     // 하이라이트된 단어 목록에서 제거
     const newHighlights = new Set([...highlightedWords]);
@@ -1401,7 +1513,9 @@ const ArticleDetail = () => {
     // 단어장에서 해당 단어 삭제
     const wordToRemove = savedWords.find(w => w.word.toLowerCase() === cleanWord && w.articleId === articleData.id);
     if (wordToRemove) {
-      console.log('📚 단어장에서 삭제:', wordToRemove);
+      if (import.meta.env.DEV) {
+        console.log('📚 단어장에서 삭제:', wordToRemove);
+      }
       removeWord(wordToRemove.id);
     }
     
@@ -1468,7 +1582,9 @@ const ArticleDetail = () => {
       }));
         }
     } catch (error) {
-        console.error('Error fetching word data:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching word data:', error);
+        }
       setWordPopup(prev => ({
         ...prev,
           isLoading: false,
@@ -1488,7 +1604,9 @@ const ArticleDetail = () => {
       // API에서 제공된 오디오 파일 재생
       const audio = new Audio(wordPopup.audio);
       audio.play().catch(error => {
-        console.error('Audio playback failed, falling back to TTS:', error);
+        if (import.meta.env.DEV) {
+          console.error('Audio playback failed, falling back to TTS:', error);
+        }
         playWordTTS();
       });
     } else {
@@ -1500,7 +1618,9 @@ const ArticleDetail = () => {
   // 단어 TTS 재생 (성별 설정 적용)
   const playWordTTS = async () => {
     if (!window.speechSynthesis || !wordPopup.word) {
-      console.error('❌ Speech synthesis 또는 단어가 없음');
+      if (import.meta.env.DEV) {
+        console.error('❌ Speech synthesis 또는 단어가 없음');
+      }
       return;
     }
 
@@ -1522,12 +1642,16 @@ const ArticleDetail = () => {
         utterance.lang = 'en-US'; // 기본값
       }
     } catch (error) {
-      console.warn('Failed to get English voice:', error);
+      if (import.meta.env.DEV) {
+        console.warn('Failed to get English voice:', error);
+      }
       utterance.lang = 'en-US';
     }
 
     utterance.onerror = (event) => {
-      console.error('TTS Error:', event.error);
+      if (import.meta.env.DEV) {
+        console.error('TTS Error:', event.error);
+      }
     };
 
     window.speechSynthesis.speak(utterance);
@@ -1726,7 +1850,9 @@ const ArticleDetail = () => {
                 // HTML 태그가 이미 제거된 텍스트를 사용하여 문장 분할
                 const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
                 
-                console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
+                if (import.meta.env.DEV) {
+                  console.log(`🎨 렌더링 레벨 ${level}: 총 ${sentences.length}개 문장, currentSentence=${currentSentence}, isTTSPlaying=${isTTSPlaying}, isActive=${isActive}, selectedLevel=${selectedLevel}`);
+                }
                 
                 return sentences.map((sentence, sentenceIdx) => {
                         // iOS에서는 문장 하이라이팅 비활성화
@@ -1739,7 +1865,7 @@ const ArticleDetail = () => {
                                                  isActive && 
                                                  level === selectedLevel;
                         
-                        if (isCurrentSentence) {
+                        if (isCurrentSentence && import.meta.env.DEV) {
                           console.log(`🔥 현재 활성 문장: 레벨 ${level}, 인덱스 ${sentenceIdx} - "${sentence.substring(0, 30)}..."`);
                         }
                   

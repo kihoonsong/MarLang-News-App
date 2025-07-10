@@ -62,9 +62,36 @@ export const getAdsenseConfig = () => {
   };
 };
 
-// 광고 로드 함수 (보안 강화)
+// 광고 로드 상태 관리
+let adsenseTried = false;
+let adsensePromise = null;
+let lastErrorTime = 0;
+const ERROR_THROTTLE = 10000; // 10초
+
+// 에러 로그 throttle 함수
+const logErrorThrottled = (error) => {
+  const now = Date.now();
+  if (now - lastErrorTime > ERROR_THROTTLE) {
+    console.error('AdSense 로드 실패:', error);
+    lastErrorTime = now;
+  }
+};
+
+// 광고 로드 함수 (보안 강화 및 무한 재시도 방지)
 export const loadAdsenseScript = () => {
-  return new Promise((resolve, reject) => {
+  // 이미 시도했거나 진행 중인 경우
+  if (adsenseTried && adsensePromise) {
+    return adsensePromise;
+  }
+  
+  if (adsenseTried) {
+    return Promise.reject(new Error('AdSense loading already attempted'));
+  }
+  
+  // 첫 번째 시도 마킹
+  adsenseTried = true;
+  
+  adsensePromise = new Promise((resolve, reject) => {
     if (window.adsbygoogle) {
       resolve();
       return;
@@ -74,7 +101,9 @@ export const loadAdsenseScript = () => {
     
     // 클라이언트 ID 검증
     if (!config.clientId || !config.clientId.startsWith('ca-pub-')) {
-      reject(new Error('Invalid AdSense client ID'));
+      const error = new Error('Invalid AdSense client ID');
+      logErrorThrottled(error);
+      reject(error);
       return;
     }
     
@@ -91,13 +120,19 @@ export const loadAdsenseScript = () => {
     
     // 타임아웃 설정으로 무한 대기 방지
     const timeoutId = setTimeout(() => {
-      document.head.removeChild(script);
-      reject(new Error('AdSense script loading timeout (10s)'));
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      const error = new Error('AdSense script loading timeout (10s)');
+      logErrorThrottled(error);
+      reject(error);
     }, 10000);
     
     script.onload = () => {
       clearTimeout(timeoutId);
-      console.log('✅ AdSense script loaded successfully');
+      if (import.meta.env.DEV) {
+        console.log('✅ AdSense script loaded successfully');
+      }
       resolve();
     };
     
@@ -106,9 +141,18 @@ export const loadAdsenseScript = () => {
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      reject(new Error('AdSense script loading failed - likely blocked by ad blocker or CSP'));
+      const error = new Error('AdSense script loading failed - likely blocked by ad blocker or CSP');
+      logErrorThrottled(error);
+      reject(error);
     };
     
     document.head.appendChild(script);
   });
+  
+  return adsensePromise;
+};
+
+// 광고 차단 감지 함수
+export const isAdBlockerActive = () => {
+  return adsenseTried && !window.adsbygoogle;
 }; 

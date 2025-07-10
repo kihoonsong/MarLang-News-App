@@ -104,7 +104,9 @@ const Wordbook = () => {
   // 단어 발음 재생
   const handlePlayWord = async (word, wordId) => {
     if (!isSpeechSynthesisSupported()) {
-      console.warn('Speech synthesis not supported');
+      if (import.meta.env.DEV) {
+        console.warn('Speech synthesis not supported');
+      }
       return;
     }
 
@@ -120,7 +122,9 @@ const Wordbook = () => {
       await speakWord(word, 'en-US', 1.0);
       setIsPlaying(null);
     } catch (error) {
-      console.error('Speech synthesis error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Speech synthesis error:', error);
+      }
       setIsPlaying(null);
     }
   };

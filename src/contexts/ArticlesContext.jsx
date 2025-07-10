@@ -40,7 +40,9 @@ export const ArticlesProvider = ({ children }) => {
   const updateCategories = useCallback(async (newCategories) => {
     const catDocRef = doc(db, 'config', 'categories');
     try {
-      console.log('🏷️ 카테고리 업데이트 시작:', newCategories);
+      if (import.meta.env.DEV) {
+        console.log('🏷️ 카테고리 업데이트 시작:', newCategories);
+      }
       await setDoc(catDocRef, { list: newCategories });
       setCategories(newCategories);
       
@@ -49,7 +51,9 @@ export const ArticlesProvider = ({ children }) => {
         detail: { categories: newCategories }
       }));
       
-      console.log('✅ 카테고리 업데이트 완료');
+      if (import.meta.env.DEV) {
+        console.log('✅ 카테고리 업데이트 완료');
+      }
       return true;
     } catch (e) {
       console.error("🚨 카테고리 업데이트 실패:", e);
@@ -77,23 +81,33 @@ export const ArticlesProvider = ({ children }) => {
 
   const addArticle = useCallback(async (articleData) => {
     try {
-      console.log('🔥 Firebase addArticle 시작...');
-      console.log('📊 전달받은 데이터:', articleData);
-      console.log('🗃️ DB 인스턴스:', db);
+      if (import.meta.env.DEV) {
+        console.log('🔥 Firebase addArticle 시작...');
+        console.log('📊 전달받은 데이터:', articleData);
+        console.log('🗃️ DB 인스턴스:', db);
+      }
       
       const articlesCol = collection(db, 'articles');
-      console.log('📝 Articles 컬렉션 참조:', articlesCol);
+      if (import.meta.env.DEV) {
+        console.log('📝 Articles 컬렉션 참조:', articlesCol);
+      }
       
       const dataToAdd = { ...articleData, createdAt: new Date().toISOString() };
-      console.log('💾 Firebase에 저장할 데이터:', dataToAdd);
+      if (import.meta.env.DEV) {
+        console.log('💾 Firebase에 저장할 데이터:', dataToAdd);
+      }
       
       const docRef = await addDoc(articlesCol, dataToAdd);
-      console.log('✅ Firebase 문서 생성 성공:', docRef.id);
+      if (import.meta.env.DEV) {
+        console.log('✅ Firebase 문서 생성 성공:', docRef.id);
+      }
       
       const newArticle = { ...articleData, id: docRef.id };
       setAllArticles(prev => {
         const updated = [newArticle, ...prev];
-        console.log('📱 로컬 상태 업데이트 완료. 총 기사 수:', updated.length);
+        if (import.meta.env.DEV) {
+          console.log('📱 로컬 상태 업데이트 완료. 총 기사 수:', updated.length);
+        }
         return updated;
       });
       
@@ -214,7 +228,9 @@ export const ArticlesProvider = ({ children }) => {
             : article
         ));
         
-        console.log(`✅ 기사 ${articleId} 조회수 증가: ${currentViews} → ${currentViews + 1}`);
+        if (import.meta.env.DEV) {
+          console.log(`✅ 기사 ${articleId} 조회수 증가: ${currentViews} → ${currentViews + 1}`);
+        }
         return true;
       }
     } catch (error) {
@@ -245,7 +261,9 @@ export const ArticlesProvider = ({ children }) => {
             : article
         ));
         
-        console.log(`✅ 기사 ${articleId} 좋아요 ${increment ? '증가' : '감소'}: ${currentLikes} → ${newLikes}`);
+        if (import.meta.env.DEV) {
+          console.log(`✅ 기사 ${articleId} 좋아요 ${increment ? '증가' : '감소'}: ${currentLikes} → ${newLikes}`);
+        }
         return true;
       }
     } catch (error) {

@@ -89,21 +89,27 @@ const enhancedFetch = async (url, options = {}, maxRetries = 3, timeout = 10000)
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`📡 API Request (attempt ${attempt + 1}/${maxRetries + 1}):`, url);
+      if (import.meta.env.DEV) {
+        console.log(`📡 API Request (attempt ${attempt + 1}/${maxRetries + 1}):`, url);
+      }
       
       const response = await fetch(url, fetchOptions);
       clearTimeout(timeoutId);
 
       if (!response.ok) {
         if (attempt < maxRetries && (response.status >= 500 || response.status === 408)) {
-          console.warn(`⚠️ Server error ${response.status}, retrying...`);
+          if (import.meta.env.DEV) {
+            console.warn(`⚠️ Server error ${response.status}, retrying...`);
+          }
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
           continue;
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('✅ API Request successful');
+      if (import.meta.env.DEV) {
+        console.log('✅ API Request successful');
+      }
       return response;
 
     } catch (error) {
@@ -111,14 +117,18 @@ const enhancedFetch = async (url, options = {}, maxRetries = 3, timeout = 10000)
       lastError = error;
 
       if (attempt < maxRetries && (error.name === 'TypeError' || error.name === 'AbortError')) {
-        console.warn(`🔄 Network error, retrying...`);
+        if (import.meta.env.DEV) {
+          console.warn(`🔄 Network error, retrying...`);
+        }
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         continue;
       }
     }
   }
 
-  console.error('❌ All retry attempts failed');
+  if (import.meta.env.DEV) {
+    console.error('❌ All retry attempts failed');
+  }
   throw lastError;
 };
 
@@ -157,7 +167,9 @@ class EnhancedNewsApiService {
       this.errorLog = this.errorLog.slice(0, 100);
     }
 
-    console.error('📝 Error logged:', errorEntry);
+    if (import.meta.env.DEV) {
+      console.error('📝 Error logged:', errorEntry);
+    }
   }
 
   // API 상태 확인
@@ -194,7 +206,9 @@ class EnhancedNewsApiService {
   getCachedData(key) {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
-      console.log('💾 Using cached data for:', key);
+      if (import.meta.env.DEV) {
+        console.log('💾 Using cached data for:', key);
+      }
       return cached.data;
     }
     this.cache.delete(key);
@@ -207,13 +221,17 @@ class EnhancedNewsApiService {
       data,
       timestamp: Date.now()
     });
-    console.log('💾 Data cached for:', key);
+    if (import.meta.env.DEV) {
+      console.log('💾 Data cached for:', key);
+    }
   }
 
   // 중복 요청 방지
   async deduplicateRequest(key, requestFn) {
     if (this.requestQueue.has(key)) {
-      console.log('⏳ Waiting for existing request:', key);
+      if (import.meta.env.DEV) {
+        console.log('⏳ Waiting for existing request:', key);
+      }
       return await this.requestQueue.get(key);
     }
 
@@ -252,7 +270,9 @@ class EnhancedNewsApiService {
         throw new Error(`NewsAPI error: ${data.message}`);
       }
 
-      console.log(`📰 NewsAPI returned ${data.articles?.length || 0} articles`);
+      if (import.meta.env.DEV) {
+        console.log(`📰 NewsAPI returned ${data.articles?.length || 0} articles`);
+      }
       return this.transformNewsAPIData(data.articles || [], category);
     } catch (error) {
       this.logError(error, { api: 'newsapi', category, pageSize });
@@ -280,7 +300,9 @@ class EnhancedNewsApiService {
         throw new Error(`Guardian API error: ${data.response.message}`);
       }
 
-      console.log(`📰 Guardian returned ${data.response?.results?.length || 0} articles`);
+      if (import.meta.env.DEV) {
+        console.log(`📰 Guardian returned ${data.response?.results?.length || 0} articles`);
+      }
       return this.transformGuardianData(data.response?.results || [], category);
     } catch (error) {
       this.logError(error, { api: 'guardian', category, pageSize });
@@ -290,7 +312,9 @@ class EnhancedNewsApiService {
 
   // 폴백용 샘플 데이터 (기존과 동일)
   getFallbackData(category = 'Technology') {
-    console.log('🔄 Using fallback data for category:', category);
+    if (import.meta.env.DEV) {
+      console.log('🔄 Using fallback data for category:', category);
+    }
     
     const fallbackArticles = [
       {
@@ -503,7 +527,9 @@ class EnhancedNewsApiService {
 
     // 중복 요청 방지
     return await this.deduplicateRequest(cacheKey, async () => {
-      console.log(`🔍 Fetching articles for category: ${category}, limit: ${limit}`);
+      if (import.meta.env.DEV) {
+        console.log(`🔍 Fetching articles for category: ${category}, limit: ${limit}`);
+      }
       
       let articles = [];
       const errors = [];
@@ -513,10 +539,14 @@ class EnhancedNewsApiService {
         try {
           const newsApiArticles = await this.fetchFromNewsAPI(category, Math.ceil(limit / 2));
           articles = [...articles, ...newsApiArticles];
-          console.log(`✅ NewsAPI: ${newsApiArticles.length} articles`);
+          if (import.meta.env.DEV) {
+            console.log(`✅ NewsAPI: ${newsApiArticles.length} articles`);
+          }
         } catch (error) {
           errors.push({ api: 'NewsAPI', error: error.message });
-          console.warn('❌ NewsAPI failed:', error.message);
+          if (import.meta.env.DEV) {
+            console.warn('❌ NewsAPI failed:', error.message);
+          }
         }
       }
 
@@ -525,16 +555,22 @@ class EnhancedNewsApiService {
         try {
           const guardianArticles = await this.fetchFromGuardian(category, limit - articles.length);
           articles = [...articles, ...guardianArticles];
-          console.log(`✅ Guardian: ${guardianArticles.length} articles`);
+          if (import.meta.env.DEV) {
+            console.log(`✅ Guardian: ${guardianArticles.length} articles`);
+          }
         } catch (error) {
           errors.push({ api: 'Guardian', error: error.message });
-          console.warn('❌ Guardian API failed:', error.message);
+          if (import.meta.env.DEV) {
+            console.warn('❌ Guardian API failed:', error.message);
+          }
         }
       }
 
       // 3차 시도: 폴백 데이터
       if (articles.length === 0) {
-        console.warn('🔄 All APIs failed, using fallback data');
+        if (import.meta.env.DEV) {
+          console.warn('🔄 All APIs failed, using fallback data');
+        }
         articles = this.getFallbackData(category);
         
         // 모든 API가 실패한 경우 에러 로그
@@ -559,7 +595,9 @@ class EnhancedNewsApiService {
         expires: Date.now() + cacheTime
       });
       
-      console.log(`📊 Final result: ${uniqueArticles.length} articles`);
+      if (import.meta.env.DEV) {
+        console.log(`📊 Final result: ${uniqueArticles.length} articles`);
+      }
       return uniqueArticles;
     });
   }
@@ -585,7 +623,9 @@ class EnhancedNewsApiService {
     
     return await this.deduplicateRequest(searchKey, async () => {
       try {
-        console.log(`🔍 Searching for: "${query}"`);
+        if (import.meta.env.DEV) {
+          console.log(`🔍 Searching for: "${query}"`);
+        }
         
         const categories = category ? [category] : Object.keys(CATEGORY_MAPPING);
         let allArticles = [];
@@ -595,7 +635,9 @@ class EnhancedNewsApiService {
             const articles = await this.fetchArticles(cat, Math.ceil(limit / categories.length));
             allArticles = [...allArticles, ...articles];
           } catch (error) {
-            console.warn(`Failed to fetch articles for category ${cat}:`, error.message);
+            if (import.meta.env.DEV) {
+              console.warn(`Failed to fetch articles for category ${cat}:`, error.message);
+            }
           }
         }
 
@@ -611,12 +653,16 @@ class EnhancedNewsApiService {
         // 정렬
         results = this.sortArticles(results, sortBy, query);
 
-        console.log(`🔍 Search results: ${results.length} articles found`);
+        if (import.meta.env.DEV) {
+          console.log(`🔍 Search results: ${results.length} articles found`);
+        }
         return results.slice(0, limit);
 
       } catch (error) {
         this.logError(error, { function: 'searchArticles', query, filters });
-        console.error('Search failed:', error);
+        if (import.meta.env.DEV) {
+          console.error('Search failed:', error);
+        }
         return [];
       }
     });
@@ -686,7 +732,9 @@ class EnhancedNewsApiService {
 
     } catch (error) {
       this.logError(error, { function: 'getTrendingArticles', limit });
-      console.error('Failed to fetch trending articles:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch trending articles:', error);
+      }
       return this.getFallbackData().slice(0, limit);
     }
   }
@@ -705,13 +753,17 @@ class EnhancedNewsApiService {
   // 캐시 정리
   clearCache() {
     this.cache.clear();
-    console.log('🧹 Cache cleared');
+    if (import.meta.env.DEV) {
+      console.log('🧹 Cache cleared');
+    }
   }
 
   // 에러 로그 정리
   clearErrorLog() {
     this.errorLog = [];
-    console.log('🧹 Error log cleared');
+    if (import.meta.env.DEV) {
+      console.log('🧹 Error log cleared');
+    }
   }
 }
 
