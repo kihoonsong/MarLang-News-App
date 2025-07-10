@@ -9,8 +9,8 @@ import {
   Alert, LinearProgress
 } from '@mui/material';
 import {
-  People, PersonAdd, Edit, Delete, Save, Cancel, Warning, CheckCircle,
-  TrendingUp, Visibility, Book, School
+  People, Edit, Delete, Save, Cancel, Warning, CheckCircle,
+  Visibility, Book
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 import { collection, getDocs } from 'firebase/firestore';

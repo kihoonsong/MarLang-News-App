@@ -157,7 +157,7 @@ class ErrorReporter {
   }
 
   // 외부 서비스로 전송 (예: Sentry, LogRocket 등)
-  sendToExternalService(errorData) {
+  sendToExternalService(_errorData) {
     // 실제 구현시에는 여기서 Sentry.captureException() 등 호출
     if (this.isProduction) {
       // fetch('/api/errors', {

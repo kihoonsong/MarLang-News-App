@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import {
   Typography, Grid, Box, Card, CardContent, Button, TextField, 
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
-  List, ListItem, ListItemText, ListItemIcon, Chip, Alert
+  Chip, Alert
 } from '@mui/material';
 import {
-  Category, Add, Edit, Delete, Save, Cancel, DragIndicator,
+  Add, Edit, Delete, Save, Cancel,
   ArrowUpward, ArrowDownward
 } from '@mui/icons-material';
 import { ActionButton, CategoryManagementCard } from './DashboardStyles';

@@ -53,5 +53,5 @@ export const translations = {
   quickActions: '🚀 Quick Actions',
   viewWordbook: '📚 View Wordbook',
   viewLikedArticles: '❤️ Liked Articles',
-  adminDashboard: '🔧 Admin Dashboard'
+  adminDashboardMenu: '🔧 Admin Dashboard'
 };

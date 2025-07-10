@@ -130,7 +130,7 @@ const AdCard = ({
             setAdLoadFailed(true);
           }
         }
-      } catch (error) {
+      } catch (adError) {
         setAdLoadFailed(true);
         setAdBlockerDetected(true);
       }

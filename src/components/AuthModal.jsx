@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Dialog, DialogContent, Box, Typography, Button, Divider, IconButton, Alert, CircularProgress,
-  TextField, Accordion, AccordionSummary, AccordionDetails
+  Dialog, DialogContent, Box, Typography, Button, Divider, IconButton, Alert, CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 

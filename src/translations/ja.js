@@ -53,5 +53,5 @@ export const translations = {
   quickActions: '🚀 クイックアクション',
   viewWordbook: '📚 単語帳を見る',
   viewLikedArticles: '❤️ いいねした記事',
-  adminDashboard: '🔧 管理者ダッシュボード'
+  adminDashboardMenu: '🔧 管理者ダッシュボード'
 };

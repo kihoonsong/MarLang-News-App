@@ -53,5 +53,5 @@ export const translations = {
   quickActions: '🚀 빠른 액션',
   viewWordbook: '📚 단어장 보기',
   viewLikedArticles: '❤️ 좋아요 기사',
-  adminDashboard: '🔧 관리자 대시보드'
+  adminDashboardMenu: '🔧 관리자 대시보드'
 };

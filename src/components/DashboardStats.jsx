@@ -3,8 +3,7 @@ import {
   Typography, Grid, Box, Chip, Card, CardContent, LinearProgress
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon, Article, People, ThumbUp, TrendingUp,
-  Visibility, School, AccessTime, Analytics, EmojiEvents
+  Visibility, Book
 } from '@mui/icons-material';
 import { 
   WelcomeCard, StatCard, StatIcon, StatInfo, StatNumber, StatLabel 
@@ -46,7 +45,7 @@ const DashboardStats = ({
         minute: '2-digit',
         second: '2-digit'
       }).format(new Date(date));
-    } catch (error) {
+    } catch (formatError) {
       return new Date().toLocaleTimeString('ko-KR');
     }
   };
