@@ -33,6 +33,12 @@ import PremiumContentGuard from '../components/PremiumContentGuard';
 import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
 import DOMPurify from 'dompurify';
 
+// HTML 엔티티 디코딩 함수
+const decodeHtmlEntities = (html) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.documentElement.textContent;
+};
+
 // HTML 태그 제거 및 텍스트 정리 함수
 const cleanHtmlContent = (htmlContent) => {
   if (!htmlContent) return '';
@@ -43,8 +49,11 @@ const cleanHtmlContent = (htmlContent) => {
     ALLOWED_ATTR: []         // 모든 속성 제거
   });
   
+  // HTML 엔티티 디코딩 (&nbsp; 등을 실제 문자로 변환)
+  const decodedHtml = decodeHtmlEntities(cleanHtml);
+  
   // 여러 공백을 하나로 정리하고 줄바꿈 정리
-  return cleanHtml
+  return decodedHtml
     .replace(/\s+/g, ' ')     // 여러 공백을 하나로
     .replace(/\n\s*\n/g, '\n\n') // 여러 줄바꿈을 최대 2개로
     .trim();
