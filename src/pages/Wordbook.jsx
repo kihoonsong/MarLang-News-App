@@ -310,7 +310,7 @@ const Wordbook = () => {
                                 aria-pressed={revealedIds.has(word.id)}
                                 title={revealedIds.has(word.id) ? 'Hide meaning' : 'Show meaning'}
                               >
-                                {revealedIds.has(word.id) ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                                {revealedIds.has(word.id) ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
                               </RevealButton>
                             )}
                           </WordRow>
