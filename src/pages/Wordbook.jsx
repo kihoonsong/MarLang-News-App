@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  Select, MenuItem, FormControl, InputLabel
+  Select, MenuItem, FormControl, InputLabel, CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -16,6 +16,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import AdCard from '../components/AdCard';
 import { useAdInjector } from '../hooks/useAdInjector';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
 import { designTokens, getColor } from '../utils/designTokens';
 
@@ -49,10 +50,25 @@ const Wordbook = () => {
     });
   };
 
-  
-  // 광고가 포함된 단어 목록 생성 (로그인하고 단어가 있을 때만)
-  const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
-  const { itemsWithAds } = useAdInjector(hasContent ? sortedWords : []);
+  // 무한 스크롤 설정
+  const {
+    visibleItems: visibleWords,
+    hasMore,
+    loading: scrollLoading,
+    error: scrollError,
+    lastItemRef,
+    totalItems,
+    visibleCount
+  } = useInfiniteScroll(sortedWords, 15, 15);
+
+  // 안전한 네비게이션 함수
+  const safeNavigate = (path) => {
+    navigate(path);
+  };
+
+  // 광고가 포함된 단어 목록 생성 (무한 스크롤 적용된 단어들만)
+  const hasContent = isAuthenticated && visibleWords && visibleWords.length > 0;
+  const { itemsWithAds } = useAdInjector(hasContent ? visibleWords : []);
   
   // showMeaning 상태 변경 시 localStorage에 저장
   useEffect(() => {
@@ -149,7 +165,7 @@ const Wordbook = () => {
 
   // 기사로 이동
   const handleGoToArticle = (articleId) => {
-    navigate(`/article/${articleId}`);
+    safeNavigate(`/article/${articleId}`);
   };
 
   return (
@@ -250,8 +266,17 @@ const Wordbook = () => {
                 <EmptySubtext>Click on words while reading articles to save them here!</EmptySubtext>
               </EmptyState>
             ) : (
-              // 콘텐츠가 있을 때만 광고가 포함된 목록 사용
-              (hasContent && sortedWords.length >= 3 ? itemsWithAds : sortedWords).map((item) => {
+              <>
+                {/* 오류 메시지 표시 */}
+                {scrollError && (
+                  <ErrorMessage>
+                    {scrollError}
+                  </ErrorMessage>
+                )}
+                
+                {/* 무한 스크롤 적용된 단어 목록 */}
+                {(hasContent && visibleWords.length >= 3 ? itemsWithAds : visibleWords).map((item, index) => {
+                  const isLastItem = index === (hasContent && visibleWords.length >= 3 ? itemsWithAds : visibleWords).length - 1;
                 if (item.type === 'ad') {
                   return (
                     <WordbookAdCard key={item.id}>
@@ -282,6 +307,7 @@ const Wordbook = () => {
                 return (
                   <WordCard 
                     key={word.id}
+                    ref={isLastItem && hasMore ? lastItemRef : null}
                     onClick={() => handleGoToArticle(word.articleId)}
                   >
                     {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
@@ -344,6 +370,23 @@ const Wordbook = () => {
                   </WordCard>
                 );
               })
+              }
+              
+              {/* 로딩 상태 표시 */}
+              {scrollLoading && (
+                <LoadingContainer>
+                  <CircularProgress size={24} />
+                  <LoadingText>Loading more words...</LoadingText>
+                </LoadingContainer>
+              )}
+              
+              {/* 더 이상 로드할 데이터가 없을 때 */}
+              {!hasMore && sortedWords.length > 0 && (
+                <EndMessage>
+                  Showing {visibleCount} of {totalItems} words
+                </EndMessage>
+              )}
+            </>
             )}
           </WordList>
         </PageContainer>
@@ -899,6 +942,39 @@ const LoginButton = styled.button`
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 16px;
+`;
+
+const LoadingText = styled.p`
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+`;
+
+const EndMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-top: 20px;
+`;
+
+const ErrorMessage = styled.div`
+  background: #fee;
+  color: #c33;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
 `;
 
 export default Wordbook; 

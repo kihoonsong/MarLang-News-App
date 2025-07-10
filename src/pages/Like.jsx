@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { 
   useMediaQuery, useTheme, Button, Select, FormControl, MenuItem, Chip, Typography, Alert,
-  InputLabel
+  InputLabel, CircularProgress
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import ArticleCard from '../components/ArticleCard';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { designTokens } from '../utils/designTokens';
 
 const Like = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, signInWithGoogle } = useAuth() || {};
@@ -23,6 +25,7 @@ const Like = () => {
   
   const [sortBy, setSortBy] = useState('dateLiked');
   const [refreshKey, setRefreshKey] = useState(0);
+  const isNavigatingRef = useRef(false);
 
   // 좋아요 상태 변경 감지
   useEffect(() => {
@@ -35,6 +38,25 @@ const Like = () => {
     
     return () => {
       window.removeEventListener('likeUpdated', handleLikeUpdate);
+    };
+  }, []);
+
+  // 페이지 이동 감지 및 Observer 정리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      isNavigatingRef.current = true;
+    };
+
+    const handlePopState = () => {
+      isNavigatingRef.current = true;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -78,6 +100,23 @@ const Like = () => {
   };
 
   const sortedArticles = getSortedArticles();
+
+  // 무한 스크롤 설정
+  const {
+    visibleItems: visibleArticles,
+    hasMore,
+    loading: scrollLoading,
+    error: scrollError,
+    lastItemRef,
+    totalItems,
+    visibleCount
+  } = useInfiniteScroll(sortedArticles, 10, 10);
+
+  // 안전한 네비게이션 함수
+  const safeNavigate = (path) => {
+    isNavigatingRef.current = true;
+    navigate(path);
+  };
 
   // 디버깅 정보
   const debugInfo = {
@@ -255,18 +294,47 @@ const Like = () => {
                 <EmptySubtext>Like articles while reading to save them here!</EmptySubtext>
             </EmptyState>
           ) : (
-              <ArticleGrid>
-                {sortedArticles.map((article, index) => {
-                  console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
-                  console.log(`📝 summary 확인:`, article.summary);
-                  
-                  return (
-                    <ArticleGridItem key={article.id}>
-                      <ArticleCard {...article} navigate={navigate} />
-                    </ArticleGridItem>
-                  );
-                })}
-              </ArticleGrid>
+              <>
+                {/* 오류 메시지 표시 */}
+                {scrollError && (
+                  <ErrorMessage>
+                    {scrollError}
+                  </ErrorMessage>
+                )}
+                
+                <ArticleGrid>
+                  {visibleArticles.map((article, index) => {
+                    console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
+                    console.log(`📝 summary 확인:`, article.summary);
+                    
+                    const isLastItem = index === visibleArticles.length - 1;
+                    
+                    return (
+                      <ArticleGridItem 
+                        key={article.id}
+                        ref={isLastItem && hasMore ? lastItemRef : null}
+                      >
+                        <ArticleCard {...article} navigate={safeNavigate} />
+                      </ArticleGridItem>
+                    );
+                  })}
+                </ArticleGrid>
+                
+                {/* 로딩 상태 표시 */}
+                {scrollLoading && (
+                  <LoadingContainer>
+                    <CircularProgress size={24} />
+                    <LoadingText>Loading more articles...</LoadingText>
+                  </LoadingContainer>
+                )}
+                
+                {/* 더 이상 로드할 데이터가 없을 때 */}
+                {!hasMore && sortedArticles.length > 0 && (
+                  <EndMessage>
+                    Showing {visibleCount} of {totalItems} articles
+                  </EndMessage>
+                )}
+              </>
           )}
           </CategorySection>
         </ContentContainer>
@@ -356,6 +424,39 @@ const EmptySubtext = styled.p`
   color: #666;
   margin: 0;
   max-width: 400px;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  gap: 16px;
+`;
+
+const LoadingText = styled.p`
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+`;
+
+const EndMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-top: 20px;
+`;
+
+const ErrorMessage = styled.div`
+  background: #fee;
+  color: #c33;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
 `;
 
 export default Like; 
