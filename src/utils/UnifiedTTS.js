@@ -675,8 +675,30 @@ class UnifiedTTS {
     
     this.options.rate = rate;
     
-    // 현재 재생 중인 경우 즉시 적용은 어려우므로 다음 문장부터 적용
-    // 필요하다면 현재 문장을 중단하고 새 속도로 재시작할 수 있음
+    // 현재 재생 중인 경우 즉시 적용
+    if (this.isRunning()) {
+      if (import.meta.env.DEV) {
+        console.log('🔄 재생 중 배속 변경 - 현재 문장 중단 후 새 속도로 재시작');
+      }
+      
+      // 현재 문장 중단
+      this.clearTimers();
+      window.speechSynthesis.cancel();
+      
+      // 짧은 지연 후 새 속도로 재시작
+      setTimeout(() => {
+        if (this.isActive && this.isPlaying && !this.isPaused) {
+          this.playNextSentence();
+        }
+      }, 100);
+    }
+  }
+
+  /**
+   * 현재 재생 중인지 확인
+   */
+  isRunning() {
+    return this.isActive && this.isPlaying && !this.isPaused;
   }
 
   /**

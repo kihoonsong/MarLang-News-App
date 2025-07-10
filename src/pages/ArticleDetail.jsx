@@ -759,9 +759,6 @@ const ArticleDetail = () => {
     }
     setTtsSpeed(newSpeed);
     
-    // iOS 감지
-    // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
-    
     // 재생 중이면 새 속도로 업데이트
     if (isTTSPlaying) {
       if (import.meta.env.DEV) {
@@ -836,11 +833,24 @@ const ArticleDetail = () => {
           }
         }
       } else {
-        // 기존 UnifiedTTS 배속 변경
+        // 기존 UnifiedTTS 배속 변경 (즉시 적용)
         if (unifiedTTSRef.current) {
           unifiedTTSRef.current.setSpeed(newSpeed);
+          if (import.meta.env.DEV) {
+            console.log('✅ UnifiedTTS 배속 즉시 적용:', newSpeed);
+          }
         }
       }
+    }
+    
+    // 배속 변경 시 토스트 알림
+    if (toast) {
+      toast.show({
+        message: `${newSpeed.toFixed(1)}× 속도로 변경되었습니다`,
+        type: 'success',
+        duration: 1500,
+        position: 'top'
+      });
     }
   };
 
