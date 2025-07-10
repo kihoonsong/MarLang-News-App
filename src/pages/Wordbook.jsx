@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  Select, MenuItem, FormControl, InputLabel, useMediaQuery, useTheme
+  Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -23,8 +23,6 @@ const Wordbook = () => {
   const navigate = useNavigate();
   const { isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { savedWords, removeWord } = useData();
-  const theme = useTheme();
-  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
@@ -35,9 +33,22 @@ const Wordbook = () => {
     const saved = localStorage.getItem('wordbook_showMeaning');
     return saved !== null ? JSON.parse(saved) : true; // 기본값: true (뜻 보이기)
   });
+  // 전체 가리기 상태에서도 개별 단어의 뜻을 볼 수 있도록 관리하는 Set (word.id 기반)
+  const [revealedIds, setRevealedIds] = useState(new Set());
 
-  // 로그인된 사용자만 단어 목록 사용
-  const _userWords = isAuthenticated ? savedWords : [];
+  // 개별 카드 토글 함수
+  const toggleWordMeaning = (wordId) => {
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(wordId)) {
+        next.delete(wordId);
+      } else {
+        next.add(wordId);
+      }
+      return next;
+    });
+  };
+
   
   // 광고가 포함된 단어 목록 생성 (로그인하고 단어가 있을 때만)
   const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
@@ -289,6 +300,19 @@ const Wordbook = () => {
                             >
                               {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
                             </PronunciationButton>
+                            {/* 개별 뜻 가리기/보이기 아이콘 (전체 가리기 모드에서만 표시) */}
+                            {!showMeaning && (
+                              <RevealButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleWordMeaning(word.id);
+                                }}
+                                aria-pressed={revealedIds.has(word.id)}
+                                title={revealedIds.has(word.id) ? 'Hide meaning' : 'Show meaning'}
+                              >
+                                {revealedIds.has(word.id) ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                              </RevealButton>
+                            )}
                           </WordRow>
                           {word.partOfSpeech && (
                             <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
@@ -307,7 +331,7 @@ const Wordbook = () => {
                     </WordHeader>
                   
                     {/* 정의 */}
-                    <Definition $showMeaning={showMeaning}>
+                    <Definition $showMeaning={showMeaning || revealedIds.has(word.id)}>
                       {word.definition}
                     </Definition>
                     
@@ -663,6 +687,31 @@ const PronunciationButton = styled.button`
   }
 `;
 
+const RevealButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  
+  & .MuiSvgIcon-root {
+    font-size: 1rem;
+  }
+  
+  &:hover {
+    background: #f5f5f5;
+    color: #1976d2;
+  }
+`;
+
 const PartOfSpeech = styled.span`
   font-size: 0.7rem;
   color: #666;
@@ -746,10 +795,6 @@ const EmptySubtext = styled.p`
   margin: 0;
 `;
 
-const _EmptyAuthState = styled.div`
-  text-align: center;
-  padding: ${designTokens.spacing.xxl} ${designTokens.spacing.lg};
-`;
 
 const GuestContent = styled.div`
   max-width: 800px;
