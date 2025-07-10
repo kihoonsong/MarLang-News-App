@@ -90,8 +90,17 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
     }
 
     // 네이버 환경 변수 (process.env에서 가져옴)
-    const naverClientId = process.env.NAVER_CLIENT_ID || 'Y4ldejPFJ6JxAp95HtpR';
-    const naverClientSecret = process.env.NAVER_CLIENT_SECRET || 'dz0e72Lrva';
+    const naverClientId = process.env.NAVER_CLIENT_ID;
+    const naverClientSecret = process.env.NAVER_CLIENT_SECRET;
+    
+    if (!naverClientId || !naverClientSecret) {
+      console.error('🚨 Missing Naver OAuth credentials');
+      res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'OAuth credentials not configured' 
+      });
+      return;
+    }
     
     // 디버깅용 로그 (실제 값은 로그에 남기지 않음)
     console.log('환경변수 확인:', {
@@ -397,7 +406,10 @@ exports.createJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
+    const jwtSecret = process.env.JWT_SECRET || (() => {
+      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
+      return 'haru-default-jwt-secret-2025';
+    })();
     const accessTokenExpiry = '15m'; // 15분
     const refreshTokenExpiry = '7d'; // 7일
 
@@ -487,7 +499,10 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
+    const jwtSecret = process.env.JWT_SECRET || (() => {
+      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
+      return 'haru-default-jwt-secret-2025';
+    })();
     
     try {
       const decoded = jwt.verify(accessToken, jwtSecret);
@@ -563,7 +578,10 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'marlang-super-secret-jwt-key-2024';
+    const jwtSecret = process.env.JWT_SECRET || (() => {
+      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
+      return 'haru-default-jwt-secret-2025';
+    })();
     
     try {
       const decoded = jwt.verify(refreshToken, jwtSecret);

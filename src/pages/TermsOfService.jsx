@@ -152,7 +152,7 @@ const TermsOfService = () => {
                   <strong>웹사이트:</strong> https://marlang-app.web.app
                 </Typography>
                 <Typography variant="body1">
-                  <strong>이메일:</strong> contact@haru-app.web.app
+                  <strong>이메일:</strong> contact@marlang-app.web.app
                 </Typography>
               </ContactInfo>
             </Section>

@@ -37,7 +37,7 @@ export const DataProvider = ({ children }) => {
           // --- 네이버 서버 인증 사용자: HTTP API에서 데이터 로드 ---
           console.log(`🌐 서버 API에서 사용자 데이터 로드 중: ${user.uid}`);
           try {
-            const response = await fetch(`https://us-central1-haru-app.cloudfunctions.net/getUserData?userId=${user.uid}`, {
+            const response = await fetch(`https://us-central1-marlang-app.cloudfunctions.net/getUserData?userId=${user.uid}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ export const DataProvider = ({ children }) => {
       if (user.isServerAuth) {
         // 네이버 서버 인증 사용자: HTTP API를 통해 서버에 저장
         try {
-          const response = await fetch('https://us-central1-haru-app.cloudfunctions.net/saveUserData', {
+          const response = await fetch('https://us-central1-marlang-app.cloudfunctions.net/saveUserData', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

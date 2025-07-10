@@ -4,6 +4,7 @@ import { Button, Typography, Box, Card, Alert } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import HomeIcon from '@mui/icons-material/Home';
+import { reportError } from '../utils/errorReporting';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -21,17 +22,8 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     });
 
-    // 에러 로깅 (실제 환경에서는 로깅 서비스로 전송)
-    console.error('Error caught by boundary:', error, errorInfo);
-    
-    // 개발 환경에서만 상세 정보 표시
-    if (import.meta.env.DEV) {
-      console.group('🐛 Error Boundary Details');
-      console.error('Error:', error);
-      console.error('Error Info:', errorInfo);
-      console.error('Component Stack:', errorInfo.componentStack);
-      console.groupEnd();
-    }
+    // 에러 리포팅 시스템으로 전송
+    reportError(error, errorInfo);
   }
 
   handleRetry = () => {
