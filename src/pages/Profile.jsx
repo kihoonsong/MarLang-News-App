@@ -5,13 +5,15 @@ import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
-
 // Profile 컴포넌트들
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import LearningStats from '../components/Profile/LearningStats';
 import QuickActions from '../components/Profile/QuickActions';
 // import RecentActivity from '../components/Profile/RecentActivity';
 import UserSettings from '../components/Profile/UserSettings';
+import AnnouncementList from '../components/Profile/AnnouncementList';
+import AnnouncementModal from '../components/Profile/AnnouncementModal';
+import AnnouncementForm from '../components/Profile/AnnouncementForm';
 
 // 다국어 번역 데이터
 const translations = {
@@ -26,7 +28,16 @@ const translations = {
     quickActions: '🚀 빠른 액션',
     viewWordbook: '📚 단어장 보기',
     viewLikedArticles: '❤️ 좋아요 기사',
-    adminDashboard: '🔧 관리자 대시보드'
+    adminDashboard: '🔧 관리자 대시보드',
+    announcements: '📢 공지사항',
+    addAnnouncement: '공지 작성',
+    noAnnouncements: '아직 공지사항이 없습니다.',
+    loading: '로딩 중...',
+    urgent: '긴급',
+    update: '업데이트',
+    maintenance: '점검',
+    general: '일반',
+    pinned: '고정됨'
   },
   en: {
     admin: '👑 Administrator',
@@ -39,7 +50,16 @@ const translations = {
     quickActions: '🚀 Quick Actions',
     viewWordbook: '📚 View Wordbook',
     viewLikedArticles: '❤️ Liked Articles',
-    adminDashboard: '🔧 Admin Dashboard'
+    adminDashboard: '🔧 Admin Dashboard',
+    announcements: '📢 Announcements',
+    addAnnouncement: 'Add Announcement',
+    noAnnouncements: 'No announcements yet.',
+    loading: 'Loading...',
+    urgent: 'Urgent',
+    update: 'Update',
+    maintenance: 'Maintenance',
+    general: 'General',
+    pinned: 'Pinned'
   },
   ja: {
     admin: '👑 管理者',
@@ -52,7 +72,16 @@ const translations = {
     quickActions: '🚀 クイックアクション',
     viewWordbook: '📚 単語帳を見る',
     viewLikedArticles: '❤️ いいねした記事',
-    adminDashboard: '🔧 管理者ダッシュボード'
+    adminDashboard: '🔧 管理者ダッシュボード',
+    announcements: '📢 お知らせ',
+    addAnnouncement: 'お知らせ作成',
+    noAnnouncements: 'まだお知らせがありません。',
+    loading: '読み込み中...',
+    urgent: '緊急',
+    update: 'アップデート',
+    maintenance: 'メンテナンス',
+    general: '一般',
+    pinned: '固定'
   }
 };
 
@@ -63,9 +92,19 @@ const Profile = () => {
     userSettings, 
     getStats, 
     savedWords, 
-    likedArticles 
+    likedArticles,
+    createAnnouncement,
+    updateAnnouncement,
+    deleteAnnouncement
   } = useData();
   const navigate = useNavigate();
+  
+  // 공지사항 모달 상태
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // const [recentWords, setRecentWords] = useState([]);
   // const [recentArticles, setRecentArticles] = useState([]);
@@ -121,6 +160,49 @@ const Profile = () => {
     }
   };
 
+  // 공지사항 관련 핸들러
+  const handleAnnouncementClick = (announcement) => {
+    setSelectedAnnouncement(announcement);
+    setShowAnnouncementModal(true);
+  };
+
+  const handleAddAnnouncement = () => {
+    setEditingAnnouncement(null);
+    setShowAnnouncementForm(true);
+  };
+
+  const handleEditAnnouncement = (announcement) => {
+    setEditingAnnouncement(announcement);
+    setShowAnnouncementForm(true);
+    setShowAnnouncementModal(false);
+  };
+
+  const handleSubmitAnnouncement = async (formData) => {
+    try {
+      if (editingAnnouncement) {
+        await updateAnnouncement(editingAnnouncement.id, formData);
+      } else {
+        await createAnnouncement(formData);
+      }
+      setShowAnnouncementForm(false);
+      setEditingAnnouncement(null);
+      // 공지사항 목록 새로고침을 위해 상태 업데이트
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('공지사항 저장 실패:', error);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcementId) => {
+    try {
+      await deleteAnnouncement(announcementId);
+      // 공지사항 목록 새로고침을 위해 상태 업데이트
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
+    }
+  };
+
   // 시간 형식 함수
   // const formatTimeAgo = (dateString) => {
   //   const now = new Date();
@@ -150,6 +232,13 @@ const Profile = () => {
               translations={currentTranslations}
             />
             
+            <AnnouncementList 
+              onAnnouncementClick={handleAnnouncementClick}
+              onAddClick={handleAddAnnouncement}
+              refreshTrigger={refreshTrigger}
+              translations={currentTranslations}
+            />
+            
             <QuickActions 
               translations={currentTranslations}
               isAdmin={isAdmin}
@@ -167,6 +256,32 @@ const Profile = () => {
           </ProfileContainer>
           </PageContainer>
       </MobileContentWrapper>
+      
+      {/* 공지사항 모달 */}
+      {showAnnouncementModal && selectedAnnouncement && (
+        <AnnouncementModal
+          announcement={selectedAnnouncement}
+          onClose={() => {
+            setShowAnnouncementModal(false);
+            setSelectedAnnouncement(null);
+          }}
+          onEdit={handleEditAnnouncement}
+          onDelete={handleDeleteAnnouncement}
+          translations={currentTranslations}
+        />
+      )}
+      
+      {/* 공지사항 작성/수정 폼 */}
+      {showAnnouncementForm && (
+        <AnnouncementForm
+          announcement={editingAnnouncement}
+          onSubmit={handleSubmitAnnouncement}
+          onClose={() => {
+            setShowAnnouncementForm(false);
+            setEditingAnnouncement(null);
+          }}
+        />
+      )}
     </>
   );
 };

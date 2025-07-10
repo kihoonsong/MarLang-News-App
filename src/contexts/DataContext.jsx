@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, orderBy, where, limit, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const DataContext = createContext();
 
@@ -146,6 +146,8 @@ export const DataProvider = ({ children }) => {
 
     manageUserData();
   }, [user]);
+
+  // (공지사항 로드 로직 제거)
 
   // --- 데이터 변경 함수들 ---
 
@@ -310,6 +312,111 @@ export const DataProvider = ({ children }) => {
     };
   };
 
+  // 공지사항 관련 함수들
+  const getAnnouncements = async (limitCount = 10) => {
+    try {
+      console.log('🔍 공지사항 로드 시작');
+      
+      // 가장 안전한 방법: 전체 컬렉션을 가져와서 클라이언트에서 필터링/정렬
+      try {
+        // 먼저 간단한 쿼리 시도
+        const collectionRef = collection(db, 'announcements');
+        const querySnapshot = await getDocs(collectionRef);
+        console.log(`📊 전체 공지사항 문서 개수: ${querySnapshot.size}`);
+        const announcements = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log(`📋 공지사항 문서 발견: ${doc.id}, 상태: ${data.status}`, data);
+          // published 상태인 것만 필터링
+          if (data.status === 'published') {
+            announcements.push({
+              id: doc.id,
+              ...data
+            });
+          }
+        });
+        
+        // 클라이언트에서 정렬: 고정된 것 먼저, 그 다음 날짜순
+        announcements.sort((a, b) => {
+          // 먼저 isSticky로 정렬 (true가 먼저)
+          if (a.isSticky !== b.isSticky) {
+            return b.isSticky ? 1 : -1;
+          }
+          // 그 다음 createdAt으로 정렬 (최신이 먼저)
+          const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+          const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+          return bDate - aDate;
+        });
+        
+        console.log(`✅ 공지사항 ${announcements.length}개 로드 완료`);
+        return announcements.slice(0, limitCount);
+        
+      } catch (firestoreError) {
+        console.error('Firestore 쿼리 실패:', firestoreError);
+        // 백업: 빈 배열 반환
+        return [];
+      }
+    } catch (error) {
+      console.error('공지사항 로드 실패:', error);
+      return [];
+    }
+  };
+
+  const createAnnouncement = async (announcementData) => {
+    try {
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        throw new Error('관리자 권한이 필요합니다.');
+      }
+
+      const newAnnouncement = {
+        ...announcementData,
+        status: 'published',
+        author: user.name || user.email,
+        authorId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const docRef = await addDoc(collection(db, 'announcements'), newAnnouncement);
+      return docRef.id;
+    } catch (error) {
+      console.error('공지사항 생성 실패:', error);
+      throw error;
+    }
+  };
+
+  const updateAnnouncement = async (announcementId, updates) => {
+    try {
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        throw new Error('관리자 권한이 필요합니다.');
+      }
+
+      const announcementRef = doc(db, 'announcements', announcementId);
+      await updateDoc(announcementRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('공지사항 업데이트 실패:', error);
+      throw error;
+    }
+  };
+
+  const deleteAnnouncement = async (announcementId) => {
+    try {
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        throw new Error('관리자 권한이 필요합니다.');
+      }
+
+      const announcementRef = doc(db, 'announcements', announcementId);
+      await deleteDoc(announcementRef);
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
+      throw error;
+    }
+  };
+
   const value = {
     savedWords,
     likedArticles,
@@ -333,6 +440,11 @@ export const DataProvider = ({ children }) => {
     // 복원된 다른 함수들 (필요 시 여기에 추가)
     updateActivityTime: () => updateSettings({ lastActivityTime: new Date().toISOString() }),
     getArticleById: (articleId) => viewRecords.find(r => r.articleId === articleId) || null,
+    // 공지사항 관련 함수들
+    getAnnouncements,
+    createAnnouncement,
+    updateAnnouncement,
+    deleteAnnouncement,
   };
 
   return (
