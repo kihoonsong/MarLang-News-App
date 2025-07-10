@@ -117,6 +117,29 @@ export const getEnglishVoice = async () => {
   }
 };
 
+// 사용자 설정 가져오기 함수
+const getUserTTSSpeed = () => {
+  try {
+    // localStorage에서 사용자 설정 가져오기
+    const authData = localStorage.getItem('haru_auth_data');
+    if (authData) {
+      const parsedAuth = JSON.parse(authData);
+      if (parsedAuth.user?.uid) {
+        const userSettingsKey = `haru_${parsedAuth.user.uid}_settings`;
+        const userSettings = localStorage.getItem(userSettingsKey);
+        if (userSettings) {
+          const settings = JSON.parse(userSettings);
+          return settings.ttsSpeed || 0.8;
+        }
+      }
+    }
+    return 0.8; // 기본값
+  } catch (error) {
+    console.warn('Failed to get user TTS speed:', error);
+    return 0.8;
+  }
+};
+
 // 텍스트 읽기 함수
 export const speakText = async (text, options = {}) => {
   if (!isSpeechSynthesisSupported()) {
@@ -132,9 +155,12 @@ export const speakText = async (text, options = {}) => {
 
   const utterance = new SpeechSynthesisUtterance(text);
   
+  // 사용자 설정에서 TTS 속도 가져오기
+  const userTTSSpeed = getUserTTSSpeed();
+  
   // 기본 설정
   const settings = {
-    rate: 1.0, // 기본 배속으로 변경
+    rate: userTTSSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -171,8 +197,9 @@ export const speakText = async (text, options = {}) => {
 
 // 단어 발음 함수 (단어장용)
 export const speakWord = async (word, options = {}) => {
+  const userTTSSpeed = getUserTTSSpeed();
   const wordSettings = {
-    rate: 1.0, // 기본 배속으로 변경
+    rate: userTTSSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -183,8 +210,9 @@ export const speakWord = async (word, options = {}) => {
 
 // 문장 발음 함수 (예문용)
 export const speakSentence = async (sentence, options = {}) => {
+  const userTTSSpeed = getUserTTSSpeed();
   const sentenceSettings = {
-    rate: 1.0,
+    rate: userTTSSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options

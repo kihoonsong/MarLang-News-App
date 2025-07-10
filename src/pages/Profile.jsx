@@ -10,7 +10,8 @@ import PageContainer from '../components/PageContainer';
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import LearningStats from '../components/Profile/LearningStats';
 import QuickActions from '../components/Profile/QuickActions';
-import RecentActivity from '../components/Profile/RecentActivity';
+// import RecentActivity from '../components/Profile/RecentActivity';
+import UserSettings from '../components/Profile/UserSettings';
 
 // 다국어 번역 데이터
 const translations = {
@@ -39,6 +40,19 @@ const translations = {
     viewWordbook: '📚 View Wordbook',
     viewLikedArticles: '❤️ Liked Articles',
     adminDashboard: '🔧 Admin Dashboard'
+  },
+  ja: {
+    admin: '👑 管理者',
+    user: '👤 ユーザー',
+    logout: 'ログアウト',
+    learningStats: '📊 学習統計',
+    savedWords: '保存された単語',
+    likedArticles: 'いいねした記事',
+    thisWeekWords: '今週の単語',
+    quickActions: '🚀 クイックアクション',
+    viewWordbook: '📚 単語帳を見る',
+    viewLikedArticles: '❤️ いいねした記事',
+    adminDashboard: '🔧 管理者ダッシュボード'
   }
 };
 
@@ -53,27 +67,27 @@ const Profile = () => {
   } = useData();
   const navigate = useNavigate();
   
-  const [recentWords, setRecentWords] = useState([]);
-  const [recentArticles, setRecentArticles] = useState([]);
+  // const [recentWords, setRecentWords] = useState([]);
+  // const [recentArticles, setRecentArticles] = useState([]);
 
-  // 현재 언어의 번역 텍스트
-  const currentTranslations = translations[userSettings?.language || 'en'];
+  // 현재 언어의 번역 텍스트 (안전 fallback 포함)
+  const currentTranslations = translations[userSettings?.language || 'en'] || translations.en;
   const stats = getStats();
 
   // 최근 활동 데이터 준비
-  useEffect(() => {
-    // 최근 5개 단어
-    const recent = [...savedWords]
-      .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
-      .slice(0, 5);
-    setRecentWords(recent);
+  // useEffect(() => {
+  //   // 최근 5개 단어
+  //   const recent = [...savedWords]
+  //     .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
+  //     .slice(0, 5);
+  //   setRecentWords(recent);
 
-    // 최근 5개 좋아요 기사
-    const recentLiked = [...likedArticles]
-      .sort((a, b) => new Date(b.likedAt) - new Date(a.likedAt))
-      .slice(0, 5);
-    setRecentArticles(recentLiked);
-  }, [savedWords, likedArticles]);
+  //   // 최근 5개 좋아요 기사
+  //   const recentLiked = [...likedArticles]
+  //     .sort((a, b) => new Date(b.likedAt) - new Date(a.likedAt))
+  //     .slice(0, 5);
+  //   setRecentArticles(recentLiked);
+  // }, [savedWords, likedArticles]);
 
   // 로그인 확인
   if (!isAuthenticated) {
@@ -108,15 +122,15 @@ const Profile = () => {
   };
 
   // 시간 형식 함수
-  const formatTimeAgo = (dateString) => {
-    const now = new Date();
-    const past = new Date(dateString);
-    const diffInMinutes = Math.floor((now - past) / (1000 * 60));
+  // const formatTimeAgo = (dateString) => {
+  //   const now = new Date();
+  //   const past = new Date(dateString);
+  //   const diffInMinutes = Math.floor((now - past) / (1000 * 60));
     
-    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
-    return `${Math.floor(diffInMinutes / 1440)}일 전`;
-  };
+  //   if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+  //   if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
+  //   return `${Math.floor(diffInMinutes / 1440)}일 전`;
+  // };
 
   return (
     <>
@@ -140,13 +154,15 @@ const Profile = () => {
               translations={currentTranslations}
               isAdmin={isAdmin}
             />
+
+            <UserSettings />
             
-            <RecentActivity 
+            {/* <RecentActivity 
               recentWords={recentWords}
               recentArticles={recentArticles}
               translations={currentTranslations}
               formatTimeAgo={formatTimeAgo}
-            />
+            /> */}
             
           </ProfileContainer>
           </PageContainer>

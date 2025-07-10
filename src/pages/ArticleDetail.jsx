@@ -197,7 +197,7 @@ const ArticleDetail = () => {
   // 활성 문장 DOM 참조 (DOM 직접 조작용)
   const activeSentenceRef = useRef(null);
 
-  // userSettings 변경 시 TTS 설정 업데이트
+  // userSettings 변경 시 TTS 설정 및 번역 언어 업데이트
   useEffect(() => {
     if (userSettings?.ttsSpeed) {
       setTtsSpeed(userSettings.ttsSpeed);
@@ -205,7 +205,10 @@ const ArticleDetail = () => {
     if (userSettings?.ttsPause !== undefined) {
       setTtsPause(userSettings.ttsPause);
     }
-  }, [userSettings?.ttsSpeed, userSettings?.ttsPause]);
+    if (userSettings?.translationLanguage) {
+      setSelectedLanguage(userSettings.translationLanguage);
+    }
+  }, [userSettings?.ttsSpeed, userSettings?.ttsPause, userSettings?.translationLanguage]);
 
   // 페이지 이동 시 TTS 자동 정지 (개선된 버전)
   useEffect(() => {
