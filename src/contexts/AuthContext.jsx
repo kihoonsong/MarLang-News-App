@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }) => {
           
           // Firestore에 네이버 사용자 정보로 저장
           const userDocRef = doc(db, "users", firebaseUser.uid);
-          const marlangUser = {
+          const haruUser = {
             id: firebaseUser.uid,
             uid: firebaseUser.uid,
             email: naverUserData.email,
@@ -157,8 +157,8 @@ export const AuthProvider = ({ children }) => {
             updatedAt: serverTimestamp(),
           };
           
-          await setDoc(userDocRef, marlangUser, { merge: true });
-          setUser(marlangUser);
+          await setDoc(userDocRef, haruUser, { merge: true });
+          setUser(haruUser);
           
           console.log('✅ 네이버 사용자 정보가 성공적으로 Firebase에 저장됨');
           
@@ -175,13 +175,13 @@ export const AuthProvider = ({ children }) => {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
       
-      let marlangUser;
+      let haruUser;
       if (userDoc.exists()) {
-        marlangUser = { id: userDoc.id, ...userDoc.data() };
-        console.log('👤 기존 사용자 정보 로드:', marlangUser.email);
+        haruUser = { id: userDoc.id, ...userDoc.data() };
+        console.log('👤 기존 사용자 정보 로드:', haruUser.email);
       } else {
         console.log('✨ 새로운 사용자, Firestore에 정보 저장:', firebaseUser.email);
-        marlangUser = {
+        haruUser = {
           id: firebaseUser.uid,
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -191,10 +191,10 @@ export const AuthProvider = ({ children }) => {
           role: 'user',
           createdAt: serverTimestamp(),
         };
-        await setDoc(userDocRef, marlangUser);
+        await setDoc(userDocRef, haruUser);
       }
       
-      setUser(marlangUser);
+      setUser(haruUser);
     } catch (err) {
       console.error('🚨 사용자 정보 처��� 오류:', err);
       setError(`사용자 정보 처리 중 오류가 발생했습니다: ${err.message}`);

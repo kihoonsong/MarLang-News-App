@@ -37,7 +37,7 @@ export const DataProvider = ({ children }) => {
           // --- 네이버 서버 인증 사용자: HTTP API에서 데이터 로드 ---
           console.log(`🌐 서버 API에서 사용자 데이터 로드 중: ${user.uid}`);
           try {
-            const response = await fetch(`https://us-central1-marlang-app.cloudfunctions.net/getUserData?userId=${user.uid}`, {
+            const response = await fetch(`https://us-central1-haru-app.cloudfunctions.net/getUserData?userId=${user.uid}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -66,10 +66,10 @@ export const DataProvider = ({ children }) => {
           } catch (err) {
             console.error('❌ 서버 데이터 로드 실패, 로컬에서 로드:', err);
             // 서버 실패 시 로컬 저장소에서 로드
-            const localWords = JSON.parse(localStorage.getItem(`marlang_${user.uid}_savedWords`) || '[]');
-            const localLikes = JSON.parse(localStorage.getItem(`marlang_${user.uid}_likedArticles`) || '[]');
-            const localSettings = JSON.parse(localStorage.getItem(`marlang_${user.uid}_settings`) || JSON.stringify(userSettings));
-            const localViews = JSON.parse(localStorage.getItem(`marlang_${user.uid}_viewRecords`) || '[]');
+            const localWords = JSON.parse(localStorage.getItem(`haru_${user.uid}_savedWords`) || '[]');
+            const localLikes = JSON.parse(localStorage.getItem(`haru_${user.uid}_likedArticles`) || '[]');
+            const localSettings = JSON.parse(localStorage.getItem(`haru_${user.uid}_settings`) || JSON.stringify(userSettings));
+            const localViews = JSON.parse(localStorage.getItem(`haru_${user.uid}_viewRecords`) || '[]');
             
             setSavedWords(localWords);
             setLikedArticles(localLikes);
@@ -124,14 +124,14 @@ export const DataProvider = ({ children }) => {
         // --- 비로그인 사용자: 기본 LocalStorage에서 데이터 로드 ---
         console.log('👤 비로그인 모드: 로컬 저장소에서 데이터 로드');
         try {
-          const rawWords = JSON.parse(localStorage.getItem('marlang_guest_words') || '[]');
+          const rawWords = JSON.parse(localStorage.getItem('haru_guest_words') || '[]');
           const sanitizedWords = Array.isArray(rawWords) ? rawWords.filter(w => w && typeof w.word === 'string') : [];
 
-          const rawLikes = JSON.parse(localStorage.getItem('marlang_guest_likes') || '[]');
+          const rawLikes = JSON.parse(localStorage.getItem('haru_guest_likes') || '[]');
           const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
 
-          const localSettings = JSON.parse(localStorage.getItem('marlang_guest_settings') || JSON.stringify(userSettings));
-          const localViews = JSON.parse(localStorage.getItem('marlang_guest_views') || '[]');
+          const localSettings = JSON.parse(localStorage.getItem('haru_guest_settings') || JSON.stringify(userSettings));
+          const localViews = JSON.parse(localStorage.getItem('haru_guest_views') || '[]');
           
           setSavedWords(sanitizedWords);
           setLikedArticles(sanitizedLikes);
@@ -154,7 +154,7 @@ export const DataProvider = ({ children }) => {
       if (user.isServerAuth) {
         // 네이버 서버 인증 사용자: HTTP API를 통해 서버에 저장
         try {
-          const response = await fetch('https://us-central1-marlang-app.cloudfunctions.net/saveUserData', {
+          const response = await fetch('https://us-central1-haru-app.cloudfunctions.net/saveUserData', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ export const DataProvider = ({ children }) => {
         } catch (error) {
           console.error('서버 API 저장 실패, 로컬 저장소로 fallback:', error);
           // 서버 실패 시 로컬 저장소 사용
-          const key = `marlang_${user.uid}_${dataType}`;
+          const key = `haru_${user.uid}_${dataType}`;
           localStorage.setItem(key, JSON.stringify(data));
         }
       } else {
@@ -195,13 +195,13 @@ export const DataProvider = ({ children }) => {
         } catch (error) {
           console.error('Firestore 저장 실패, 로컬 저장소로 fallback:', error);
           // Firestore 실패 시 로컬 저장소 사용
-          const key = `marlang_${user.uid}_${dataType}`;
+          const key = `haru_${user.uid}_${dataType}`;
           localStorage.setItem(key, JSON.stringify(data));
         }
       }
     } else {
       // 비로그인 사용자는 LocalStorage에 저장
-      const key = `marlang_guest_${dataType}`;
+      const key = `haru_guest_${dataType}`;
       localStorage.setItem(key, JSON.stringify(data));
     }
   };

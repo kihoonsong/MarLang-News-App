@@ -1,4 +1,4 @@
-# MarLang Eng News
+# Haru Eng News
 
 최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키는 웹 애플리케이션입니다.
 
@@ -25,7 +25,7 @@
 ### 1. 프로젝트 클론
 ```bash
 git clone <repository-url>
-cd MarLang-Gemini-CLI
+cd Haru-Gemini-CLI
 ```
 
 ### 2. 의존성 설치
@@ -112,7 +112,7 @@ import {
 ## 📁 프로젝트 구조
 
 ```
-MarLang-Gemini-CLI/
+Haru-Gemini-CLI/
 ├── src/
 │   ├── components/          # React 컴포넌트
 │   │   ├── AdCard.jsx      # 기본 광고 컴포넌트
@@ -211,4 +211,4 @@ vercel --prod
 
 ---
 
-**MarLang Eng News**로 영어 실력을 향상시키고 최신 뉴스를 만나보세요! 🚀 
+**Haru Eng News**로 영어 실력을 향상시키고 최신 뉴스를 만나보세요! 🚀 

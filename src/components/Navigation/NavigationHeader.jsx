@@ -48,7 +48,7 @@ const NavigationHeader = ({
           )}
           <LogoSection onClick={() => navigate('/')}>
             <LogoText>
-              {isMobile ? 'MarLang' : (title || 'MarLang Eng News')}
+              {isMobile ? 'Haru' : (title || 'Haru Eng News')}
             </LogoText>
             <BetaLabel>beta</BetaLabel>
           </LogoSection>

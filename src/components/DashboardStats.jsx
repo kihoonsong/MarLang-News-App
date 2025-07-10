@@ -61,7 +61,7 @@ const DashboardStats = ({
               👋 안녕하세요, {user?.name || '관리자'}님!
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-              MarLang News 관리자 대시보드에 오신 것을 환영합니다.
+              Haru News 관리자 대시보드에 오신 것을 환영합니다.
             </Typography>
             <Typography variant="body1" color="text.secondary">
               📊 실시간 통계와 관리 도구를 통해 효율적으로 콘텐츠를 관리하세요.
