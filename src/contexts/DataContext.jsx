@@ -175,6 +175,13 @@ export const DataProvider = ({ children }) => {
 
           if (response.ok) {
             console.log(`✅ ${dataType} 데이터 서버 API에 저장 완료`);
+            
+            // TTS 음성 설정의 실시간 반영을 위해 localStorage도 동기화
+            if (dataType === 'settings') {
+              const key = `haru_${user.uid}_settings`;
+              localStorage.setItem(key, JSON.stringify(data));
+              console.log(`✅ ${dataType} 데이터 localStorage에도 동기화 완료`);
+            }
           } else {
             throw new Error(`서버 저장 실패: ${response.status}`);
           }
@@ -194,6 +201,13 @@ export const DataProvider = ({ children }) => {
                           { records: data };
           await setDoc(ref, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
           console.log(`✅ ${dataType} 데이터 Firebase에 저장 완료`);
+          
+          // TTS 음성 설정의 실시간 반영을 위해 localStorage도 동기화
+          if (dataType === 'settings') {
+            const key = `haru_${user.uid}_settings`;
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log(`✅ ${dataType} 데이터 localStorage에도 동기화 완료`);
+          }
         } catch (error) {
           console.error('Firestore 저장 실패, 로컬 저장소로 fallback:', error);
           // Firestore 실패 시 로컬 저장소 사용
