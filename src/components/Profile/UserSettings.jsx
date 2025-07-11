@@ -20,8 +20,9 @@ const interfaceLanguageOptions = [
 const UserSettings = () => {
   const { userSettings, updateSettings } = useData();
   const { t } = useTranslations();
-  const [availableVoices, setAvailableVoices] = useState([]);
+  // const [availableVoices, setAvailableVoices] = useState([]); // TTS Voice 기능 임시 비활성화
 
+  /* TTS Voice 기능 임시 비활성화 (개발 중)
   // 음성 목록 가져오기 (실시간 조회 방식)
   useEffect(() => {
     const loadVoices = () => {
@@ -50,6 +51,7 @@ const UserSettings = () => {
       window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
     };
   }, []);
+  */
 
   const handleSettingChange = (key, value) => {
     // TTS 음성 설정 변경 시 현재 재생 중지
@@ -162,6 +164,7 @@ const UserSettings = () => {
               label={t.autoPlayPronunciation}
             />
 
+{/* TTS Voice 선택 기능 임시 비활성화 (개발 중)
             <FormControl size="small" fullWidth>
               <InputLabel>TTS Voice</InputLabel>
               <Select
@@ -188,6 +191,7 @@ const UserSettings = () => {
                 ))}
               </Select>
             </FormControl>
+            */}
           </SettingsGrid>
         </SettingSection>
 
