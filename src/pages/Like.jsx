@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import styled from 'styled-components';
 import { 
   useMediaQuery, useTheme, Button, Select, FormControl, MenuItem, Chip, Typography, Alert,
@@ -30,7 +30,6 @@ const Like = () => {
   // 좋아요 상태 변경 감지
   useEffect(() => {
     const handleLikeUpdate = (event) => {
-      console.log('좋아요 상태 변경 감지:', event.detail);
       setRefreshKey(prev => prev + 1);
     };
 
@@ -99,7 +98,7 @@ const Like = () => {
     }
   };
 
-  const sortedArticles = getSortedArticles();
+  const sortedArticles = useMemo(() => getSortedArticles(), [likedArticles, sortBy, refreshKey]);
 
   // 무한 스크롤 설정
   const {
@@ -118,58 +117,6 @@ const Like = () => {
     navigate(path);
   };
 
-  // 디버깅 정보
-  const debugInfo = {
-    isAuthenticated,
-    userId: user?.id,
-    userName: user?.name,
-    likedArticlesRaw: likedArticles,
-    likedArticlesCount: likedArticles?.length || 0,
-    sortedArticlesCount: sortedArticles?.length || 0,
-    sortBy,
-    firstArticle: sortedArticles[0] || null,
-    refreshKey
-  };
-  
-  console.log('🔍 Like 페이지 상세 디버깅:');
-  console.log('📊 인증 상태:', debugInfo.isAuthenticated);
-  console.log('👤 사용자:', debugInfo.userName, '(ID:', debugInfo.userId, ')');
-  console.log('❤️ 원본 좋아요 데이터:', debugInfo.likedArticlesRaw);
-  console.log('📝 좋아요 개수:', debugInfo.likedArticlesCount);
-  console.log('📋 정렬된 기사 개수:', debugInfo.sortedArticlesCount);
-  console.log('🔧 정렬 기준:', debugInfo.sortBy);
-  
-  // 각 기사별 상세 데이터 확인
-  if (debugInfo.likedArticlesRaw && debugInfo.likedArticlesRaw.length > 0) {
-    console.log('🔍 각 좋아요 기사 상세:');
-    debugInfo.likedArticlesRaw.forEach((article, index) => {
-      console.log(`📰 기사 ${index + 1}:`, {
-        id: article.id,
-        title: article.title,
-        summary: article.summary,
-        image: article.image,
-        category: article.category,
-        publishedAt: article.publishedAt,
-        likedAt: article.likedAt
-      });
-    });
-  }
-  
-  // 정렬된 기사 데이터도 확인
-  if (sortedArticles && sortedArticles.length > 0) {
-    console.log('🔍 정렬된 기사 상세:');
-    sortedArticles.forEach((article, index) => {
-      console.log(`📋 정렬된 기사 ${index + 1}:`, {
-        id: article.id,
-        title: article.title,
-        summary: article.summary,
-        image: article.image,
-        category: article.category,
-        publishedAt: article.publishedAt,
-        likedAt: article.likedAt
-      });
-    });
-  }
 
   // 로그인하지 않은 경우
   if (!isAuthenticated) {
@@ -273,10 +220,7 @@ const Like = () => {
                   <Select
                     value={sortBy}
                     label="Sort by"
-                    onChange={(e) => {
-                      console.log('정렬 옵션 변경:', e.target.value);
-                      setSortBy(e.target.value);
-                  }}
+                    onChange={(e) => setSortBy(e.target.value)}
                 >
                     <MenuItem value="dateLiked">Date Liked</MenuItem>
                     <MenuItem value="publishedDate">Published</MenuItem>
@@ -304,9 +248,6 @@ const Like = () => {
                 
                 <ArticleGrid>
                   {visibleArticles.map((article, index) => {
-                    console.log(`🎨 렌더링 중: ${index + 1}번째 기사`, article.title);
-                    console.log(`📝 summary 확인:`, article.summary);
-                    
                     const isLastItem = index === visibleArticles.length - 1;
                     
                     return (
