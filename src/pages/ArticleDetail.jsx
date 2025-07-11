@@ -300,8 +300,8 @@ const ArticleDetail = () => {
           updateActivityTime && updateActivityTime();
         }
         
-        // 기사 조회수 증가 (로그인 여부와 관계없이)
-        if (incrementArticleViews) {
+        // 기사 조회수 증가 (로그인된 사용자만)
+        if (incrementArticleViews && user?.uid) {
           incrementArticleViews(foundArticle.id);
         }
       }
