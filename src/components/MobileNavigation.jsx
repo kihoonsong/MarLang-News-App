@@ -119,6 +119,11 @@ export const MobileContentWrapper = styled.div`
   padding-bottom: ${props => props.theme?.spacing ? props.theme.spacing(10) : '80px'};
   min-height: calc(100vh - 120px);
   
+  @media (max-width: 767px) {
+    padding-bottom: 100px; /* 네비게이션 높이 + 여백 */
+    min-height: auto; /* 높이 제한 해제 */
+  }
+  
   @media (min-width: 768px) {
     padding-bottom: 0;
     min-height: calc(100vh - 120px);
