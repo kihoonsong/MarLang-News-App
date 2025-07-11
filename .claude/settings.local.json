@@ -56,7 +56,8 @@
       "Bash(npm test)",
       "Bash(npm outdated)",
       "Bash(firebase:*)",
-      "WebFetch(domain:react-icons.github.io)"
+      "WebFetch(domain:react-icons.github.io)",
+      "WebFetch(domain:console.firebase.google.com)"
     ],
     "deny": []
   }

@@ -696,8 +696,18 @@ exports.logoutUser = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// 예약 기사 자동 발행 함수 (한국 시간 기준)
-exports.publishScheduledArticles = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+// 예약 기사 자동 발행 함수 (HTTP 호출용으로 복원)
+exports.publishScheduledArticles = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
   try {
     console.log('⏰ 예약 기사 자동 발행 체크 시작 (서버 사이드, 한국 시간 기준)');
     
@@ -716,7 +726,8 @@ exports.publishScheduledArticles = functions.pubsub.schedule('every 5 minutes').
     
     if (querySnapshot.empty) {
       console.log('📅 발행할 예약 기사가 없습니다.');
-      return null;
+      res.json({ success: true, publishedCount: 0, message: '발행할 예약 기사가 없습니다.' });
+      return;
     }
     
     let publishedCount = 0;
@@ -746,10 +757,95 @@ exports.publishScheduledArticles = functions.pubsub.schedule('every 5 minutes').
       console.log(`🚀 총 ${publishedCount}개의 예약 기사가 자동 발행되었습니다.`);
     }
     
-    return { publishedCount };
+    res.json({ 
+      success: true, 
+      publishedCount, 
+      message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.` 
+    });
     
   } catch (error) {
     console.error('🚨 예약 기사 자동 발행 중 오류 발생:', error);
-    throw error;
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error', 
+      message: error.message 
+    });
+  }
+});
+
+// 수동 예약 기사 발행 함수 (관리자용)
+exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    console.log('⏰ 예약 기사 수동 발행 체크 시작 (서버 사이드, 한국 시간 기준)');
+    
+    // 한국 시간 기준 현재 시간
+    const now = new Date();
+    const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+    const koreanTimeISO = koreanTime.toISOString();
+    
+    // scheduled 상태이면서 발행 시간이 지난 기사들 조회
+    const articlesRef = admin.firestore().collection('articles');
+    const query = articlesRef
+      .where('status', '==', 'scheduled')
+      .where('publishedAt', '<=', koreanTimeISO);
+    
+    const querySnapshot = await query.get();
+    
+    if (querySnapshot.empty) {
+      console.log('📅 발행할 예약 기사가 없습니다.');
+      res.json({ success: true, publishedCount: 0, message: '발행할 예약 기사가 없습니다.' });
+      return;
+    }
+    
+    let publishedCount = 0;
+    const batch = admin.firestore().batch();
+    
+    querySnapshot.forEach((doc) => {
+      const articleData = doc.data();
+      
+      // 실제 발행 시간이 지났는지 다시 확인
+      const articlePublishTime = new Date(articleData.publishedAt);
+      if (koreanTime >= articlePublishTime) {
+        // 배치 업데이트 추가
+        batch.update(doc.ref, {
+          status: 'published',
+          actualPublishedAt: koreanTimeISO, // 실제 발행된 시간 기록 (한국 시간)
+          updatedAt: koreanTimeISO
+        });
+        
+        console.log(`✅ 예약 기사 자동 발행 예정 (한국 시간): ${articleData.title}`);
+        publishedCount++;
+      }
+    });
+    
+    if (publishedCount > 0) {
+      // 배치 커밋
+      await batch.commit();
+      console.log(`🚀 총 ${publishedCount}개의 예약 기사가 자동 발행되었습니다.`);
+    }
+    
+    res.json({ 
+      success: true, 
+      publishedCount, 
+      message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.` 
+    });
+    
+  } catch (error) {
+    console.error('🚨 예약 기사 자동 발행 중 오류 발생:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error', 
+      message: error.message 
+    });
   }
 });

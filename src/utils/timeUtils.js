@@ -25,9 +25,14 @@ export const getKoreanTimeISOString = () => {
  * @returns {string} 한국 시간 기준 ISO 문자열
  */
 export const convertLocalToKoreanISO = (localTimeString) => {
-  // 입력된 시간을 한국 시간으로 간주하고 ISO 문자열로 변환
+  // 입력된 시간을 한국 시간으로 간주
   const localDate = new Date(localTimeString);
-  return localDate.toISOString();
+  
+  // 사용자가 입력한 시간이 한국 시간이라고 가정하고
+  // 이를 UTC로 변환하여 저장 (한국 시간 - 9시간 = UTC)
+  const utcTime = new Date(localDate.getTime() - (9 * 60 * 60 * 1000));
+  
+  return utcTime.toISOString();
 };
 
 /**
@@ -80,7 +85,16 @@ export const formatKoreanTime = (timeString) => {
  * @returns {string} datetime-local input에 사용할 값
  */
 export const getKoreanDateTimeLocalValue = (dateInput = null) => {
-  const date = dateInput ? new Date(dateInput) : getKoreanTime();
+  let date;
+  
+  if (dateInput) {
+    // DB에서 가져온 UTC 시간을 한국 시간으로 변환
+    date = new Date(dateInput);
+    date = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+  } else {
+    // 현재 한국 시간 사용
+    date = getKoreanTime();
+  }
   
   // 한국 시간 기준으로 YYYY-MM-DDTHH:mm 형식 생성
   const year = date.getFullYear();

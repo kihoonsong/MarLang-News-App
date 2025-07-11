@@ -228,6 +228,20 @@ export const ArticlesProvider = ({ children }) => {
     return allArticles.find(article => article.id === articleId) || null;
   }, [allArticles]);
 
+  // 예약 기사 가져오기
+  const getScheduledArticles = useCallback(() => {
+    return allArticles
+      .filter(article => article.status === 'scheduled')
+      .sort((a, b) => new Date(a.publishedAt) - new Date(b.publishedAt));
+  }, [allArticles]);
+
+  // 임시저장 기사 가져오기
+  const getDraftArticles = useCallback(() => {
+    return allArticles
+      .filter(article => article.status === 'draft')
+      .sort((a, b) => new Date(b.createdAt || b.savedAt) - new Date(a.createdAt || a.savedAt));
+  }, [allArticles]);
+
   // 기사 조회수 증가
   const incrementArticleViews = useCallback(async (articleId) => {
     try {
@@ -292,6 +306,41 @@ export const ArticlesProvider = ({ children }) => {
     }
   }, []);
 
+  // 수동 발행 기능 (예약 기사를 즉시 발행)
+  const publishArticleManually = useCallback(async (articleId) => {
+    try {
+      const articleDocRef = doc(db, 'articles', articleId);
+      const now = new Date();
+      const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+      const koreanTimeISO = koreanTime.toISOString();
+      
+      await updateDoc(articleDocRef, {
+        status: 'published',
+        actualPublishedAt: koreanTimeISO,
+        publishedAt: koreanTimeISO, // 발행 시간을 현재 시간으로 업데이트
+        updatedAt: koreanTimeISO
+      });
+
+      // 로컬 상태 업데이트
+      setAllArticles(prev => prev.map(article => 
+        article.id === articleId 
+          ? { 
+              ...article, 
+              status: 'published', 
+              actualPublishedAt: koreanTimeISO, 
+              publishedAt: koreanTimeISO,
+              updatedAt: koreanTimeISO
+            }
+          : article
+      ));
+
+      return true;
+    } catch (error) {
+      console.error('수동 발행 실패:', error);
+      return false;
+    }
+  }, []);
+
   const value = useMemo(() => ({
     allArticles,
     categories,
@@ -301,6 +350,8 @@ export const ArticlesProvider = ({ children }) => {
     getRecentArticles,
     getPopularArticles,
     getArticleById,
+    getScheduledArticles,
+    getDraftArticles,
     refreshArticles: fetchArticles,
     addArticle,
     updateArticle,
@@ -308,7 +359,8 @@ export const ArticlesProvider = ({ children }) => {
     updateCategories,
     incrementArticleViews,
     incrementArticleLikes,
-  }), [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories, incrementArticleViews, incrementArticleLikes]);
+    publishArticleManually,
+  }), [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, getScheduledArticles, getDraftArticles, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories, incrementArticleViews, incrementArticleLikes, publishArticleManually]);
 
   return (
     <ArticlesContext.Provider value={value}>

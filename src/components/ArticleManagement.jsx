@@ -8,11 +8,12 @@ import {
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Publish, 
-  Visibility, CloudUpload
+  Visibility, CloudUpload, Schedule, PlayArrow
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 import RichTextEditor from './RichTextEditor';
-import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO } from '../utils/timeUtils';
+import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO, formatKoreanTime } from '../utils/timeUtils';
+import { useArticles } from '../contexts/ArticlesContext';
 
 // 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
 const truncateSummary = (text, limit = 50) => {
@@ -39,9 +40,13 @@ const ArticleManagement = ({
   editableCategories,
   setSnackbar 
 }) => {
+  // Articles Context 사용
+  const { getScheduledArticles, getDraftArticles, publishArticleManually } = useArticles();
+  
   // 기사 편집 상태
   const [articleDialog, setArticleDialog] = useState(false);
   const [draftDialog, setDraftDialog] = useState(false);
+  const [scheduledDialog, setScheduledDialog] = useState(false);
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
@@ -66,17 +71,37 @@ const ArticleManagement = ({
   });
 
   // 키보드 단축키 핸들러 (임시저장용)
-  const _handleKeyDown = (event) => {
+  const _handleKeyDown = async (event) => {
     if (event.ctrlKey || event.metaKey && event.key.toLowerCase() === 's') {
       event.preventDefault();
-      // 임시저장
-      const draftKey = `article_draft_${Date.now()}`;
-      const draftData = {
-        ...articleForm,
-        savedAt: new Date().toISOString()
-      };
+      await handleSaveDraft();
+    }
+  };
+
+  // 임시저장 처리
+  const handleSaveDraft = async () => {
+    const draftKey = `article_draft_${Date.now()}`;
+    const draftData = {
+      ...articleForm,
+      savedAt: new Date().toISOString(),
+      status: 'draft'
+    };
+
+    try {
+      // Firestore에 임시저장
+      await onAddArticle(draftData);
+      
+      // LocalStorage에도 백업으로 저장
       localStorage.setItem(draftKey, JSON.stringify(draftData));
+      
       setSnackbar({ open: true, message: '임시저장되었습니다! (Ctrl+S)', severity: 'success' });
+    } catch (error) {
+      console.error('임시저장 중 오류:', error);
+      
+      // Firestore 저장 실패 시 LocalStorage에만 저장
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+      
+      setSnackbar({ open: true, message: '임시저장되었습니다! (로컬 저장)', severity: 'warning' });
     }
   };
 
@@ -344,10 +369,14 @@ const ArticleManagement = ({
         },
         category: articleForm.category,
         image: articleForm.image,
-        status: articleForm.publishType === 'scheduled' ? 'scheduled' : articleForm.status,
+        status: articleForm.publishType === 'scheduled' ? 'scheduled' : 
+                articleForm.publishType === 'immediate' ? 'published' : 
+                articleForm.status || 'published',
         publishedAt: articleForm.publishType === 'immediate' 
-          ? editingArticle.publishedAt 
-          : convertLocalToKoreanISO(articleForm.publishedAt),
+          ? new Date().toISOString()
+          : articleForm.publishType === 'scheduled'
+          ? convertLocalToKoreanISO(articleForm.publishedAt)
+          : editingArticle.publishedAt,
         wordCount: (articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length,
         readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
         tags: articleForm.category ? [articleForm.category] : []
@@ -402,6 +431,34 @@ const ArticleManagement = ({
     }
   };
 
+  // 예약 기사 수동 발행
+  const handlePublishScheduled = async (articleId) => {
+    try {
+      const success = await publishArticleManually(articleId);
+      if (success) {
+        setSnackbar({
+          open: true,
+          message: '예약 기사가 성공적으로 발행되었습니다!',
+          severity: 'success'
+        });
+        onRefreshArticles();
+      } else {
+        setSnackbar({
+          open: true,
+          message: '예약 기사 발행 중 오류가 발생했습니다.',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('예약 기사 발행 오류:', error);
+      setSnackbar({
+        open: true,
+        message: '예약 기사 발행 중 오류가 발생했습니다.',
+        severity: 'error'
+      });
+    }
+  };
+
   return (
     <Box>
       {/* 액션 버튼들 */}
@@ -422,6 +479,12 @@ const ArticleManagement = ({
           <ActionButton onClick={() => { loadSavedDrafts(); setDraftDialog(true); }}>
             <Save fontSize="large" />
             <Typography variant="h6" sx={{ mt: 1 }}>임시저장 목록</Typography>
+          </ActionButton>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <ActionButton onClick={() => setScheduledDialog(true)}>
+            <Schedule fontSize="large" />
+            <Typography variant="h6" sx={{ mt: 1 }}>예약 기사 목록</Typography>
           </ActionButton>
         </Grid>
       </Grid>
@@ -879,16 +942,7 @@ const ArticleManagement = ({
             </Button>
             <Button 
               variant="outlined"
-              onClick={() => {
-                // 임시저장 기능
-                const draftKey = `article_draft_${Date.now()}`;
-                const draftData = {
-                  ...articleForm,
-                  savedAt: new Date().toISOString()
-                };
-                localStorage.setItem(draftKey, JSON.stringify(draftData));
-                setSnackbar({ open: true, message: '임시저장되었습니다!', severity: 'success' });
-              }}
+              onClick={handleSaveDraft}
               startIcon={<Save />}
               sx={{ mr: 2 }}
             >
@@ -968,6 +1022,80 @@ const ArticleManagement = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDraftDialog(false)}>닫기</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 예약 기사 목록 다이얼로그 */}
+      <Dialog open={scheduledDialog} onClose={() => setScheduledDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>📅 예약 기사 목록</DialogTitle>
+        <DialogContent>
+          {getScheduledArticles().length === 0 ? (
+            <Alert severity="info">예약된 기사가 없습니다.</Alert>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>제목</TableCell>
+                    <TableCell>발행 예정 시간</TableCell>
+                    <TableCell>카테고리</TableCell>
+                    <TableCell>액션</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {getScheduledArticles().map((article) => (
+                    <TableRow key={article.id}>
+                      <TableCell>{article.title}</TableCell>
+                      <TableCell>
+                        {formatKoreanTime(article.publishedAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={article.category} size="small" />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            onClick={() => handlePublishScheduled(article.id)}
+                            startIcon={<PlayArrow />}
+                          >
+                            즉시 발행
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              setEditingArticle(article);
+                              setArticleForm({
+                                title: article.title,
+                                summary: article.summary,
+                                content: article.content,
+                                category: article.category,
+                                image: article.image,
+                                publishType: 'scheduled',
+                                publishedAt: getKoreanDateTimeLocalValue(article.publishedAt),
+                                status: article.status
+                              });
+                              setScheduledDialog(false);
+                              setArticleDialog(true);
+                            }}
+                            startIcon={<Edit />}
+                          >
+                            수정
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScheduledDialog(false)}>닫기</Button>
         </DialogActions>
       </Dialog>
     </Box>
