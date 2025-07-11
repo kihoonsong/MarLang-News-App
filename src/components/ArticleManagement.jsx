@@ -223,7 +223,7 @@ const ArticleManagement = ({
         readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
         level: 'intermediate',
         tags: articleForm.category ? [articleForm.category] : [],
-        status: articleForm.status,
+        status: articleForm.publishType === 'scheduled' ? 'scheduled' : 'published',
         isCustom: true
       };
 
@@ -343,7 +343,7 @@ const ArticleManagement = ({
         },
         category: articleForm.category,
         image: articleForm.image,
-        status: articleForm.status,
+        status: articleForm.publishType === 'scheduled' ? 'scheduled' : articleForm.status,
         publishedAt: articleForm.publishType === 'immediate' 
           ? editingArticle.publishedAt 
           : new Date(articleForm.publishedAt).toISOString(),

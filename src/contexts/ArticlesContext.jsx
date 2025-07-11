@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { startScheduledArticleChecker } from '../utils/scheduledArticleChecker';
 
 const ArticlesContext = createContext();
 
@@ -178,23 +179,53 @@ export const ArticlesProvider = ({ children }) => {
       await fetchArticles();
     };
     loadData();
+    
+    // 예약 기사 자동 발행 체크 시작
+    const stopScheduledChecker = startScheduledArticleChecker();
+    
+    return () => {
+      // 컴포넌트 언마운트 시 체크 중지
+      stopScheduledChecker();
+    };
   }, [fetchCategories, fetchArticles]);
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
-    const filtered = allArticles.filter(article => article.category === categoryName);
+    const now = new Date();
+    const filtered = allArticles.filter(article => {
+      // published 상태이고 발행 시간이 지난 기사만 표시
+      const isPublished = article.status === 'published';
+      const isTimeToPublish = new Date(article.publishedAt) <= now;
+      return article.category === categoryName && isPublished && isTimeToPublish;
+    });
     return limit ? filtered.slice(0, limit) : filtered;
   }, [allArticles]);
 
   const getRecentArticles = useCallback((limit = 10) => {
-    return [...allArticles].sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)).slice(0, limit);
+    const now = new Date();
+    return [...allArticles]
+      .filter(article => {
+        // published 상태이고 발행 시간이 지난 기사만 표시
+        const isPublished = article.status === 'published';
+        const isTimeToPublish = new Date(article.publishedAt) <= now;
+        return isPublished && isTimeToPublish;
+      })
+      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+      .slice(0, limit);
   }, [allArticles]);
 
   const getPopularArticles = useCallback((limit = 10) => {
     // 지난 이틀 (48시간) 기준으로 변경
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const now = new Date();
     
     return [...allArticles]
-      .filter(article => new Date(article.publishedAt) >= twoDaysAgo)
+      .filter(article => {
+        // published 상태이고 발행 시간이 지난 기사만 표시
+        const isPublished = article.status === 'published';
+        const isTimeToPublish = new Date(article.publishedAt) <= now;
+        const isRecent = new Date(article.publishedAt) >= twoDaysAgo;
+        return isPublished && isTimeToPublish && isRecent;
+      })
       .sort((a, b) => {
         // 좋아요 + 조회수를 합산한 인기도 점수로 정렬
         const scoreA = (a.likes || 0) + (a.views || 0);
