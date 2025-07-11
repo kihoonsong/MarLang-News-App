@@ -213,7 +213,9 @@ const ArticleManagement = ({
         },
         category: articleForm.category,
         image: articleForm.image || '/placeholder-image.svg',
-        publishedAt: articleForm.publishType === 'immediate' ? new Date().toISOString() : articleForm.publishedAt,
+        publishedAt: articleForm.publishType === 'immediate' 
+          ? new Date().toISOString() 
+          : new Date(articleForm.publishedAt).toISOString(),
         author: 'Admin',
         views: 0,
         likes: 0,
@@ -342,7 +344,9 @@ const ArticleManagement = ({
         category: articleForm.category,
         image: articleForm.image,
         status: articleForm.status,
-        publishedAt: articleForm.publishType === 'immediate' ? editingArticle.publishedAt : articleForm.publishedAt,
+        publishedAt: articleForm.publishType === 'immediate' 
+          ? editingArticle.publishedAt 
+          : new Date(articleForm.publishedAt).toISOString(),
         wordCount: (articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length,
         readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
         tags: articleForm.category ? [articleForm.category] : []

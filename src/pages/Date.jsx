@@ -22,7 +22,7 @@ const monthNames = [
 ];
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// 날짜별로 기사를 그룹핑하는 함수 (안전한 버전)
+// 날짜별로 기사를 그룹핑하는 함수 (로컬 시간 기준)
 const groupArticlesByDate = (articles) => {
   if (!Array.isArray(articles)) return {};
   
@@ -34,7 +34,12 @@ const groupArticlesByDate = (articles) => {
       const date = new Date(article.publishedAt);
       if (isNaN(date.getTime())) return; // 유효하지 않은 날짜 건너뛰기
       
-      const dateStr = date.toISOString().split('T')[0];
+      // 로컬 시간 기준으로 날짜 문자열 생성 (UTC 변환 문제 해결)
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       if (!grouped[dateStr]) {
         grouped[dateStr] = [];
       }
@@ -184,7 +189,9 @@ const DatePage = () => {
   };
   
   const formatDisplayDate = (dateString) => {
-    const date = new Date(dateString);
+    // dateString이 YYYY-MM-DD 형식이므로 로컬 시간으로 파싱
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, month - 1, day); // 로컬 시간으로 생성
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
