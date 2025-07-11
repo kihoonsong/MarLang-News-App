@@ -2610,21 +2610,24 @@ const SwipeCard = styled.div`
 
   /* Mobile styles */
   @media (max-width: 768px) {
+    position: static; /* absolute → static으로 변경하여 문서 흐름에 포함 */
     width: 100%;
     padding: 1.5rem;
     box-sizing: border-box; /* 패딩을 너비 안에 포함 */
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     cursor: default;
-    opacity: ${props => props.$isActive ? 1 : 0};
-    transform: translateX(${props => props.$isActive ? '0' : (props.$position < 0 ? '-100%' : '100%')});
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    display: ${props => props.$isActive ? 'flex' : 'none'}; /* 비활성 카드 완전히 숨김 */
+    opacity: 1;
+    transform: none; /* transform 제거로 자연스러운 배치 */
+    transition: opacity 0.3s ease-in-out;
     z-index: ${props => props.$isActive ? 10 : 5};
     left: 0;
     filter: none;
+    top: auto; /* absolute 해제 후 불필요한 속성 제거 */
 
     &:hover {
-      opacity: ${props => props.$isActive ? 1 : 0};
-      transform: translateX(${props => props.$isActive ? '0' : (props.$position < 0 ? '-100%' : '100%')});
+      opacity: 1;
+      transform: none;
     }
   }
 
