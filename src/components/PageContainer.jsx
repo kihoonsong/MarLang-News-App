@@ -5,6 +5,11 @@ const PageContainer = styled.div`
   width: 100%;
   box-sizing: border-box;
   
+  /* 모바일에서 하단 네비게이션 여백 추가 */
+  @media (max-width: 767px) {
+    padding-bottom: 100px; /* 80px(네비게이션 높이) + 20px(여백) */
+  }
+  
   @media (min-width: 768px) {
     padding: 0 2rem 2rem 2rem;
   }
