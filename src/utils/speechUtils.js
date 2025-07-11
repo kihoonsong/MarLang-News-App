@@ -109,6 +109,8 @@ export const getEnglishVoice = () => {
     
     // 사용자 설정 확인
     const userSettings = getUserTTSSettings();
+    console.log('🔍 사용자 TTS 설정:', userSettings);
+    console.log('🎵 사용 가능한 음성 목록:', voices.map(v => `${v.name} (${v.lang}) [default: ${v.default}]`));
     
     // 1단계: 사용자가 설정한 음성 찾기 (최우선)
     if (userSettings.preferredTTSVoice) {
@@ -116,6 +118,8 @@ export const getEnglishVoice = () => {
       if (preferredVoice) {
         console.log('✅ 사용자 설정 음성 발견:', preferredVoice.name, preferredVoice.lang);
         return preferredVoice;
+      } else {
+        console.warn('⚠️ 사용자 설정 음성을 찾을 수 없음:', userSettings.preferredTTSVoice);
       }
     }
     
@@ -401,4 +405,53 @@ export const speakWithStatus = async (text, options = {}) => {
     isPlaying = false;
     throw error;
   }
-}; 
+};
+
+// iPhone TTS 테스트 함수 (디버깅용)
+export const testTTSOnIPhone = () => {
+  console.log('🧪 iPhone TTS 테스트 시작...');
+  
+  // 기본 정보 확인
+  console.log('📱 User Agent:', navigator.userAgent);
+  console.log('🔊 Speech Synthesis 지원:', 'speechSynthesis' in window);
+  
+  if (!window.speechSynthesis) {
+    console.error('❌ speechSynthesis 미지원');
+    return;
+  }
+  
+  // 음성 목록 확인
+  const voices = window.speechSynthesis.getVoices();
+  console.log('🎵 총 음성 개수:', voices.length);
+  
+  if (voices.length === 0) {
+    console.warn('⚠️ 음성 목록이 비어있음. voiceschanged 이벤트 대기 중...');
+    window.speechSynthesis.onvoiceschanged = () => {
+      const newVoices = window.speechSynthesis.getVoices();
+      console.log('🔄 음성 목록 로드됨:', newVoices.length, '개');
+      logVoiceDetails(newVoices);
+    };
+  } else {
+    logVoiceDetails(voices);
+  }
+  
+  // 간단한 TTS 테스트
+  const utterance = new SpeechSynthesisUtterance('Hello iPhone TTS test');
+  utterance.onstart = () => console.log('▶️ TTS 시작됨');
+  utterance.onend = () => console.log('⏹️ TTS 종료됨');
+  utterance.onerror = (e) => console.error('❌ TTS 오류:', e);
+  
+  window.speechSynthesis.speak(utterance);
+};
+
+// 음성 목록 상세 로그
+const logVoiceDetails = (voices) => {
+  voices.forEach((voice, index) => {
+    console.log(`${index + 1}. ${voice.name} (${voice.lang}) [기본값: ${voice.default}]`);
+  });
+};
+
+// 전역 노출 (개발자 도구에서 테스트용)
+if (typeof window !== 'undefined') {
+  window.testTTSOnIPhone = testTTSOnIPhone;
+} 
