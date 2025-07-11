@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { startScheduledArticleChecker } from '../utils/scheduledArticleChecker';
 import { isAfterKoreanTime } from '../utils/timeUtils';
 
 const ArticlesContext = createContext();
@@ -180,14 +179,6 @@ export const ArticlesProvider = ({ children }) => {
       await fetchArticles();
     };
     loadData();
-    
-    // 예약 기사 자동 발행 체크 시작
-    const stopScheduledChecker = startScheduledArticleChecker();
-    
-    return () => {
-      // 컴포넌트 언마운트 시 체크 중지
-      stopScheduledChecker();
-    };
   }, [fetchCategories, fetchArticles]);
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
