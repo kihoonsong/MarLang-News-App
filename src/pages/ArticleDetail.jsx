@@ -2443,6 +2443,18 @@ const ContentText = styled.div`
     }
   }
   
+  /* Mobile styles - 내부 스크롤 해제 */
+  @media (max-width: 768px) {
+    overflow-y: visible;   /* 내부 스크롤 해제 */
+    max-height: none;
+    
+    /* 모바일에서는 페이드 효과 제거 */
+    &:before,
+    &:after {
+      display: none;
+    }
+  }
+  
   .clickable-word-span {
     cursor: pointer;
     touch-action: manipulation;
@@ -2546,9 +2558,9 @@ const SwipeCardContainer = styled.div`
 
   /* Mobile styles */
   @media (max-width: 768px) {
-    min-height: 500px;
-    height: auto;
-    overflow: hidden;
+    height: auto;          /* 내용 길이만큼 늘어남 → 외부 하나의 스크롤만 남음 */
+    align-items: stretch;  /* 카드가 전체 폭·높이를 자연스럽게 차지 */
+    overflow: visible;
     touch-action: ${props => props.$isTablet ? 'pan-y' : 'manipulation'}; /* 태블릿: 수직만, 폰: JavaScript 제어 */
   }
 `;
