@@ -96,10 +96,11 @@ export const getCachedVoices = () => {
   return _cachedVoices || [];
 };
 
-// 영어 발음에 적합한 음성 찾기 (미국 음성 우선, 시스템 기본값 반영)
-export const getEnglishVoice = async () => {
+// 영어 발음에 적합한 음성 찾기 (실시간 음성 목록 조회)
+export const getEnglishVoice = () => {
   try {
-    const voices = await getAvailableVoices();
+    // 매번 실시간으로 음성 목록 조회 (시스템 변경 즉시 반영)
+    const voices = window.speechSynthesis.getVoices();
     
     if (!voices || voices.length === 0) {
       console.warn('⚠️ 사용 가능한 음성이 없습니다');
@@ -203,9 +204,9 @@ export const speakText = async (text, options = {}) => {
   utterance.pitch = settings.pitch;
   utterance.volume = settings.volume;
 
-  // 영어 음성 설정
+  // 영어 음성 설정 (실시간 조회)
   try {
-    const englishVoice = await getEnglishVoice();
+    const englishVoice = getEnglishVoice();
     if (englishVoice) {
       utterance.voice = englishVoice;
       utterance.lang = englishVoice.lang;
