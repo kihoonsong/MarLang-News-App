@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
+import { getAvailableVoices, addVoicesChangedListener } from './utils/speechUtils';
 
 // 향상된 에러 처리 시스템 import
 import ErrorBoundary from './components/ErrorBoundary';
@@ -144,6 +145,34 @@ const NetworkMonitor = () => {
   return null;
 };
 
+// 음성 목록 관리 컴포넌트
+const VoiceManager = () => {
+  useEffect(() => {
+    const refreshVoices = async () => {
+      try {
+        const voices = await getAvailableVoices();
+        console.log('🔊 음성 목록 갱신됨:', voices.length, '개');
+      } catch (error) {
+        console.error('음성 목록 갱신 실패:', error);
+      }
+    };
+
+    // 초기 음성 목록 로드
+    refreshVoices();
+
+    // 음성 변경 이벤트 리스너 등록
+    const removeListener = addVoicesChangedListener((voices) => {
+      console.log('🔄 음성 설정 변경 감지됨:', voices.length, '개');
+    });
+
+    return () => {
+      removeListener();
+    };
+  }, []);
+
+  return null;
+};
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -258,6 +287,7 @@ function App() {
                   {/* 전역 시스템 컴포넌트들 */}
                   <GlobalErrorHandler />
                   <NetworkMonitor />
+                  <VoiceManager />
                   <TTSManager />
                   
                   {/* 오프라인 알림 배너 */}

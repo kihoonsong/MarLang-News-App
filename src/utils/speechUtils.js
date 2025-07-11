@@ -9,7 +9,33 @@ export const isSpeechSynthesisSupported = () => {
 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-// 사용 가능한 음성 목록 가져오기 (안정성 개선)
+// 음성 목록 캐시 및 리스너 관리
+let _cachedVoices = null;
+let _voicesListeners = new Set();
+
+// 음성 목록 변경 이벤트 리스너 추가
+export const addVoicesChangedListener = (callback) => {
+  _voicesListeners.add(callback);
+  
+  // 리스너 제거 함수 반환
+  return () => {
+    _voicesListeners.delete(callback);
+  };
+};
+
+// 음성 목록 변경 알림
+const notifyVoicesChanged = (voices) => {
+  _cachedVoices = voices;
+  _voicesListeners.forEach(callback => {
+    try {
+      callback(voices);
+    } catch (error) {
+      console.error('음성 변경 콜백 오류:', error);
+    }
+  });
+};
+
+// 사용 가능한 음성 목록 가져오기 (개선된 이벤트 처리)
 export const getAvailableVoices = () => {
   if (!isSpeechSynthesisSupported()) {
     console.warn('⚠️ Speech Synthesis가 지원되지 않습니다');
@@ -21,14 +47,15 @@ export const getAvailableVoices = () => {
     
     if (voices.length > 0) {
       console.log('✅ 음성 목록 즉시 로드됨:', voices.length, '개');
+      notifyVoicesChanged(voices);
       resolve(voices);
       return;
     }
     
     // 모바일 환경에서는 더 많은 재시도와 긴 간격 필요
     let attempts = 0;
-    const maxAttempts = isMobile ? 40 : 20; // 모바일에서 재시도 횟수 증가
-    const retryInterval = isMobile ? 300 : 150; // 모바일에서 재시도 간격 증가
+    const maxAttempts = isMobile ? 40 : 20;
+    const retryInterval = isMobile ? 300 : 150;
     
     const checkVoices = () => {
       voices = speechSynthesis.getVoices();
@@ -36,30 +63,40 @@ export const getAvailableVoices = () => {
       
       if (voices.length > 0) {
         console.log('✅ 음성 목록 로드 완료:', voices.length, '개');
-        // onvoiceschanged 이벤트 리스너 제거
-        speechSynthesis.onvoiceschanged = null;
+        notifyVoicesChanged(voices);
         resolve(voices);
       } else if (attempts < maxAttempts) {
         attempts++;
         setTimeout(checkVoices, retryInterval);
       } else {
-        // 최대 재시도 후에도 음성이 없으면 빈 배열 반환
         console.warn('⚠️ 음성 로딩 실패: 최대 재시도 횟수 초과');
-        speechSynthesis.onvoiceschanged = null;
         resolve([]);
       }
     };
     
-    // onvoiceschanged 이벤트 등록 (모바일 환경 고려)
-    speechSynthesis.onvoiceschanged = checkVoices;
+    // onvoiceschanged 이벤트 등록 (영구 리스너)
+    if (!speechSynthesis.onvoiceschanged) {
+      speechSynthesis.onvoiceschanged = () => {
+        const newVoices = speechSynthesis.getVoices();
+        if (newVoices.length > 0) {
+          console.log('🔄 음성 목록 업데이트됨:', newVoices.length, '개');
+          notifyVoicesChanged(newVoices);
+        }
+      };
+    }
     
-    // 즉시 체크 수행 (모바일에서 더 긴 대기 시간)
+    // 즉시 체크 수행
     const initialDelay = isMobile ? 500 : 200;
     setTimeout(checkVoices, initialDelay);
   });
 };
 
-// 영어 발음에 적합한 음성 찾기 (안정성 개선)
+// 캐시된 음성 목록 가져오기
+export const getCachedVoices = () => {
+  return _cachedVoices || [];
+};
+
+// 영어 발음에 적합한 음성 찾기 (미국 음성 우선, 시스템 기본값 반영)
 export const getEnglishVoice = async () => {
   try {
     const voices = await getAvailableVoices();
@@ -69,44 +106,40 @@ export const getEnglishVoice = async () => {
       return null;
     }
     
-    // 우선순위: 미국 영어 -> 영국 영어 -> 기타 영어 -> 기본값
-    const preferredVoices = [
-      'en-US',
-      'en-GB', 
-      'en-AU',
-      'en-CA',
-      'en'
-    ];
-    
-    // 1단계: 선호 언어와 성별 조건 모두 만족하는 음성 찾기
-    for (const langCode of preferredVoices) {
-      const voice = voices.find(v => 
-        v.lang.startsWith(langCode) && 
-        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('male'))
-      );
-      if (voice) {
-        console.log('✅ 선호 음성 발견:', voice.name, voice.lang);
-        return voice;
-      }
+    // 1단계: 시스템 기본값이면서 미국 영어인 음성 찾기 (최우선)
+    const defaultUSVoice = voices.find(v => 
+      v.default === true && v.lang.startsWith('en-US')
+    );
+    if (defaultUSVoice) {
+      console.log('✅ 시스템 기본 미국 음성 발견:', defaultUSVoice.name, defaultUSVoice.lang);
+      return defaultUSVoice;
     }
     
-    // 2단계: 선호 언어만 만족하는 음성 찾기
+    // 2단계: 미국 영어 음성 찾기 (기본값 아니어도 됨)
+    const usVoice = voices.find(v => v.lang.startsWith('en-US'));
+    if (usVoice) {
+      console.log('✅ 미국 영어 음성 발견:', usVoice.name, usVoice.lang);
+      return usVoice;
+    }
+    
+    // 3단계: 다른 영어 음성 찾기 (우선순위 순서)
+    const preferredVoices = ['en-GB', 'en-AU', 'en-CA', 'en'];
     for (const langCode of preferredVoices) {
       const voice = voices.find(v => v.lang.startsWith(langCode));
       if (voice) {
-        console.log('✅ 대체 음성 발견:', voice.name, voice.lang);
+        console.log('✅ 대체 영어 음성 발견:', voice.name, voice.lang);
         return voice;
       }
     }
     
-    // 3단계: 어떤 영어 음성이든 찾기
+    // 4단계: 어떤 영어 음성이든 찾기
     const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().includes('en'));
     if (anyEnglishVoice) {
       console.log('✅ 일반 영어 음성 발견:', anyEnglishVoice.name, anyEnglishVoice.lang);
       return anyEnglishVoice;
     }
     
-    // 4단계: 기본 음성 사용
+    // 5단계: 기본 음성 사용
     const defaultVoice = voices[0];
     console.log('⚠️ 기본 음성 사용:', defaultVoice ? defaultVoice.name : 'none');
     return defaultVoice || null;
