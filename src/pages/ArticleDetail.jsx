@@ -138,7 +138,7 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth() || {};
-  const { allArticles, loading: articlesLoading, incrementArticleViews, incrementArticleLikes } = useArticles();
+  const { allArticles, loading: articlesLoading, incrementArticleViews, incrementArticleLikes, getArticleById } = useArticles();
   const { 
     savedWords, 
     addWord, 
@@ -265,8 +265,8 @@ const ArticleDetail = () => {
 
   // 기사 데이터 로드
   useEffect(() => {
-    if (!articlesLoading && allArticles && id) {
-      const foundArticle = allArticles.find(article => article.id === id);
+    if (!articlesLoading && id) {
+      const foundArticle = getArticleById(id);
       if (foundArticle) {
         if (import.meta.env.DEV) {
           console.log('🔍 원본 기사 데이터 확인:', foundArticle);
@@ -306,7 +306,7 @@ const ArticleDetail = () => {
         }
       }
     }
-  }, [articlesLoading, allArticles, id, user?.uid]);
+  }, [articlesLoading, id, user?.uid]);
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
