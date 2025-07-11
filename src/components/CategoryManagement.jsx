@@ -19,7 +19,9 @@ const CategoryManagement = ({
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [editingCategoryIndex, setEditingCategoryIndex] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [editingCategoryColor, setEditingCategoryColor] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('');
 
   // 편집 가능한 카테고리 목록 (기존 호환성 유지) - 안전한 배열 처리
   const editableCategories = Array.isArray(allEditableCategories) 
@@ -45,7 +47,8 @@ const CategoryManagement = ({
       const newCategory = {
         id: newCategoryName.toLowerCase().replace(/\s+/g, '_'),
         name: newCategoryName.trim(),
-        type: 'category'
+        type: 'category',
+        color: newCategoryColor.trim() || '#e3f2fd'
       };
 
       const updatedCategories = [...(Array.isArray(allEditableCategories) ? allEditableCategories : []), newCategory];
@@ -54,6 +57,7 @@ const CategoryManagement = ({
       setSnackbar({ open: true, message: `"${newCategoryName}" 카테고리가 추가되었습니다!`, severity: 'success' });
       setCategoryDialog(false);
       setNewCategoryName('');
+      setNewCategoryColor('');
     } catch (error) {
       console.error('Error adding category:', error);
       setSnackbar({ open: true, message: '카테고리 추가 중 오류가 발생했습니다.', severity: 'error' });
@@ -97,6 +101,7 @@ const CategoryManagement = ({
   const handleEditCategoryName = (index) => {
     setEditingCategoryIndex(index);
     setEditingCategoryName(allEditableCategories[index].name);
+    setEditingCategoryColor(allEditableCategories[index].color || '#e3f2fd');
   };
 
   // 카테고리 이름 저장
@@ -124,7 +129,8 @@ const CategoryManagement = ({
           ? { 
               ...category, 
               name: editingCategoryName.trim(),
-              id: editingCategoryName.toLowerCase().replace(/\s+/g, '_')
+              id: editingCategoryName.toLowerCase().replace(/\s+/g, '_'),
+              color: editingCategoryColor.trim() || '#e3f2fd'
             }
           : category
       ) : [];
@@ -146,6 +152,7 @@ const CategoryManagement = ({
   const handleCancelEdit = () => {
     setEditingCategoryIndex(null);
     setEditingCategoryName('');
+    setEditingCategoryColor('');
   };
 
   return (
@@ -208,11 +215,35 @@ const CategoryManagement = ({
                       <Box>
                         <TextField
                           fullWidth
+                          label="카테고리 이름"
                           value={editingCategoryName}
                           onChange={(e) => setEditingCategoryName(e.target.value)}
                           size="small"
                           sx={{ mb: 2 }}
                           autoFocus
+                        />
+                        <TextField
+                          fullWidth
+                          label="배경 색상 (예: #e3f2fd)"
+                          value={editingCategoryColor}
+                          onChange={(e) => setEditingCategoryColor(e.target.value)}
+                          size="small"
+                          sx={{ mb: 2 }}
+                          placeholder="#e3f2fd"
+                          InputProps={{
+                            startAdornment: (
+                              <Box
+                                sx={{
+                                  width: 20,
+                                  height: 20,
+                                  backgroundColor: editingCategoryColor || '#e3f2fd',
+                                  borderRadius: '4px',
+                                  mr: 1,
+                                  border: '1px solid #ddd'
+                                }}
+                              />
+                            )
+                          }}
                         />
                         <Box display="flex" gap={1}>
                           <Button 
@@ -234,11 +265,25 @@ const CategoryManagement = ({
                       </Box>
                     ) : (
                       <Box>
-                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                          {category.name}
+                        <Box display="flex" alignItems="center" gap={1} sx={{ mb: 1 }}>
+                          <Typography variant="h6" fontWeight="bold">
+                            {category.name}
+                          </Typography>
+                          <Box
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              backgroundColor: category.color || '#e3f2fd',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd'
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          ID: {category.id}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          ID: {category.id}
+                          색상: {category.color || '#e3f2fd'}
                         </Typography>
                         <Box display="flex" gap={1}>
                           {category.type === 'category' && (
@@ -294,6 +339,28 @@ const CategoryManagement = ({
             margin="normal"
             autoFocus
             placeholder="예: Health, Sports, Entertainment"
+          />
+          <TextField
+            fullWidth
+            label="배경 색상 (예: #e3f2fd)"
+            value={newCategoryColor}
+            onChange={(e) => setNewCategoryColor(e.target.value)}
+            margin="normal"
+            placeholder="#e3f2fd"
+            InputProps={{
+              startAdornment: (
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: newCategoryColor || '#e3f2fd',
+                    borderRadius: '4px',
+                    mr: 1,
+                    border: '1px solid #ddd'
+                  }}
+                />
+              )
+            }}
           />
         </DialogContent>
         <DialogActions>

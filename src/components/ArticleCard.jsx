@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { designTokens, getShadow, getBorderRadius, getColor } from '../utils/designTokens';
+import { getCategoryColor } from '../utils/categoryUtils';
+import { useArticles } from '../contexts/ArticlesContext';
 
 // 요약 트렁케이트 (중복 마침표 제거)
 const truncateSummary = (text, limit = 100) => {
@@ -24,6 +26,10 @@ const ArticleCard = ({
   onClick
 }) => {
   const navigate = useNavigate();
+  const { categories } = useArticles();
+  
+  // 카테고리 객체 찾기
+  const categoryObj = categories.find(cat => cat.name === category) || { name: category };
 
   const handleClick = () => {
     if (import.meta.env.DEV) {
@@ -61,7 +67,7 @@ const ArticleCard = ({
           e.target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
         }}
       />
-      <CardContent>
+      <CardContent $categoryObj={categoryObj}>
         <CardHeader>
           <CategoryChip>{category}</CategoryChip>
           <PublishDate>{formatDate(publishedAt)}</PublishDate>
@@ -116,6 +122,7 @@ const CardContent = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
+  background: ${props => props.$categoryObj && props.$categoryObj.color ? props.$categoryObj.color : 'transparent'};
   
   @media (min-width: ${designTokens.breakpoints.mobile}) {
     padding: ${designTokens.spacing.md};

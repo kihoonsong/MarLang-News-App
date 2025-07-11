@@ -53,4 +53,48 @@ export const getValidCategorySlugs = (categories) => {
     .filter(isValidCategory)
     .map(cat => categoryToSlug(cat.name))
     .filter(slug => slug !== '');
+};
+
+// 카테고리별 파스텔 색상 매핑 (기존 5개 카테고리)
+const categoryColorMap = {
+  'Technology': { bg: '#d6eaff', text: '#1f5582' },
+  'Science': { bg: '#e0f0ff', text: '#0066cc' },
+  'Business': { bg: '#ffe2c6', text: '#b5671f' },
+  'Culture': { bg: '#ffd6ec', text: '#a0316b' },
+  'Society': { bg: '#e6ffe6', text: '#2d5a2d' }
+};
+
+// 카테고리 색상 가져오기 (카테고리 객체 또는 이름으로 처리)
+export const getCategoryColor = (categoryOrName) => {
+  if (!categoryOrName) return { bg: '#e3f2fd', text: '#1976d2' };
+  
+  // 카테고리 객체인 경우 (color 필드가 있는 경우)
+  if (typeof categoryOrName === 'object' && categoryOrName.color) {
+    return { bg: categoryOrName.color, text: getContrastColor(categoryOrName.color) };
+  }
+  
+  // 카테고리 이름인 경우 (기존 매핑 확인)
+  const categoryName = typeof categoryOrName === 'string' ? categoryOrName : categoryOrName.name;
+  const colors = categoryColorMap[categoryName];
+  if (colors) return colors;
+  
+  // 기본 색상 (매핑되지 않은 카테고리)
+  return { bg: '#e3f2fd', text: '#1976d2' };
+};
+
+// 배경 색상에 따른 텍스트 대비 색상 계산
+const getContrastColor = (bgColor) => {
+  if (!bgColor) return '#1976d2';
+  
+  // hex 색상을 RGB로 변환
+  const hex = bgColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // 명도 계산 (0.299*R + 0.587*G + 0.114*B)
+  const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+  
+  // 밝은 배경이면 어두운 텍스트, 어두운 배경이면 밝은 텍스트
+  return brightness > 128 ? '#333333' : '#ffffff';
 }; 

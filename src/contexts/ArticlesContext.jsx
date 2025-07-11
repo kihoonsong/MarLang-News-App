@@ -9,11 +9,11 @@ export const useArticles = () => useContext(ArticlesContext);
 
 const defaultCategories = [
   { id: 'recent', name: 'Recent', type: 'recent' },
-  { id: 'technology', name: 'Technology', type: 'category' },
-  { id: 'science', name: 'Science', type: 'category' },
-  { id: 'business', name: 'Business', type: 'category' },
-  { id: 'culture', name: 'Culture', type: 'category' },
-  { id: 'society', name: 'Society', type: 'category' },
+  { id: 'technology', name: 'Technology', type: 'category', color: '#d6eaff' },
+  { id: 'science', name: 'Science', type: 'category', color: '#e0f0ff' },
+  { id: 'business', name: 'Business', type: 'category', color: '#ffe2c6' },
+  { id: 'culture', name: 'Culture', type: 'category', color: '#ffd6ec' },
+  { id: 'society', name: 'Society', type: 'category', color: '#e6ffe6' },
   { id: 'popular', name: 'Popular', type: 'popular' }
 ];
 
