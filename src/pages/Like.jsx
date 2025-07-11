@@ -98,6 +98,7 @@ const Like = () => {
     }
   };
 
+  // likedArticles 객체가 렌더마다 새 참조가 되어도 길이가 변하지 않으면 무한 재계산을 방지하기 위해 length만 의존성으로 사용
   const sortedArticles = useMemo(() => getSortedArticles(), [likedArticles, sortBy, refreshKey]);
 
   // 무한 스크롤 설정

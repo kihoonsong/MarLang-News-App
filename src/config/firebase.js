@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,7 +19,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Firestore 초기화
-export const db = getFirestore(app); 
+export const db = getFirestore(app);
+
+// Storage 초기화
+export const storage = getStorage(app); 
 
 // Google OAuth 공급자 설정
 export const googleProvider = new GoogleAuthProvider();

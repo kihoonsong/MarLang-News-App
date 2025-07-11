@@ -369,8 +369,38 @@ export const DataProvider = ({ children }) => {
         throw new Error('관리자 권한이 필요합니다.');
       }
 
+      // 이미지 업로드 처리
+      let imageUrls = [];
+      if (announcementData.images && announcementData.images.length > 0) {
+        try {
+          const { uploadMultipleImages } = await import('../utils/imageUpload');
+          const imageFiles = announcementData.images.filter(img => img.file);
+          
+          if (imageFiles.length > 0) {
+            const uploadResults = await uploadMultipleImages(
+              imageFiles.map(img => img.file),
+              'announcements'
+            );
+            imageUrls = uploadResults.map(result => ({
+              url: result.url,
+              fileName: result.fileName,
+              originalName: result.originalName,
+              size: result.size,
+              type: result.type
+            }));
+          }
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          throw new Error('이미지 업로드 중 오류가 발생했습니다.');
+        }
+      }
+
       const newAnnouncement = {
-        ...announcementData,
+        title: announcementData.title,
+        content: announcementData.content,
+        type: announcementData.type || 'general',
+        isSticky: announcementData.isSticky || false,
+        images: imageUrls,
         status: 'published',
         author: user.name || user.email,
         authorId: user.uid,

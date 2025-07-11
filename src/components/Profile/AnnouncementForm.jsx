@@ -281,6 +281,8 @@ const AnnouncementForm = ({ announcement, onSubmit, onClose }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleInputChange = (e) => {
@@ -291,24 +293,69 @@ const AnnouncementForm = ({ announcement, onSubmit, onClose }) => {
     }));
   };
 
-  const handleFileSelect = (files) => {
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
+  const handleFileSelect = async (files) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      const { validateImageFile } = await import('../../utils/imageUpload');
+      
+      const validFiles = [];
+      const fileArray = Array.from(files);
+      
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        const validation = validateImageFile(file);
+        
+        if (validation.isValid) {
+          validFiles.push(file);
+        } else {
+          alert(`파일 "${file.name}": ${validation.error}`);
+        }
+      }
+      
+      if (validFiles.length === 0) {
+        setIsUploading(false);
+        return;
+      }
+      
+      // 파일 미리보기 생성
+      const newImages = [];
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
         const reader = new FileReader();
-        reader.onload = (e) => {
-          setFormData(prev => ({
-            ...prev,
-            images: [...prev.images, {
-              id: Date.now() + Math.random(),
+        
+        await new Promise((resolve) => {
+          reader.onload = (e) => {
+            newImages.push({
+              id: Date.now() + Math.random() + i,
               file: file,
               url: e.target.result,
-              name: file.name
-            }]
-          }));
-        };
-        reader.readAsDataURL(file);
+              name: file.name,
+              size: file.size,
+              type: file.type
+            });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+        
+        // 진행률 업데이트
+        setUploadProgress(Math.round(((i + 1) / validFiles.length) * 100));
       }
-    });
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+      
+    } catch (error) {
+      console.error('파일 선택 중 오류:', error);
+      alert('파일 선택 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -440,17 +487,48 @@ const AnnouncementForm = ({ announcement, onSubmit, onClose }) => {
               <FiImage size={32} color="#a0aec0" />
               <p style={{ margin: '12px 0', color: '#4a5568' }}>
                 이미지를 드래그하여 업로드하거나 버튼을 클릭하세요
+                <br />
+                <small style={{ color: '#718096' }}>
+                  지원 형식: JPEG, PNG, GIF, WebP (최대 5MB)
+                </small>
               </p>
-              <UploadButton onClick={() => fileInputRef.current?.click()}>
+              {isUploading && (
+                <div style={{ margin: '12px 0' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    height: '4px', 
+                    backgroundColor: '#e2e8f0', 
+                    borderRadius: '2px',
+                    overflow: 'hidden'
+                  }}>
+                    <div 
+                      style={{ 
+                        width: `${uploadProgress}%`, 
+                        height: '100%', 
+                        backgroundColor: '#667eea',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  <p style={{ margin: '8px 0', color: '#4a5568', fontSize: '14px' }}>
+                    업로드 중... {uploadProgress}%
+                  </p>
+                </div>
+              )}
+              <UploadButton 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
                 <FiUpload size={16} />
-                이미지 선택
+                {isUploading ? '업로드 중...' : '이미지 선택'}
               </UploadButton>
               <HiddenFileInput
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/gif,image/webp"
                 multiple
                 onChange={handleFileUpload}
+                disabled={isUploading}
               />
             </ImageUploadSection>
 
@@ -475,10 +553,10 @@ const AnnouncementForm = ({ announcement, onSubmit, onClose }) => {
             <Button 
               type="submit" 
               variant="primary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
             >
               <FiSave size={16} />
-              {isSubmitting ? '저장 중...' : '저장'}
+              {isSubmitting ? '저장 중...' : isUploading ? '업로드 중...' : '저장'}
             </Button>
           </ButtonGroup>
         </Form>
