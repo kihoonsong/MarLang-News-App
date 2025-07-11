@@ -22,22 +22,25 @@ const UserSettings = () => {
   const { t } = useTranslations();
   const [availableVoices, setAvailableVoices] = useState([]);
 
-  // 음성 목록 가져오기
+  // 음성 목록 가져오기 (실시간 조회 방식)
   useEffect(() => {
     const loadVoices = () => {
+      // 항상 실시간으로 음성 목록 조회
       const voices = window.speechSynthesis.getVoices();
       // 영어 음성만 필터링
       const englishVoices = voices.filter(voice => 
         voice.lang.toLowerCase().startsWith('en')
       );
       setAvailableVoices(englishVoices);
+      console.log('🎵 Settings 음성 목록 갱신:', englishVoices.length, '개');
     };
 
     // 초기 로드
     loadVoices();
 
-    // 음성 목록 변경 감지
+    // 음성 목록 변경 감지 (영구 리스너)
     const handleVoicesChanged = () => {
+      console.log('🔄 Settings voiceschanged 이벤트 감지');
       loadVoices();
     };
 
@@ -49,6 +52,14 @@ const UserSettings = () => {
   }, []);
 
   const handleSettingChange = (key, value) => {
+    // TTS 음성 설정 변경 시 현재 재생 중지
+    if (key === 'preferredTTSVoice') {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        console.log('🛑 TTS 음성 변경으로 인한 현재 재생 중지');
+      }
+    }
+    
     updateSettings({
       [key]: value
     });

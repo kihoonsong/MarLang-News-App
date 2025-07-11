@@ -9,8 +9,7 @@ export const isSpeechSynthesisSupported = () => {
 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-// 음성 목록 캐시 및 리스너 관리
-let _cachedVoices = null;
+// 음성 목록 변경 이벤트 리스너 관리 (캐시 제거, 실시간 조회로 변경)
 let _voicesListeners = new Set();
 
 // 음성 목록 변경 이벤트 리스너 추가
@@ -23,77 +22,49 @@ export const addVoicesChangedListener = (callback) => {
   };
 };
 
-// 음성 목록 변경 알림
-const notifyVoicesChanged = (voices) => {
-  _cachedVoices = voices;
+// 음성 목록 변경 알림 (실시간 음성 목록 전달)
+const notifyVoicesChanged = () => {
+  const currentVoices = window.speechSynthesis.getVoices();
   _voicesListeners.forEach(callback => {
     try {
-      callback(voices);
+      callback(currentVoices);
     } catch (error) {
       console.error('음성 변경 콜백 오류:', error);
     }
   });
 };
 
-// 사용 가능한 음성 목록 가져오기 (개선된 이벤트 처리)
+// 실시간 음성 목록 가져오기 (캐시 제거)
 export const getAvailableVoices = () => {
   if (!isSpeechSynthesisSupported()) {
     console.warn('⚠️ Speech Synthesis가 지원되지 않습니다');
-    return Promise.resolve([]);
+    return [];
   }
   
-  return new Promise((resolve) => {
-    let voices = speechSynthesis.getVoices();
-    
-    if (voices.length > 0) {
-      console.log('✅ 음성 목록 즉시 로드됨:', voices.length, '개');
-      notifyVoicesChanged(voices);
-      resolve(voices);
-      return;
-    }
-    
-    // 모바일 환경에서는 더 많은 재시도와 긴 간격 필요
-    let attempts = 0;
-    const maxAttempts = isMobile ? 40 : 20;
-    const retryInterval = isMobile ? 300 : 150;
-    
-    const checkVoices = () => {
-      voices = speechSynthesis.getVoices();
-      console.log(`🔄 음성 로딩 시도 ${attempts + 1}/${maxAttempts}, 발견된 음성: ${voices.length}개`);
-      
-      if (voices.length > 0) {
-        console.log('✅ 음성 목록 로드 완료:', voices.length, '개');
-        notifyVoicesChanged(voices);
-        resolve(voices);
-      } else if (attempts < maxAttempts) {
-        attempts++;
-        setTimeout(checkVoices, retryInterval);
-      } else {
-        console.warn('⚠️ 음성 로딩 실패: 최대 재시도 횟수 초과');
-        resolve([]);
-      }
-    };
-    
-    // onvoiceschanged 이벤트 등록 (영구 리스너)
-    if (!speechSynthesis.onvoiceschanged) {
-      speechSynthesis.onvoiceschanged = () => {
-        const newVoices = speechSynthesis.getVoices();
-        if (newVoices.length > 0) {
-          console.log('🔄 음성 목록 업데이트됨:', newVoices.length, '개');
-          notifyVoicesChanged(newVoices);
-        }
-      };
-    }
-    
-    // 즉시 체크 수행
-    const initialDelay = isMobile ? 500 : 200;
-    setTimeout(checkVoices, initialDelay);
-  });
+  // 항상 실시간으로 음성 목록 조회
+  const voices = window.speechSynthesis.getVoices();
+  console.log('🔄 실시간 음성 목록 조회:', voices.length, '개');
+  
+  return voices;
 };
 
-// 캐시된 음성 목록 가져오기
-export const getCachedVoices = () => {
-  return _cachedVoices || [];
+// voiceschanged 이벤트 영구 구독 설정
+export const setupVoicesChangedListener = () => {
+  if (!window.speechSynthesis) return;
+  
+  const handleVoicesChanged = () => {
+    const voices = window.speechSynthesis.getVoices();
+    console.log('🔄 음성 목록 변경 감지됨:', voices.length, '개');
+    notifyVoicesChanged();
+  };
+  
+  // 기존 리스너 제거 후 새로 등록
+  window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+  window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+  
+  return () => {
+    window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+  };
 };
 
 // 영어 발음에 적합한 음성 찾기 (사용자 설정 우선 적용)
@@ -112,14 +83,25 @@ export const getEnglishVoice = () => {
     console.log('🔍 사용자 TTS 설정:', userSettings);
     console.log('🎵 사용 가능한 음성 목록:', voices.map(v => `${v.name} (${v.lang}) [default: ${v.default}]`));
     
-    // 1단계: 사용자가 설정한 음성 찾기 (최우선)
+    // 1단계: 사용자가 설정한 음성 찾기 (최우선, 관용 매칭 포함)
     if (userSettings.preferredTTSVoice) {
-      const preferredVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
+      // 정확한 이름 매칭 시도
+      let preferredVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
+      
+      // 정확한 매칭 실패 시 부분 매칭 시도 (예: "Samantha" vs "Samantha (Enhanced)")
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => 
+          v.name.startsWith(userSettings.preferredTTSVoice) ||
+          userSettings.preferredTTSVoice.startsWith(v.name)
+        );
+      }
+      
       if (preferredVoice) {
         console.log('✅ 사용자 설정 음성 발견:', preferredVoice.name, preferredVoice.lang);
         return preferredVoice;
       } else {
         console.warn('⚠️ 사용자 설정 음성을 찾을 수 없음:', userSettings.preferredTTSVoice);
+        console.log('🔍 사용 가능한 음성 이름들:', voices.map(v => v.name));
       }
     }
     
