@@ -26,7 +26,7 @@ const PrivacyPolicy = () => {
 
             <h2>1. Introduction</h2>
             <p>
-              Welcome to Haru News. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application.
+              Welcome to NewStep News. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application.
             </p>
 
             <h2>2. Information We Collect</h2>

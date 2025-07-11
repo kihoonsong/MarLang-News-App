@@ -105,7 +105,7 @@ const Signup = () => {
             <LogoSection>
               <SchoolIcon sx={{ fontSize: 48, color: '#1976d2', mb: 1 }} />
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-                Haru
+                NewStep
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 'normal', color: '#666' }}>
                 Eng News

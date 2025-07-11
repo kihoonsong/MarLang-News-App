@@ -2136,12 +2136,35 @@ const ControlsSection = styled.div`
   margin-bottom: 1.5rem;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   border: 1px solid #f0f0f0;
+  overflow: hidden;
+  min-width: 0;
+  
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+  
+  @media (max-width: 360px) {
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
 `;
 
 const PlaybackControls = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 360px) {
+    gap: 0.25rem;
+  }
 `;
 
 const PlayButton = styled.button`
@@ -2150,6 +2173,17 @@ const PlayButton = styled.button`
   justify-content: center;
   width: 56px;
   height: 56px;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    width: 48px;
+    height: 48px;
+  }
+  
+  @media (max-width: 360px) {
+    width: 42px;
+    height: 42px;
+  }
   background: ${props => 
     props.$isLoading ? '#ccc' :
     props.$isPlaying ? '#1976d2' : 'linear-gradient(135deg, #1976d2, #42a5f5)'
@@ -2183,6 +2217,17 @@ const SpeedControlGroup = styled.div`
   background: #f8f9fa;
   border-radius: 12px;
   padding: 0.5rem;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+    padding: 0.375rem;
+  }
+  
+  @media (max-width: 360px) {
+    gap: 0.125rem;
+    padding: 0.25rem;
+  }
 `;
 
 const SpeedButton = styled.button`
@@ -2191,6 +2236,18 @@ const SpeedButton = styled.button`
   justify-content: center;
   width: 32px;
   height: 32px;
+  
+  @media (max-width: 480px) {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+  
+  @media (max-width: 360px) {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
   background: ${props => props.disabled ? '#e9ecef' : '#fff'};
   color: ${props => props.disabled ? '#adb5bd' : '#1976d2'};
   border: 1px solid ${props => props.disabled ? '#dee2e6' : '#e3f2fd'};
@@ -2218,12 +2275,33 @@ const SpeedDisplay = styled.div`
   background: #e3f2fd;
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+    min-width: 32px;
+    padding: 0.125rem 0.25rem;
+  }
+  
+  @media (max-width: 360px) {
+    font-size: 0.625rem;
+    min-width: 28px;
+    padding: 0.125rem 0.25rem;
+  }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 360px) {
+    gap: 0.25rem;
+  }
 `;
 
 const ActionButton = styled.button`
@@ -2232,6 +2310,16 @@ const ActionButton = styled.button`
   justify-content: center;
   width: 48px;
   height: 48px;
+  
+  @media (max-width: 480px) {
+    width: 42px;
+    height: 42px;
+  }
+  
+  @media (max-width: 360px) {
+    width: 36px;
+    height: 36px;
+  }
   background: ${props => props.$isLiked ? '#ffebee' : '#f8f9fa'};
   color: ${props => props.$isLiked ? '#d32f2f' : '#666'};
   border: 1px solid ${props => props.$isLiked ? '#ffcdd2' : '#e9ecef'};

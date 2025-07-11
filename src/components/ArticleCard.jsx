@@ -101,9 +101,14 @@ const CardContainer = styled.div`
   }
   
   @media (max-width: ${designTokens.breakpoints.mobile}) {
-    width: 100%;
-    height: auto;
-    min-height: 280px;
+    /* 모바일에서도 최대 크기(320x360)를 유지 */
+    width: 100%;        /* 부모 폭을 따라가면서 */
+    max-width: 320px;   /* 320px 이상으로 커지지 않도록 */
+    height: 360px;      /* 높이 고정해 카드 사이즈 일정 */
+
+    /* 화면이 카드 폭보다 넓으면 가운데 정렬 */
+    margin-left: auto;
+    margin-right: auto;
   }
 `;
 
