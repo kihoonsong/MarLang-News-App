@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 import RichTextEditor from './RichTextEditor';
+import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO } from '../utils/timeUtils';
 
 // 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
 const truncateSummary = (text, limit = 50) => {
@@ -60,7 +61,7 @@ const ArticleManagement = ({
     image: '',
     imageFile: null,
     publishType: 'immediate',
-    publishedAt: new Date().toISOString().slice(0, 16),
+    publishedAt: getKoreanDateTimeLocalValue(),
     status: 'published'
   });
 
@@ -98,7 +99,7 @@ const ArticleManagement = ({
       image: '',
       imageFile: null,
       publishType: 'immediate',
-      publishedAt: now.toISOString().slice(0, 16),
+      publishedAt: getKoreanDateTimeLocalValue(now),
       status: 'published'
     });
     setEditingArticle(null);
@@ -215,7 +216,7 @@ const ArticleManagement = ({
         image: articleForm.image || '/placeholder-image.svg',
         publishedAt: articleForm.publishType === 'immediate' 
           ? new Date().toISOString() 
-          : new Date(articleForm.publishedAt).toISOString(),
+          : convertLocalToKoreanISO(articleForm.publishedAt),
         author: 'Admin',
         views: 0,
         likes: 0,
@@ -286,7 +287,7 @@ const ArticleManagement = ({
       image: article.image,
       imageFile: null,
       publishType: 'immediate',
-      publishedAt: new Date(article.publishedAt).toISOString().slice(0, 16),
+      publishedAt: getKoreanDateTimeLocalValue(article.publishedAt),
       status: article.status || 'published'
     });
     setArticleDialog(true);
@@ -308,7 +309,7 @@ const ArticleManagement = ({
         image: draftData.image || '',
         imageFile: null,
         publishType: draftData.publishType || 'immediate',
-        publishedAt: draftData.publishedAt || new Date().toISOString().slice(0, 16),
+        publishedAt: draftData.publishedAt || getKoreanDateTimeLocalValue(),
         status: draftData.status || 'published'
       });
       setEditingArticle(null);
@@ -346,7 +347,7 @@ const ArticleManagement = ({
         status: articleForm.publishType === 'scheduled' ? 'scheduled' : articleForm.status,
         publishedAt: articleForm.publishType === 'immediate' 
           ? editingArticle.publishedAt 
-          : new Date(articleForm.publishedAt).toISOString(),
+          : convertLocalToKoreanISO(articleForm.publishedAt),
         wordCount: (articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length,
         readingTime: Math.ceil(((articleForm.content?.intermediate || '').split(' ').filter(word => word.trim()).length) / 200) || 1,
         tags: articleForm.category ? [articleForm.category] : []

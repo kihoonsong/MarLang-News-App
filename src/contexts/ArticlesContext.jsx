@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { startScheduledArticleChecker } from '../utils/scheduledArticleChecker';
+import { isAfterKoreanTime } from '../utils/timeUtils';
 
 const ArticlesContext = createContext();
 
@@ -190,23 +191,21 @@ export const ArticlesProvider = ({ children }) => {
   }, [fetchCategories, fetchArticles]);
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
-    const now = new Date();
     const filtered = allArticles.filter(article => {
-      // published 상태이고 발행 시간이 지난 기사만 표시
+      // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
       const isPublished = article.status === 'published';
-      const isTimeToPublish = new Date(article.publishedAt) <= now;
+      const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
       return article.category === categoryName && isPublished && isTimeToPublish;
     });
     return limit ? filtered.slice(0, limit) : filtered;
   }, [allArticles]);
 
   const getRecentArticles = useCallback((limit = 10) => {
-    const now = new Date();
     return [...allArticles]
       .filter(article => {
-        // published 상태이고 발행 시간이 지난 기사만 표시
+        // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
         const isPublished = article.status === 'published';
-        const isTimeToPublish = new Date(article.publishedAt) <= now;
+        const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
         return isPublished && isTimeToPublish;
       })
       .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
@@ -216,13 +215,12 @@ export const ArticlesProvider = ({ children }) => {
   const getPopularArticles = useCallback((limit = 10) => {
     // 지난 이틀 (48시간) 기준으로 변경
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-    const now = new Date();
     
     return [...allArticles]
       .filter(article => {
-        // published 상태이고 발행 시간이 지난 기사만 표시
+        // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
         const isPublished = article.status === 'published';
-        const isTimeToPublish = new Date(article.publishedAt) <= now;
+        const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
         const isRecent = new Date(article.publishedAt) >= twoDaysAgo;
         return isPublished && isTimeToPublish && isRecent;
       })
