@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
   Typography, Slider, FormControlLabel, Switch, FormControl, Select, MenuItem, InputLabel
@@ -6,6 +6,7 @@ import {
 import LanguageIcon from '@mui/icons-material/Language';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PaletteIcon from '@mui/icons-material/Palette';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import { useData } from '../../contexts/DataContext';
 import { getSupportedLanguages } from '../../utils/dictionaryApi';
 import { useTranslations } from '../../hooks/useTranslations';
@@ -19,6 +20,33 @@ const interfaceLanguageOptions = [
 const UserSettings = () => {
   const { userSettings, updateSettings } = useData();
   const { t } = useTranslations();
+  const [availableVoices, setAvailableVoices] = useState([]);
+
+  // 음성 목록 가져오기
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // 영어 음성만 필터링
+      const englishVoices = voices.filter(voice => 
+        voice.lang.toLowerCase().startsWith('en')
+      );
+      setAvailableVoices(englishVoices);
+    };
+
+    // 초기 로드
+    loadVoices();
+
+    // 음성 목록 변경 감지
+    const handleVoicesChanged = () => {
+      loadVoices();
+    };
+
+    window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+    };
+  }, []);
 
   const handleSettingChange = (key, value) => {
     updateSettings({
@@ -122,6 +150,33 @@ const UserSettings = () => {
               }
               label={t.autoPlayPronunciation}
             />
+
+            <FormControl size="small" fullWidth>
+              <InputLabel>TTS Voice</InputLabel>
+              <Select
+                value={userSettings?.preferredTTSVoice || ''}
+                label="TTS Voice"
+                onChange={(e) => handleSettingChange('preferredTTSVoice', e.target.value)}
+              >
+                <MenuItem value="">
+                  <VoiceOption>
+                    <RecordVoiceOverIcon sx={{ fontSize: 16, mr: 1 }} />
+                    <span>Auto (System Default)</span>
+                  </VoiceOption>
+                </MenuItem>
+                {availableVoices.map((voice) => (
+                  <MenuItem key={voice.name} value={voice.name}>
+                    <VoiceOption>
+                      <RecordVoiceOverIcon sx={{ fontSize: 16, mr: 1 }} />
+                      <VoiceInfo>
+                        <span>{voice.name}</span>
+                        <VoiceDetail>({voice.lang})</VoiceDetail>
+                      </VoiceInfo>
+                    </VoiceOption>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </SettingsGrid>
         </SettingSection>
 
@@ -218,6 +273,26 @@ const LanguageOption = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+`;
+
+const VoiceOption = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+`;
+
+const VoiceInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+`;
+
+const VoiceDetail = styled.span`
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 400;
 `;
 
 export default UserSettings;

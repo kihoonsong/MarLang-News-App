@@ -96,7 +96,7 @@ export const getCachedVoices = () => {
   return _cachedVoices || [];
 };
 
-// 영어 발음에 적합한 음성 찾기 (실시간 음성 목록 조회)
+// 영어 발음에 적합한 음성 찾기 (사용자 설정 우선 적용)
 export const getEnglishVoice = () => {
   try {
     // 매번 실시간으로 음성 목록 조회 (시스템 변경 즉시 반영)
@@ -107,7 +107,19 @@ export const getEnglishVoice = () => {
       return null;
     }
     
-    // 1단계: 시스템 기본값이면서 미국 영어인 음성 찾기 (최우선)
+    // 사용자 설정 확인
+    const userSettings = getUserTTSSettings();
+    
+    // 1단계: 사용자가 설정한 음성 찾기 (최우선)
+    if (userSettings.preferredTTSVoice) {
+      const preferredVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
+      if (preferredVoice) {
+        console.log('✅ 사용자 설정 음성 발견:', preferredVoice.name, preferredVoice.lang);
+        return preferredVoice;
+      }
+    }
+    
+    // 2단계: 시스템 기본값이면서 미국 영어인 음성 찾기
     const defaultUSVoice = voices.find(v => 
       v.default === true && v.lang.startsWith('en-US')
     );
@@ -116,14 +128,14 @@ export const getEnglishVoice = () => {
       return defaultUSVoice;
     }
     
-    // 2단계: 미국 영어 음성 찾기 (기본값 아니어도 됨)
+    // 3단계: 미국 영어 음성 찾기 (기본값 아니어도 됨)
     const usVoice = voices.find(v => v.lang.startsWith('en-US'));
     if (usVoice) {
       console.log('✅ 미국 영어 음성 발견:', usVoice.name, usVoice.lang);
       return usVoice;
     }
     
-    // 3단계: 다른 영어 음성 찾기 (우선순위 순서)
+    // 4단계: 다른 영어 음성 찾기 (우선순위 순서)
     const preferredVoices = ['en-GB', 'en-AU', 'en-CA', 'en'];
     for (const langCode of preferredVoices) {
       const voice = voices.find(v => v.lang.startsWith(langCode));
@@ -133,14 +145,14 @@ export const getEnglishVoice = () => {
       }
     }
     
-    // 4단계: 어떤 영어 음성이든 찾기
+    // 5단계: 어떤 영어 음성이든 찾기
     const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().includes('en'));
     if (anyEnglishVoice) {
       console.log('✅ 일반 영어 음성 발견:', anyEnglishVoice.name, anyEnglishVoice.lang);
       return anyEnglishVoice;
     }
     
-    // 5단계: 기본 음성 사용
+    // 6단계: 기본 음성 사용
     const defaultVoice = voices[0];
     console.log('⚠️ 기본 음성 사용:', defaultVoice ? defaultVoice.name : 'none');
     return defaultVoice || null;
@@ -152,7 +164,7 @@ export const getEnglishVoice = () => {
 };
 
 // 사용자 설정 가져오기 함수
-const getUserTTSSpeed = () => {
+const getUserTTSSettings = () => {
   try {
     // localStorage에서 사용자 설정 가져오기
     const authData = localStorage.getItem('haru_auth_data');
@@ -163,14 +175,26 @@ const getUserTTSSpeed = () => {
         const userSettings = localStorage.getItem(userSettingsKey);
         if (userSettings) {
           const settings = JSON.parse(userSettings);
-          return settings.ttsSpeed || 0.8;
+          return {
+            ttsSpeed: settings.ttsSpeed || 0.8,
+            preferredTTSVoice: settings.preferredTTSVoice || null
+          };
         }
       }
     }
-    return 0.8; // 기본값
+    // 게스트 사용자 설정 확인
+    const guestSettings = localStorage.getItem('haru_guest_settings');
+    if (guestSettings) {
+      const settings = JSON.parse(guestSettings);
+      return {
+        ttsSpeed: settings.ttsSpeed || 0.8,
+        preferredTTSVoice: settings.preferredTTSVoice || null
+      };
+    }
+    return { ttsSpeed: 0.8, preferredTTSVoice: null };
   } catch (error) {
-    console.warn('Failed to get user TTS speed:', error);
-    return 0.8;
+    console.warn('Failed to get user TTS settings:', error);
+    return { ttsSpeed: 0.8, preferredTTSVoice: null };
   }
 };
 
@@ -190,11 +214,11 @@ export const speakText = async (text, options = {}) => {
   const utterance = new SpeechSynthesisUtterance(text);
   
   // 사용자 설정에서 TTS 속도 가져오기
-  const userTTSSpeed = getUserTTSSpeed();
+  const userTTSSettings = getUserTTSSettings();
   
   // 기본 설정
   const settings = {
-    rate: userTTSSpeed,
+    rate: userTTSSettings.ttsSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -231,9 +255,9 @@ export const speakText = async (text, options = {}) => {
 
 // 단어 발음 함수 (단어장용)
 export const speakWord = async (word, options = {}) => {
-  const userTTSSpeed = getUserTTSSpeed();
+  const userTTSSettings = getUserTTSSettings();
   const wordSettings = {
-    rate: userTTSSpeed,
+    rate: userTTSSettings.ttsSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options
@@ -244,9 +268,9 @@ export const speakWord = async (word, options = {}) => {
 
 // 문장 발음 함수 (예문용)
 export const speakSentence = async (sentence, options = {}) => {
-  const userTTSSpeed = getUserTTSSpeed();
+  const userTTSSettings = getUserTTSSettings();
   const sentenceSettings = {
-    rate: userTTSSpeed,
+    rate: userTTSSettings.ttsSpeed,
     pitch: 1.0,
     volume: 1.0,
     ...options
