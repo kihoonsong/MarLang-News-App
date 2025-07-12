@@ -32,7 +32,7 @@ const Wordbook = () => {
   // 뜻 가리기/보이기 상태 (localStorage 연동)
   const [showMeaning, setShowMeaning] = useState(() => {
     const saved = localStorage.getItem('wordbook_showMeaning');
-    return saved !== null ? JSON.parse(saved) : true; // 기본값: true (뜻 보이기)
+    return saved !== null ? JSON.parse(saved) : false; // 기본값: false (뜻 안 보이기)
   });
   // 전체 가리기 상태에서도 개별 단어의 뜻을 볼 수 있도록 관리하는 Set (word.id 기반)
   const [revealedIds, setRevealedIds] = useState(new Set());
