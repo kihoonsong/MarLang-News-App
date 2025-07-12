@@ -318,6 +318,9 @@ const DatePage = () => {
                     navigate={navigate}
                     showAds={true}
                     cardWidth="85vw"
+                    autoPlay={true}
+                    delay={3000}
+                    pauseAfterTouch={3000}
                   />
                 ) : (
                   <ArticleGrid>
