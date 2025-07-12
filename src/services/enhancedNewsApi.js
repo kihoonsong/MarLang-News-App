@@ -328,7 +328,7 @@ class EnhancedNewsApiService {
         level: 'Intermediate',
         readingTime: 5,
         wordCount: 650,
-        source: 'NewStep',
+        source: 'NEWStep',
         tags: ['AI', 'Technology']
       },
       {
@@ -342,7 +342,7 @@ class EnhancedNewsApiService {
         level: 'Beginner',
         readingTime: 4,
         wordCount: 520,
-        source: 'NewStep',
+        source: 'NEWStep',
         tags: ['Climate', 'Energy', 'Environment', 'Science']
       },
       {
@@ -356,7 +356,7 @@ class EnhancedNewsApiService {
         level: 'Advanced',
         readingTime: 6,
         wordCount: 780,
-        source: 'NewStep',
+        source: 'NEWStep',
         tags: ['Economy', 'Business', 'Digital', 'Technology']
       }
     ];

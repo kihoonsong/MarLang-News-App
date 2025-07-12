@@ -28,10 +28,9 @@ export default defineConfig({
         manualChunks: {
           // React 관련
           'react-vendor': ['react', 'react-dom'],
-          // MUI 관련 (더 세밀하게 분할)
-          'mui-core': ['@mui/material'],
+          // MUI 관련 (emotion과 함께 묶어서 초기화 순서 문제 해결)
+          'mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
           'mui-icons': ['@mui/icons-material'],
-          'mui-emotion': ['@emotion/react', '@emotion/styled'],
           // 라우팅 관련
           'router': ['react-router-dom'],
           // 스타일링 관련
@@ -74,6 +73,8 @@ export default defineConfig({
       'react-dom',
       '@mui/material',
       '@mui/icons-material',
+      '@emotion/react',
+      '@emotion/styled',
       'react-router-dom',
       'styled-components'
     ],

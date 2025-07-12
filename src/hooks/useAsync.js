@@ -110,7 +110,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
           level: 'Intermediate',
           readingTime: 5,
           wordCount: 650,
-          source: 'NewStep',
+          source: 'NEWStep',
           tags: ['AI', 'Technology', 'Future', 'Innovation']
         },
         {
@@ -124,7 +124,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
           level: 'Beginner',
           readingTime: 4,
           wordCount: 520,
-          source: 'NewStep',
+          source: 'NEWStep',
           tags: ['Climate', 'Energy', 'Environment', 'Science']
         },
         {
@@ -138,7 +138,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
           level: 'Advanced',
           readingTime: 6,
           wordCount: 780,
-          source: 'NewStep',
+          source: 'NEWStep',
           tags: ['Economy', 'Business', 'Digital', 'Technology']
         },
         {
@@ -152,7 +152,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
           level: 'Intermediate',
           readingTime: 7,
           wordCount: 890,
-          source: 'NewStep',
+          source: 'NEWStep',
           tags: ['Medicine', 'AI', 'Healthcare', 'Technology']
         },
         {
@@ -166,7 +166,7 @@ export const useNews = (category = 'Technology', limit = 20) => {
           level: 'Beginner',
           readingTime: 5,
           wordCount: 670,
-          source: 'NewStep',
+          source: 'NEWStep',
           tags: ['Electric', 'Transportation', 'Environment', 'Innovation']
         }
       ];

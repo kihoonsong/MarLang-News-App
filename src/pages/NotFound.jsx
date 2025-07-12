@@ -62,7 +62,7 @@ const NotFound = () => {
         </Box>
         
         <Typography variant="caption" sx={{ display: 'block', mt: 3, color: 'text.disabled' }}>
-          NewStep Eng News - 영어 뉴스로 배우는 영어
+          NEWStep Eng News - 영어 뉴스로 배우는 영어
         </Typography>
       </Paper>
     </Container>

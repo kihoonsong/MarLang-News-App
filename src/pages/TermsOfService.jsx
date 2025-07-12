@@ -15,7 +15,7 @@ const TermsOfService = () => {
                 Terms of Service
               </Typography>
               <Typography variant="h5" component="h2" color="text.secondary" gutterBottom>
-                NewStep Eng News 이용약관
+                NEWStep Eng News 이용약관
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Last updated: {new Date().toLocaleDateString('ko-KR')}
@@ -29,7 +29,7 @@ const TermsOfService = () => {
                 1. 서비스 이용 동의
               </SectionTitle>
               <Typography variant="body1" paragraph>
-                NewStep Eng News(이하 "서비스")를 이용함으로써 귀하는 본 이용약관에 동의하는 것으로 간주됩니다. 
+                NEWStep Eng News(이하 "서비스")를 이용함으로써 귀하는 본 이용약관에 동의하는 것으로 간주됩니다. 
                 본 약관에 동의하지 않으시는 경우 서비스 이용을 중단해 주시기 바랍니다.
               </Typography>
             </Section>
@@ -146,7 +146,7 @@ const TermsOfService = () => {
               </Typography>
               <ContactInfo>
                 <Typography variant="body1">
-                  <strong>서비스명:</strong> NewStep Eng News
+                  <strong>서비스명:</strong> NEWStep Eng News
                 </Typography>
                 <Typography variant="body1">
                   <strong>웹사이트:</strong> https://marlang-app.web.app
@@ -159,7 +159,7 @@ const TermsOfService = () => {
 
             <Footer>
               <Typography variant="body2" color="text.secondary" align="center">
-                © 2024 NewStep Eng News. All rights reserved.
+                © 2024 NEWStep Eng News. All rights reserved.
               </Typography>
             </Footer>
           </ContentContainer>

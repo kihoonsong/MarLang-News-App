@@ -1,4 +1,4 @@
-# NewStep Eng News
+# NEWStep Eng News
 
 최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키는 웹 애플리케이션입니다.
 
