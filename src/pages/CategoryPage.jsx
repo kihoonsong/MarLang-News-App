@@ -13,7 +13,9 @@ import { findCategoryBySlug, isValidCategory } from '../utils/categoryUtils';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import VerticalArticleList from '../components/VerticalArticleList';
+import ArticleCard from '../components/ArticleCard';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
+import { SidebarAdComponent, InlineAdComponent } from '../components/AdComponents';
 import { designTokens } from '../utils/designTokens';
 
 // 카테고리별 이모지 매핑
@@ -119,6 +121,9 @@ const CategoryPage = () => {
             </Breadcrumbs>
           </BreadcrumbContainer>
 
+          {/* 사이드바 광고 - 데스크톱에서만 표시 */}
+          {!isMobile && <SidebarAdComponent hasContent={sortedArticles.length > 0} />}
+
           <CategorySection>
             <CategoryHeader>
               <CategoryTitleSection>
@@ -142,12 +147,26 @@ const CategoryPage = () => {
               </SortControls>
             </CategoryHeader>
             
-            <VerticalArticleList 
-              articles={sortedArticles}
-              injectEvery={3}
-              navigate={navigate}
-              showAds={true}
-            />
+            {/* 모바일에서는 수직 리스트, 데스크톱/태블릿에서는 그리드 */}
+            {isMobile ? (
+              <VerticalArticleList 
+                articles={sortedArticles}
+                injectEvery={3}
+                navigate={navigate}
+                showAds={true}
+              />
+            ) : (
+              // 데스크톱/태블릿: 기존 그리드 레이아웃
+              <>
+                {/* 기사가 있을 때만 광고 표시 */}
+                <InlineAdComponent hasContent={sortedArticles.length > 0} />
+                <ArticleGrid>
+                  {sortedArticles.map((article) => (
+                    <ArticleCard key={article.id} {...article} navigate={navigate} />
+                  ))}
+                </ArticleGrid>
+              </>
+            )}
           </CategorySection>
         </ContentContainer>
       </MobileContentWrapper>
@@ -198,6 +217,13 @@ const CategorySubtitle = styled.p`
   color: ${designTokens.colors.text.secondary};
   margin: 0;
   font-weight: 400;
+`;
+
+const ArticleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: ${designTokens.spacing.md};
 `;
 
 export default CategoryPage;
