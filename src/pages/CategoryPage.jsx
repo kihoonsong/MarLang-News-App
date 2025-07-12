@@ -95,12 +95,12 @@ const CategoryPage = () => {
   if (!currentCategory || !isValidCategory(currentCategory)) {
     return (
       <ContentContainer>
-        <ErrorState>
-          <ErrorIcon>❌</ErrorIcon>
-          <ErrorTitle>Category Not Found</ErrorTitle>
-          <ErrorText>The category "{categorySlug}" doesn't exist or has been removed.</ErrorText>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+          <h3>Category Not Found</h3>
+          <p>The category "{categorySlug}" doesn't exist or has been removed.</p>
           <button onClick={() => navigate('/')}>Go to Home</button>
-        </ErrorState>
+        </div>
       </ContentContainer>
     );
   }

@@ -14,6 +14,9 @@ import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import ArticleCard from '../components/ArticleCard';
+import HorizontalArticleScroll from '../components/HorizontalArticleScroll';
+import CompactCalendarBar from '../components/CompactCalendarBar';
+import CalendarBottomSheet from '../components/CalendarBottomSheet';
 
 const categories = ['All', 'Technology', 'Science', 'Business', 'Health', 'Culture'];
 const monthNames = [
@@ -60,6 +63,7 @@ const DatePage = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentArticles, setCurrentArticles] = useState([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   // 기사 데이터 가져오기
   const { 
@@ -192,12 +196,28 @@ const DatePage = () => {
     // dateString이 YYYY-MM-DD 형식이므로 로컬 시간으로 파싱
     const [year, month, day] = dateString.split('-');
     const date = new Date(year, month - 1, day); // 로컬 시간으로 생성
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    });
+    
+    // 수동으로 날짜 포맷 (요일 완전 제거)
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  };
+  
+  // 기사가 있는 날짜들 목록 생성
+  const availableDates = Object.keys(articlesByDate).filter(dateKey => 
+    articlesByDate[dateKey] && articlesByDate[dateKey].length > 0
+  );
+  
+  const handleDateSelect = (dateKey) => {
+    setSelectedDate(dateKey);
+    setSheetOpen(false);
+  };
+  
+  const handleCalendarOpen = () => {
+    setSheetOpen(true);
   };
 
   return (
@@ -205,6 +225,13 @@ const DatePage = () => {
       <MobileNavigation />
       <MobileContentWrapper>
         <PageContainer>
+          {/* 로딩 상태 표시 */}
+          {articlesLoading && (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography>Loading articles...</Typography>
+            </Box>
+          )}
+
           {/* 헤더 */}
           <Header>
             <HeaderContent>
@@ -215,47 +242,42 @@ const DatePage = () => {
             </div>
           </Header>
 
-          {/* 로딩 상태 표시 */}
-          {articlesLoading && (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography>Loading articles...</Typography>
-            </Box>
+          {/* 모바일: 달력을 하단으로, 데스크톱: 기존 위치 */}
+          {!isMobile && (
+            <CalendarSection>
+              <CalendarHeader>
+                <IconButton onClick={() => navigateMonth(-1)}>
+                  <ArrowBackIcon />
+                </IconButton>
+                <MonthYearDisplay>
+                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </MonthYearDisplay>
+                <IconButton onClick={() => navigateMonth(1)}>
+                  <ArrowForwardIcon />
+                </IconButton>
+              </CalendarHeader>
+              
+              <DayLabels>
+                {dayNames.map((day, index) => (
+                  <DayLabel 
+                    key={day} 
+                    $isWeekend={isWeekend(index)}
+                    $isSunday={index === 0}
+                  >
+                    {day}
+                  </DayLabel>
+                ))}
+              </DayLabels>
+              
+              <CalendarGrid>
+                {renderCalendar()}
+              </CalendarGrid>
+            </CalendarSection>
           )}
-
-          {/* 달력 섹션 */}
-          <CalendarSection>
-            <CalendarHeader>
-              <IconButton onClick={() => navigateMonth(-1)}>
-                <ArrowBackIcon />
-              </IconButton>
-              <MonthYearDisplay>
-                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </MonthYearDisplay>
-              <IconButton onClick={() => navigateMonth(1)}>
-                <ArrowForwardIcon />
-              </IconButton>
-            </CalendarHeader>
-            
-            <DayLabels>
-              {dayNames.map((day, index) => (
-                <DayLabel 
-                  key={day} 
-                  $isWeekend={isWeekend(index)}
-                  $isSunday={index === 0}
-                >
-                  {day}
-                </DayLabel>
-              ))}
-            </DayLabels>
-            
-            <CalendarGrid>
-              {renderCalendar()}
-            </CalendarGrid>
-          </CalendarSection>
 
           {/* 선택된 날짜의 기사들 */}
           {selectedDate && (
-            <ArticlesSection>
+            <ArticlesSection $isMobile={isMobile}>
               <ArticlesHeader>
                 <div>
                   <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -268,39 +290,50 @@ const DatePage = () => {
                   />
                 </div>
                 
-                <FilterContainer>
-                  <FilterListIcon sx={{ mr: 1, color: '#666' }} />
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>Category</InputLabel>
-                    <Select
-                      value={selectedCategory}
-                      label="Category"
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                    >
-                      {(categories || []).map(category => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </FilterContainer>
+                {!isMobile && (
+                  <FilterContainer>
+                    <FilterListIcon sx={{ mr: 1, color: '#666' }} />
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={selectedCategory}
+                        label="Category"
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                      >
+                        {(categories || []).map(category => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </FilterContainer>
+                )}
               </ArticlesHeader>
 
               {currentArticles.length > 0 ? (
-                <ArticleGrid>
-                  {(currentArticles || []).map(article => {
-                    if (!article || !article.id) return null;
-                    return (
-                      <ArticleCardWrapper key={article.id}>
-                        <ArticleCard 
-                          {...article}
-                          publishedAt={article.publishedAt}
-                        />
-                      </ArticleCardWrapper>
-                    );
-                  }).filter(Boolean)}
-                </ArticleGrid>
+                isMobile ? (
+                  <HorizontalArticleScroll 
+                    articles={currentArticles}
+                    navigate={navigate}
+                    showAds={true}
+                    cardWidth="85vw"
+                  />
+                ) : (
+                  <ArticleGrid>
+                    {(currentArticles || []).map(article => {
+                      if (!article || !article.id) return null;
+                      return (
+                        <ArticleCardWrapper key={article.id}>
+                          <ArticleCard 
+                            {...article}
+                            publishedAt={article.publishedAt}
+                          />
+                        </ArticleCardWrapper>
+                      );
+                    }).filter(Boolean)}
+                  </ArticleGrid>
+                )
               ) : (
                 <EmptyState>
                   <Typography variant="h6" color="text.secondary">
@@ -315,6 +348,41 @@ const DatePage = () => {
                 </EmptyState>
               )}
             </ArticlesSection>
+          )}
+          
+          {/* 모바일 하단 달력 */}
+          {isMobile && (
+            <MobileCalendarWrapper>
+              <CalendarSection>
+                <CalendarHeader>
+                  <IconButton onClick={() => navigateMonth(-1)}>
+                    <ArrowBackIcon />
+                  </IconButton>
+                  <MonthYearDisplay>
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </MonthYearDisplay>
+                  <IconButton onClick={() => navigateMonth(1)}>
+                    <ArrowForwardIcon />
+                  </IconButton>
+                </CalendarHeader>
+                
+                <DayLabels>
+                  {dayNames.map((day, index) => (
+                    <DayLabel 
+                      key={day} 
+                      $isWeekend={isWeekend(index)}
+                      $isSunday={index === 0}
+                    >
+                      {day}
+                    </DayLabel>
+                  ))}
+                </DayLabels>
+                
+                <CalendarGrid>
+                  {renderCalendar()}
+                </CalendarGrid>
+              </CalendarSection>
+            </MobileCalendarWrapper>
           )}
         </PageContainer>
       </MobileContentWrapper>
@@ -452,6 +520,12 @@ const ArticlesSection = styled.div`
   box-shadow: 0 2px 16px rgba(0,0,0,0.08);
   padding: 1.5rem;
   
+  ${props => props.$isMobile && `
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 1rem;
+  `}
+  
   @media (min-width: 768px) {
     padding: 2rem;
   }
@@ -541,6 +615,14 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 1rem;
   color: #666;
+`;
+
+// 모바일 하단 달력 래퍼
+const MobileCalendarWrapper = styled.div`
+  margin-top: 1rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
 `;
 
 export default DatePage;

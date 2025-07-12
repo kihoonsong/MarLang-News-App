@@ -29,10 +29,11 @@ const Wordbook = () => {
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
   
-  // 뜻 가리기/보이기 상태 (localStorage 연동)
+  // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {
     const saved = localStorage.getItem('wordbook_showMeaning');
-    return saved !== null ? JSON.parse(saved) : false; // 기본값: false (뜻 안 보이기)
+    // 강제로 false 기본값 적용 (뜻 숨기기가 기본)
+    return saved !== null ? JSON.parse(saved) : false;
   });
   // 전체 가리기 상태에서도 개별 단어의 뜻을 볼 수 있도록 관리하는 Set (word.id 기반)
   const [revealedIds, setRevealedIds] = useState(new Set());
