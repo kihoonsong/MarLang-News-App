@@ -227,10 +227,7 @@ const Profile = () => {
               onLogout={handleLogout}
             />
             
-            <LearningStats 
-              stats={stats}
-              translations={currentTranslations}
-            />
+            <UserSettings />
             
             <AnnouncementList 
               onAnnouncementClick={handleAnnouncementClick}
@@ -239,12 +236,15 @@ const Profile = () => {
               translations={currentTranslations}
             />
             
+            <LearningStats 
+              stats={stats}
+              translations={currentTranslations}
+            />
+            
             <QuickActions 
               translations={currentTranslations}
               isAdmin={isAdmin}
             />
-
-            <UserSettings />
             
             {/* <RecentActivity 
               recentWords={recentWords}
