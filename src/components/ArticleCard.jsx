@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { designTokens, getShadow, getBorderRadius, getColor } from '../utils/designTokens';
-import { getCategoryColor } from '../utils/categoryUtils';
 import { useArticles } from '../contexts/ArticlesContext';
 
 // 요약 트렁케이트 (중복 마침표 제거)

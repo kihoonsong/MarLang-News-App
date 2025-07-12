@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { InputBase, Paper, Typography, CircularProgress, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
@@ -18,7 +18,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // 간단한 검색 함수 - 무한 로딩 방지
-  const doSearch = (searchQuery) => {
+  const doSearch = useCallback((searchQuery) => {
     console.log('🔍 검색 시작:', searchQuery);
     
     setIsLoading(true);
@@ -51,7 +51,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
     
     // 무조건 로딩 해제
     setIsLoading(false);
-  };
+  }, [allArticles]);
 
   // 검색어 변경시
   useEffect(() => {
@@ -62,7 +62,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [query, allArticles, isOpen]);
+  }, [query, isOpen, doSearch]);
 
   // 외부 클릭시 드롭다운 닫기
   useEffect(() => {

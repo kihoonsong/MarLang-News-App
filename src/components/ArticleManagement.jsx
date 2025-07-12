@@ -41,7 +41,7 @@ const ArticleManagement = ({
   setSnackbar 
 }) => {
   // Articles Context 사용
-  const { getScheduledArticles, getDraftArticles, publishArticleManually } = useArticles();
+  const { getScheduledArticles, publishArticleManually } = useArticles();
   
   // 기사 편집 상태
   const [articleDialog, setArticleDialog] = useState(false);
@@ -206,7 +206,7 @@ const ArticleManagement = ({
     if (allArticles && allArticles.length > 0) {
       calculateArticleStats();
     }
-  }, [allArticles]);
+  }, [allArticles, calculateArticleStats]);
 
   // 기사 추가 핸들러
   const handleAddArticle = async () => {

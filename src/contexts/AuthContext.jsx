@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [naverAuthInitialized]); // naverAuthInitialized가 true가 된 후에만 실행
+  }, [naverAuthInitialized, user]); // user 의존성 추가
 
   const handleUser = async (firebaseUser) => {
     if (!firebaseUser) return;
@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }) => {
       
       setUser(haruUser);
     } catch (err) {
-      console.error('🚨 사용자 정보 처��� 오류:', err);
+      console.error('🚨 사용자 정보 처리 오류:', err);
       setError(`사용자 정보 처리 중 오류가 발생했습니다: ${err.message}`);
     }
   };

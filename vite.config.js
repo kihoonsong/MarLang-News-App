@@ -26,10 +26,23 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom'],
-          mui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          router: ['react-router-dom', 'styled-components'],
-          utils: ['axios']
+          // React 관련
+          'react-vendor': ['react', 'react-dom'],
+          // MUI 관련 (더 세밀하게 분할)
+          'mui-core': ['@mui/material'],
+          'mui-icons': ['@mui/icons-material'],
+          'mui-emotion': ['@emotion/react', '@emotion/styled'],
+          // 라우팅 관련
+          'router': ['react-router-dom'],
+          // 스타일링 관련
+          'styling': ['styled-components'],
+          // 유틸리티
+          'utils': ['axios', 'dompurify'],
+          // Firebase를 더 세분화
+          'firebase-core': ['firebase/app'],
+          'firebase-auth': ['firebase/auth'],
+          'firebase-firestore': ['firebase/firestore'],
+          'firebase-storage': ['firebase/storage'],
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
@@ -45,9 +58,25 @@ export default defineConfig({
     // 압축 설정
     terserOptions: {
       compress: {
-        drop_console: false, // 디버깅을 위해 console.log 보존
-        drop_debugger: true // debugger 제거
+        drop_console: process.env.NODE_ENV === 'production', // 프로덕션에서만 console 제거
+        drop_debugger: true, // debugger 제거
+        pure_funcs: process.env.NODE_ENV === 'production' ? ['console.log', 'console.info'] : [], // 프로덕션에서만 특정 함수 제거
+      },
+      mangle: {
+        safari10: true, // Safari 10 호환성
       }
     }
+  },
+  // 의존성 최적화
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      '@mui/material',
+      '@mui/icons-material',
+      'react-router-dom',
+      'styled-components'
+    ],
+    exclude: ['firebase'] // Firebase는 동적 import로 처리
   }
 })

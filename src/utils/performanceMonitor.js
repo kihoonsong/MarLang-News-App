@@ -315,16 +315,35 @@ class PerformanceMonitor {
     return report;
   }
 
-  // 옵저버 정리
+  // 정리 함수 - 메모리 누수 방지
   cleanup() {
-    this.observers.forEach(observer => {
+    // 모든 옵저버 정리
+    this.observers.forEach((observer, key) => {
       try {
         observer.disconnect();
+        if (import.meta.env.DEV) {
+          console.log(`🧹 Performance observer cleaned up: ${key}`);
+        }
       } catch (e) {
-        console.warn('Observer cleanup failed:', e);
+        console.warn(`Failed to cleanup observer ${key}:`, e);
       }
     });
+    
     this.observers.clear();
+    this.metrics.clear();
+    
+    if (import.meta.env.DEV) {
+      console.log('🧹 Performance monitor cleaned up');
+    }
+  }
+
+  // 페이지 언로드 시 정리
+  setupCleanup() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.cleanup();
+      });
+    }
   }
 }
 

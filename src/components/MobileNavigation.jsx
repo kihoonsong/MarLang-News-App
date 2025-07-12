@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,7 +35,7 @@ const MobileNavigation = ({
   } : null;
 
   // 현재 경로에 따른 네비게이션 값 설정
-  const getCurrentNavValue = () => {
+  const getCurrentNavValue = useCallback(() => {
     const path = location.pathname;
     if (path === '/') return 0;
     if (path === '/date') return 1;
@@ -43,7 +43,7 @@ const MobileNavigation = ({
     if (path === '/like') return 3;
     if (path === '/profile') return 4;
     return 0;
-  };
+  }, [location.pathname]);
 
   const [navValue, setNavValue] = useState(getCurrentNavValue());
   const [tabValue, setTabValue] = useState(getCurrentNavValue());
@@ -53,7 +53,7 @@ const MobileNavigation = ({
     const newValue = getCurrentNavValue();
     setNavValue(newValue);
     setTabValue(newValue);
-  }, [location.pathname]);
+  }, [getCurrentNavValue]);
 
   // 인증 모달 핸들러
   const handleAuthModalOpen = () => {

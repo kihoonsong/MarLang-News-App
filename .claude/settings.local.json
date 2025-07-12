@@ -58,7 +58,7 @@
       "Bash(firebase:*)",
       "WebFetch(domain:react-icons.github.io)",
       "WebFetch(domain:console.firebase.google.com)",
-      "Bash(cd:*)"
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

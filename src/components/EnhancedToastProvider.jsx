@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { 
   Snackbar, 
   Alert, 
@@ -84,6 +84,12 @@ export const EnhancedToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
   const [errorLog, setErrorLog] = useState([]);
   const { isOnline } = useNetworkStatus();
+  const toastsRef = useRef([]);
+  
+  // toasts가 변경될 때마다 ref 업데이트
+  useEffect(() => {
+    toastsRef.current = toasts;
+  }, [toasts]);
 
   // 에러 로깅
   const logError = useCallback((error, context = {}) => {
@@ -230,14 +236,14 @@ export const EnhancedToastProvider = ({ children }) => {
   useEffect(() => {
     if (isOnline) {
       // 온라인 복구 시 알림
-      const offlineToasts = toasts.filter(t => t.group === 'network');
+      const offlineToasts = toastsRef.current.filter(t => t.group === 'network');
       if (offlineToasts.length > 0) {
         setTimeout(() => {
           success('Connection restored!', { group: 'network', duration: 3000 });
         }, 500);
       }
     }
-  }, [isOnline, toasts, success]);
+  }, [isOnline, success]);
 
   const contextValue = {
     addToast,

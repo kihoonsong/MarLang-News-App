@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useMediaQuery } from '@mui/material';
 import ArticleCard from './ArticleCard';
@@ -38,7 +38,7 @@ const HorizontalArticleScroll = ({
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   // 자동 슬라이드 시작 함수
-  const startAutoPlay = () => {
+  const startAutoPlay = useCallback(() => {
     if (!autoPlay || prefersReducedMotion || finalItems.length <= 1) return;
     
     clearInterval(timerRef.current);
@@ -47,14 +47,14 @@ const HorizontalArticleScroll = ({
         setCurrentIndex((prev) => prev + 1);
       }
     }, delay);
-  };
+  }, [autoPlay, prefersReducedMotion, finalItems.length, delay]);
 
   // 자동 슬라이드 일시 중지 함수
-  const pauseAutoPlay = () => {
+  const pauseAutoPlay = useCallback(() => {
     clearInterval(timerRef.current);
     // pauseAfterTouch 시간 후 다시 재생
     timerRef.current = setTimeout(startAutoPlay, pauseAfterTouch);
-  };
+  }, [startAutoPlay, pauseAfterTouch]);
 
   // 인덱스 변경 시 실제 스크롤 수행
   useEffect(() => {
@@ -106,7 +106,7 @@ const HorizontalArticleScroll = ({
   useEffect(() => {
     startAutoPlay();
     return () => clearInterval(timerRef.current);
-  }, [delay, autoPlay, prefersReducedMotion, finalItems.length]);
+  }, [startAutoPlay]);
 
   // 사용자 상호작용 감지
   useEffect(() => {
@@ -123,7 +123,7 @@ const HorizontalArticleScroll = ({
     return () => {
       events.forEach(evt => container.removeEventListener(evt, handleUserInteraction));
     };
-  }, [pauseAfterTouch]);
+  }, [pauseAutoPlay]);
 
   // IntersectionObserver로 화면에 보이는 상태 감지 (배터리 절약)
   useEffect(() => {
@@ -144,7 +144,7 @@ const HorizontalArticleScroll = ({
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, [autoPlay, prefersReducedMotion]);
+  }, [autoPlay, prefersReducedMotion, startAutoPlay]);
 
   if (!articles || articles.length === 0) {
     return (
