@@ -2,11 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { 
   useMediaQuery, useTheme, Select, FormControl, MenuItem, Typography, Alert,
-  InputLabel, Breadcrumbs, Link, Chip
+  InputLabel
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import HomeIcon from '@mui/icons-material/Home';
-import CategoryIcon from '@mui/icons-material/Category';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useArticles } from '../contexts/ArticlesContext';
 import { findCategoryBySlug, isValidCategory } from '../utils/categoryUtils';
@@ -14,8 +12,9 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import VerticalArticleList from '../components/VerticalArticleList';
 import ArticleCard from '../components/ArticleCard';
+import AdCard from '../components/AdCard';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
-import { SidebarAdComponent, InlineAdComponent } from '../components/AdComponents';
+import { useAdInjector } from '../hooks/useAdInjector';
 import { designTokens } from '../utils/designTokens';
 
 // 카테고리별 이모지 매핑
@@ -67,6 +66,9 @@ const CategoryPage = () => {
     }
   }, [sortBy, categoryArticles]);
 
+  // 데스크톱용 광고 삽입 (5번째마다)
+  const { itemsWithAds } = useAdInjector(sortedArticles);
+
   if (loading) {
     return (
       <>
@@ -108,21 +110,6 @@ const CategoryPage = () => {
       <MobileNavigation />
       <MobileContentWrapper>
         <ContentContainer>
-          <BreadcrumbContainer>
-            <Breadcrumbs separator="›">
-              <Link href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
-                <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                Home
-              </Link>
-              <Typography color="text.primary">
-                <CategoryIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-                {currentCategory.name}
-              </Typography>
-            </Breadcrumbs>
-          </BreadcrumbContainer>
-
-          {/* 사이드바 광고 - 데스크톱에서만 표시 */}
-          {!isMobile && <SidebarAdComponent hasContent={sortedArticles.length > 0} />}
 
           <CategorySection>
             <CategoryHeader>
@@ -156,16 +143,24 @@ const CategoryPage = () => {
                 showAds={true}
               />
             ) : (
-              // 데스크톱/태블릿: 기존 그리드 레이아웃
-              <>
-                {/* 기사가 있을 때만 광고 표시 */}
-                <InlineAdComponent hasContent={sortedArticles.length > 0} />
-                <ArticleGrid>
-                  {sortedArticles.map((article) => (
-                    <ArticleCard key={article.id} {...article} navigate={navigate} />
-                  ))}
-                </ArticleGrid>
-              </>
+              // 데스크톱/태블릿: 그리드 레이아웃 + 카드형 광고
+              <ArticleGrid>
+                {itemsWithAds.map((item) => {
+                  if (item.type === 'ad') {
+                    return (
+                      <AdCard
+                        key={item.id}
+                        adSlot={item.adSlot || 'articleBanner'}
+                        minHeight="360px"
+                        showLabel={true}
+                      />
+                    );
+                  }
+                  return (
+                    <ArticleCard key={item.id} {...item} navigate={navigate} />
+                  );
+                })}
+              </ArticleGrid>
             )}
           </CategorySection>
         </ContentContainer>
@@ -192,7 +187,6 @@ const CategoryHeader = styled.div`
     align-items: stretch;
   }
 `;
-const HeaderLeft = styled.div` display: flex; align-items: center; `;
 const CategoryTitle = styled.h1`
   font-size: 2rem;
   font-weight: bold;
