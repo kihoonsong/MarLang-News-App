@@ -12,14 +12,31 @@ import { useArticles } from '../contexts/ArticlesContext';
 import { findCategoryBySlug, isValidCategory } from '../utils/categoryUtils';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
-import ArticleCard from '../components/ArticleCard';
+import VerticalArticleList from '../components/VerticalArticleList';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
-import { SidebarAdComponent, InlineAdComponent } from '../components/AdComponents';
+import { designTokens } from '../utils/designTokens';
+
+// 카테고리별 이모지 매핑
+const getCategoryEmoji = (categoryName) => {
+  const emojiMap = {
+    'Technology': '💻',
+    'Science': '🔬',
+    'Business': '💼',
+    'Culture': '🎨',
+    'Society': '🏛️',
+    'Politics': '🗣️',
+    'Sports': '⚽',
+    'Health': '🏥',
+    'Entertainment': '🎬'
+  };
+  return emojiMap[categoryName] || '📰';
+};
 
 const CategoryPage = () => {
   const navigate = useNavigate();
   const { categorySlug } = useParams();
   const { categories, getArticlesByCategory, loading, error, refreshArticles } = useArticles();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   
   const [sortBy, setSortBy] = useState('publishedDate');
 
@@ -102,17 +119,16 @@ const CategoryPage = () => {
             </Breadcrumbs>
           </BreadcrumbContainer>
 
-          {/* 사이드바 광고 - 기사가 있을 때만 표시 */}
-          <SidebarAdComponent hasContent={sortedArticles.length > 0} />
-
           <CategorySection>
             <CategoryHeader>
-              <HeaderLeft>
+              <CategoryTitleSection>
                 <CategoryTitle>
-                  {currentCategory.name}
-                  <Chip label={`${sortedArticles.length} articles`} size="small" sx={{ ml: 2 }} />
+                  {currentCategory.name} {getCategoryEmoji(currentCategory.name)}
                 </CategoryTitle>
-              </HeaderLeft>
+                <CategorySubtitle>
+                  {sortedArticles.length} articles available
+                </CategorySubtitle>
+              </CategoryTitleSection>
               <SortControls>
                 <FilterListIcon sx={{ mr: 1, color: '#666' }} />
                 <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -126,28 +142,12 @@ const CategoryPage = () => {
               </SortControls>
             </CategoryHeader>
             
-            {sortedArticles.length > 0 ? (
-              <>
-                {/* 기사가 있을 때만 광고 표시 */}
-                <InlineAdComponent hasContent={true} />
-                <ArticleGrid>
-                  {sortedArticles.map((article) => (
-                    <ArticleCardWrapper key={article.id}>
-                      <ArticleCard {...article} navigate={navigate} />
-                    </ArticleCardWrapper>
-                  ))}
-                </ArticleGrid>
-              </>
-            ) : (
-              <>
-                {/* 기사가 없을 때는 광고 표시 안함 */}
-                <InlineAdComponent hasContent={false} />
-                <EmptyState>
-                  <EmptyIcon>📰</EmptyIcon>
-                  <EmptyTitle>No articles in {currentCategory.name}</EmptyTitle>
-                </EmptyState>
-              </>
-            )}
+            <VerticalArticleList 
+              articles={sortedArticles}
+              injectEvery={3}
+              navigate={navigate}
+              showAds={true}
+            />
           </CategorySection>
         </ContentContainer>
       </MobileContentWrapper>
@@ -181,59 +181,23 @@ const CategoryTitle = styled.h1`
   margin: 0;
   @media (max-width: 768px) { font-size: 1.5rem; }
 `;
-const SortControls = styled.div` display: flex; align-items: center; gap: 0.5rem; `;
+const SortControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
 
-const ArticleCardWrapper = styled.div`
-  /* 데스크톱에서는 기본 크기 */
-  
-  /* 모바일에서 카드 폭 조정하여 다음 카드 1/10 정도 보이도록 */
-  @media (max-width: 768px) {
-    flex: 0 0 85vw;
-    width: 85vw;
-  }
+const CategoryTitleSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 `;
-const ArticleGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  
-  /* 모바일에서 수평 스크롤 레이아웃으로 변경 */
-  @media (max-width: 768px) {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 0.375rem; /* 기존 0.75rem의 절반 */
-    padding-left: 2vw; /* 여백 조정 */
-    padding-bottom: 1rem;
-    
-    &::-webkit-scrollbar {
-      height: 6px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 3px;
-      
-      &:hover {
-        background: #a8a8a8;
-      }
-    }
-  }
+
+const CategorySubtitle = styled.p`
+  font-size: 0.875rem;
+  color: ${designTokens.colors.text.secondary};
+  margin: 0;
+  font-weight: 400;
 `;
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 4rem 2rem;
-`;
-const ErrorState = styled(EmptyState)``;
-const EmptyIcon = styled.div` font-size: 4rem; margin-bottom: 1rem; `;
-const ErrorIcon = styled(EmptyIcon)``;
-const EmptyTitle = styled.h3` font-size: 1.25rem; font-weight: 600; `;
-const ErrorTitle = styled.h2` font-size: 1.5rem; font-weight: 600; `;
-const ErrorText = styled.p` color: #666; `;
 
 export default CategoryPage;

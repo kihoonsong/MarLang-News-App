@@ -157,3 +157,61 @@ export const useAdPlacement = (position = 'articleBanner', hasContent = false) =
     adsConfig: adsenseConfig
   };
 };
+
+// 수직 리스트용 광고 삽입 훅
+export const useVerticalAdInjector = (items, injectEvery = 3) => {
+  const { user } = useAuth();
+  const adsenseConfig = getAdsenseConfig();
+  const isPremium = false; // TODO: 실제 구독 상태로 교체
+  
+  // 광고 표시 여부 결정
+  const shouldShowAds = useMemo(() => {
+    if (!adsenseConfig.enabled) return false;
+    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) return false;
+    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) return false;
+    return true;
+  }, [user, isPremium, adsenseConfig]);
+
+  const itemsWithAds = useMemo(() => {
+    // 광고를 표시하지 않거나, 아이템이 없거나, 최소 임계값 미만인 경우
+    if (!shouldShowAds || !items || items.length === 0 || items.length < injectEvery) {
+      return items ? [...items] : [];
+    }
+
+    const newItems = [];
+    let adCount = 0;
+    
+    items.forEach((item, index) => {
+      // 기사 추가
+      newItems.push(item);
+      
+      // 매 injectEvery 번째마다 광고 삽입 (마지막 아이템 제외)
+      if ((index + 1) % injectEvery === 0 && index < items.length - 1) {
+        newItems.push({ 
+          type: 'ad', 
+          id: `vertical-ad-${adCount}`,
+          adSlot: 'inFeedBanner',
+          position: index + 1,
+          injectionType: 'vertical'
+        });
+        adCount++;
+      }
+    });
+    
+    console.log('🎯 수직 광고 배치 정보:', {
+      itemCount: items.length,
+      injectEvery,
+      adCount,
+      totalItems: newItems.length
+    });
+    
+    return newItems;
+  }, [items, shouldShowAds, injectEvery]);
+
+  return {
+    itemsWithAds,
+    shouldShowAds,
+    adCount: itemsWithAds.filter(item => item.type === 'ad').length,
+    adsConfig: adsenseConfig
+  };
+};
