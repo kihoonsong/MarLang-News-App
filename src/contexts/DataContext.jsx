@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, collection, query, orderBy, where, limit, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const DataContext = createContext();
 

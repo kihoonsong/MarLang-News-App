@@ -181,7 +181,7 @@ const BetaLabel = styled.span`
   margin-left: 0.4rem;
 `;
 
-const TitleText = styled(Typography)`
+const _TitleText = styled(Typography)`
   font-weight: 600 !important;
   font-size: 1.1rem !important;
   color: #23408e !important;

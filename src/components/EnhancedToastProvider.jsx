@@ -14,7 +14,7 @@ import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  WifiOff as WifiOffIcon
+  // WifiOff as WifiOffIcon
 } from '@mui/icons-material';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 

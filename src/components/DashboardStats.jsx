@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
-  Typography, Grid, Box, Chip, Card, CardContent, LinearProgress
+  Typography, Grid, Box, Chip, Card, LinearProgress
 } from '@mui/material';
-import {
-  Visibility, Book
-} from '@mui/icons-material';
+// import {
+//   Visibility, Book
+// } from '@mui/icons-material';
 import { 
   WelcomeCard, StatCard, StatIcon, StatInfo, StatNumber, StatLabel 
 } from './DashboardStyles';
@@ -45,7 +45,7 @@ const DashboardStats = ({
         minute: '2-digit',
         second: '2-digit'
       }).format(new Date(date));
-    } catch (formatError) {
+    } catch (_formatError) {
       return new Date().toLocaleTimeString('ko-KR');
     }
   };

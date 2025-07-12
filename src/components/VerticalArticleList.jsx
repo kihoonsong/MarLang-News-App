@@ -12,7 +12,7 @@ const VerticalArticleList = ({
   showAds = true 
 }) => {
   // 수직 광고 삽입 훅 사용
-  const { itemsWithAds, shouldShowAds } = useVerticalAdInjector(
+  const { itemsWithAds } = useVerticalAdInjector(
     showAds ? articles : [], 
     injectEvery
   );
@@ -30,7 +30,7 @@ const VerticalArticleList = ({
   return (
     <Container>
       <ListContainer role="list">
-        {itemsWithAds.map((item, index) => {
+        {itemsWithAds.map((item, _index) => {
           if (item.type === 'ad') {
             return (
               <AdItemWrapper key={item.id} role="listitem" aria-label="스폰서 콘텐츠">

@@ -30,7 +30,7 @@ import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 const CategoryDisplay = ({ category, articles, navigate }) => {
   // 기사가 있을 때만 광고 표시
   const hasContent = articles && articles.length > 0;
-  const { itemsWithAds, shouldShowAds } = useAdInjector(hasContent ? articles : []);
+  const { itemsWithAds } = useAdInjector(hasContent ? articles : []);
 
   return (
     <CategorySection id={`category-${category.id}`}>

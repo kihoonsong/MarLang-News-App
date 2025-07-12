@@ -135,7 +135,7 @@ const AdCard = ({
             setAdLoadFailed(true);
           }
         }
-      } catch (adError) {
+      } catch (_adError) {
         setAdLoadFailed(true);
         setAdBlockerDetected(true);
       }

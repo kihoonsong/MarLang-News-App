@@ -224,7 +224,7 @@ const MemberManagement = ({
   };
 
   // 권한 변경 요청
-  const handleRoleChangeRequest = (member, newRole) => {
+  const _handleRoleChangeRequest = (member, newRole) => {
     if (member.role === newRole) {
       setSnackbar({ open: true, message: '이미 동일한 권한입니다.', severity: 'info' });
       return;

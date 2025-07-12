@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { 
   Typography, Slider, FormControlLabel, Switch, FormControl, Select, MenuItem, InputLabel
@@ -6,7 +6,7 @@ import {
 import LanguageIcon from '@mui/icons-material/Language';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PaletteIcon from '@mui/icons-material/Palette';
-import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+// import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import { useData } from '../../contexts/DataContext';
 import { getSupportedLanguages } from '../../utils/dictionaryApi';
 import { useTranslations } from '../../hooks/useTranslations';
@@ -290,21 +290,21 @@ const LanguageOption = styled.div`
   gap: 0.75rem;
 `;
 
-const VoiceOption = styled.div`
+const _VoiceOption = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
 `;
 
-const VoiceInfo = styled.div`
+const _VoiceInfo = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.125rem;
 `;
 
-const VoiceDetail = styled.span`
+const _VoiceDetail = styled.span`
   font-size: 0.75rem;
   color: #666;
   font-weight: 400;

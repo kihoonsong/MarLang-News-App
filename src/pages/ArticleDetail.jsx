@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import styled from 'styled-components';
 import { 
-  AppBar, Toolbar, Typography, IconButton, Tabs, Tab, Box, Button, Chip,
-  Snackbar, Alert, Select, MenuItem, FormControl, InputLabel, CircularProgress, 
-  Popover, Paper, Avatar, Menu, ListItemIcon, ListItemText, useMediaQuery, useTheme
+  Typography, IconButton, Box, Button, Chip,
+  Alert, Select, MenuItem, FormControl, InputLabel, CircularProgress, 
+  Popover, Paper, useMediaQuery, useTheme
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+// import SearchIcon from '@mui/icons-material/Search';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -16,13 +16,13 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import CloseIcon from '@mui/icons-material/Close';
-import SpeedIcon from '@mui/icons-material/Speed';
+// import SpeedIcon from '@mui/icons-material/Speed';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWordDefinitionAndTranslation, getSupportedLanguages } from '../utils/dictionaryApi';
-import { speakSentence, getEnglishVoice, isSpeechSynthesisSupported, getAvailableVoices } from '../utils/speechUtils';
+import { getEnglishVoice } from '../utils/speechUtils';
 import { createUnifiedTTS } from '../utils/UnifiedTTS';
 import { optimizeTextForTTS, debugTTSOptimization } from '../utils/ttsTextPatch';
 import { getTTSOptimizationSettings, isIOS } from '../utils/deviceDetect';
@@ -138,15 +138,15 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth() || {};
-  const { allArticles, loading: articlesLoading, incrementArticleViews, incrementArticleLikes, getArticleById } = useArticles();
+  const { loading: articlesLoading, incrementArticleViews, incrementArticleLikes, getArticleById } = useArticles();
   const { 
     savedWords, 
     addWord, 
     removeWord, 
     isWordSaved, 
-    likedArticles, 
-    addLikedArticle, 
-    removeLikedArticle, 
+    // likedArticles, 
+    // addLikedArticle, 
+    // removeLikedArticle, 
     isArticleLiked,
     toggleLike,
     addViewRecord,
@@ -182,8 +182,8 @@ const ArticleDetail = () => {
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [currentSentence, setCurrentSentence] = useState(-1);
   const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
-  const [ttsPause, setTtsPause] = useState(userSettings?.ttsPause || false);
-  const [totalSentences, setTotalSentences] = useState(0);
+  const [_ttsPause, setTtsPause] = useState(userSettings?.ttsPause || false);
+  const [_totalSentences, setTotalSentences] = useState(0);
   
   // 통합 TTS 인스턴스
   const unifiedTTSRef = useRef(null);
@@ -484,7 +484,7 @@ const ArticleDetail = () => {
 
     // iOS 플랫폼 감지 (향상된 감지 사용)
     // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const _isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
     if (import.meta.env.DEV) {
@@ -630,7 +630,7 @@ const ArticleDetail = () => {
           setIsTTSLoading(false);
           setIsTTSPlaying(true);
         },
-        onProgress: (sentenceIndex, totalSentences, sentenceText, sentenceInfo) => {
+        onProgress: (sentenceIndex, totalSentences, sentenceText, _sentenceInfo) => {
           if (import.meta.env.DEV) {
             console.log(`📊 진행률: ${sentenceIndex + 1}/${totalSentences}`);
             console.log(`📢 현재 재생 중인 문장: "${sentenceText.substring(0, 50)}..."`);  
@@ -1184,13 +1184,13 @@ const ArticleDetail = () => {
             });
           }
         }
-      } catch (error) {
+      } catch (_error) {
         setWordPopup(prev => ({ ...prev, isLoading: false, error: 'Failed to fetch definition' }));
       }
     }
   }, [selectedLanguage, userSettings, articleData]);
 
-  const handleWordClick = async (event, word) => {
+  const _handleWordClick = async (event, word) => {
     // 이벤트 전파 중지 및 기본 동작 방지
     event.stopPropagation();
     event.preventDefault();
@@ -1272,7 +1272,7 @@ const ArticleDetail = () => {
                     } else {
                       utterance.lang = 'en-US';
                     }
-                  } catch (error) {
+                  } catch (_error) {
                     utterance.lang = 'en-US';
                   }
                   
@@ -2339,12 +2339,12 @@ const ActionButton = styled.button`
   }
 `;
 
-const LevelTabs = styled.div`
+const _LevelTabs = styled.div`
   display: flex;
   gap: 0.1rem;
 `;
 
-const LevelTab = styled.button`
+const _LevelTab = styled.button`
   background: transparent;
   border: none;
   color: ${props => props.$active ? '#1976d2' : '#999'};
@@ -2371,7 +2371,7 @@ const LevelTab = styled.button`
   }
 `;
 
-const ContentCard = styled.div`
+const _ContentCard = styled.div`
   background: white;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
@@ -2612,7 +2612,7 @@ const DefinitionArea = styled.div`
   overflow-y: auto;
 `;
 
-const DefinitionHeader = styled.div`
+const _DefinitionHeader = styled.div`
   margin-bottom: 8px;
 `;
 

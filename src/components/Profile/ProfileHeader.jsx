@@ -90,7 +90,7 @@ const UserRole = styled.span`
   margin-top: 0.5rem;
 `;
 
-const LogoutButton = styled.button`
+const _LogoutButton = styled.button`
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
