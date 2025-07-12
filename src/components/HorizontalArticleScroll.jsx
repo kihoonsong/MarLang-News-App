@@ -159,7 +159,7 @@ const HorizontalArticleScroll = ({
   return (
     <Container>
       <ScrollContainer ref={containerRef}>
-        {infiniteItems.map((item, index) => {
+        {infiniteItems.map((item, _index) => {
           if (item.type === 'ad') {
             return (
               <CardWrapper key={item.id} $cardWidth={cardWidth}>

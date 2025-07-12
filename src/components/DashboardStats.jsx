@@ -45,7 +45,8 @@ const DashboardStats = ({
         minute: '2-digit',
         second: '2-digit'
       }).format(new Date(date));
-    } catch (_formatError) {
+    } catch (formatError) {
+      console.warn('Date formatting failed:', formatError);
       return new Date().toLocaleTimeString('ko-KR');
     }
   };

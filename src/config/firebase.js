@@ -35,15 +35,17 @@ googleProvider.setCustomParameters({
 // 개발 환경에서 Firebase 설정 상태 확인 (민감 정보 제외)
 if (import.meta.env.DEV) {
   const hasRequiredConfigs = firebaseConfig.projectId && firebaseConfig.authDomain && firebaseConfig.apiKey;
-  console.log('🔥 Firebase config status:', {
-    configured: hasRequiredConfigs ? '✓' : '✗',
-    projectId: firebaseConfig.projectId ? '✓' : '✗',
-    authDomain: firebaseConfig.authDomain ? '✓' : '✗',
-    apiKey: firebaseConfig.apiKey ? '✓' : '✗',
-    storageSet: firebaseConfig.storageBucket ? '✓' : '✗',
-    messagingSet: firebaseConfig.messagingSenderId ? '✓' : '✗',
-    appIdSet: firebaseConfig.appId ? '✓' : '✗'
-  });
+  if (import.meta.env.VITE_DEBUG_FIREBASE) {
+    console.log('🔥 Firebase config status:', {
+      configured: hasRequiredConfigs ? '✓' : '✗',
+      projectId: firebaseConfig.projectId ? '✓' : '✗',
+      authDomain: firebaseConfig.authDomain ? '✓' : '✗',
+      apiKey: firebaseConfig.apiKey ? '✓ (hidden)' : '✗',
+      storageSet: firebaseConfig.storageBucket ? '✓' : '✗',
+      messagingSet: firebaseConfig.messagingSenderId ? '✓' : '✗',
+      appIdSet: firebaseConfig.appId ? '✓' : '✗'
+    });
+  }
   
   if (!hasRequiredConfigs) {
     console.warn('⚠️ Firebase config incomplete. Check environment variables.');

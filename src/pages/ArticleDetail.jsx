@@ -1184,7 +1184,8 @@ const ArticleDetail = () => {
             });
           }
         }
-      } catch (_error) {
+      } catch (error) {
+        console.warn('Operation failed:', error);
         setWordPopup(prev => ({ ...prev, isLoading: false, error: 'Failed to fetch definition' }));
       }
     }
@@ -1272,7 +1273,8 @@ const ArticleDetail = () => {
                     } else {
                       utterance.lang = 'en-US';
                     }
-                  } catch (_error) {
+                  } catch (error) {
+        console.warn('Operation failed:', error);
                     utterance.lang = 'en-US';
                   }
                   

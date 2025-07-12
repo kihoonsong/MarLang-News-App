@@ -30,3 +30,5 @@ ADMIN_ACCOUNTS.md
 config/secrets.js
 secrets/
 admin-credentials.*
+.env
+functions/.env
