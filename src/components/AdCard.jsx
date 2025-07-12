@@ -13,8 +13,13 @@ const AdCardContainer = styled(Paper)`
   justify-content: center;
   flex-direction: column;
   text-align: center;
-  min-height: 200px; /* ArticleCard와 유사한 높이 */
+  min-height: 360px; /* ArticleCard와 동일한 높이 */
   box-sizing: border-box;
+  
+  /* 모바일에서 스크롤 스냅 추가 */
+  @media (max-width: 768px) {
+    scroll-snap-align: start;
+  }
   
   /* 단어장에서 사용될 때 WordCard와 동일한 스타일 */
   &.wordbook-ad {

@@ -132,7 +132,9 @@ const CategoryPage = () => {
                 <InlineAdComponent hasContent={true} />
                 <ArticleGrid>
                   {sortedArticles.map((article) => (
-                    <ArticleCard key={article.id} {...article} navigate={navigate} />
+                    <ArticleCardWrapper key={article.id}>
+                      <ArticleCard {...article} navigate={navigate} />
+                    </ArticleCardWrapper>
                   ))}
                 </ArticleGrid>
               </>
@@ -180,10 +182,48 @@ const CategoryTitle = styled.h1`
   @media (max-width: 768px) { font-size: 1.5rem; }
 `;
 const SortControls = styled.div` display: flex; align-items: center; gap: 0.5rem; `;
+
+const ArticleCardWrapper = styled.div`
+  /* 데스크톱에서는 기본 크기 */
+  
+  /* 모바일에서 카드 폭 조정하여 다음 카드 1/10 정도 보이도록 */
+  @media (max-width: 768px) {
+    flex: 0 0 85vw;
+    width: 85vw;
+  }
+`;
 const ArticleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
+  
+  /* 모바일에서 수평 스크롤 레이아웃으로 변경 */
+  @media (max-width: 768px) {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 0.375rem; /* 기존 0.75rem의 절반 */
+    padding-left: 2vw; /* 여백 조정 */
+    padding-bottom: 1rem;
+    
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+  }
 `;
 const EmptyState = styled.div`
   text-align: center;

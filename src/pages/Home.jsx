@@ -58,7 +58,7 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
                 <ArticleCardWrapper key={item.id}>
                   <AdCard 
                     adSlot={item.adSlot || 'articleBanner'}
-                    minHeight="200px"
+                    minHeight="360px"
                     showLabel={true}
                   />
                 </ArticleCardWrapper>
@@ -391,6 +391,12 @@ const HorizontalScrollContainer = styled.div`
     cursor: grabbing;
   }
   
+  /* 모바일에서 스크롤 스냅 적용 */
+  @media (max-width: 768px) {
+    scroll-snap-type: x mandatory;
+    padding-left: 2vw; /* 여백 조정 */
+  }
+  
   &::-webkit-scrollbar {
     height: 6px;
   }
@@ -415,11 +421,22 @@ const ArticleRow = styled.div`
   gap: 1.5rem;
   min-width: max-content;
   padding: 0.5rem 0;
+  
+  /* 모바일에서 간격 조정 */
+  @media (max-width: 768px) {
+    gap: 0.375rem; /* 기존 0.75rem의 절반 */
+  }
 `;
 
 const ArticleCardWrapper = styled.div`
   flex: 0 0 320px;
   width: 320px;
+  
+  /* 모바일에서 카드 폭 조정하여 다음 카드 1/10 정도 보이도록 */
+  @media (max-width: 768px) {
+    flex: 0 0 85vw;
+    width: 85vw;
+  }
 `;
 
 const EmptyCategory = styled.div`
