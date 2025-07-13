@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { 
   Select, MenuItem, FormControl, InputLabel, CircularProgress
@@ -70,8 +70,29 @@ const Wordbook = () => {
   const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
   const { itemsWithAds: currentPageItems } = useAdInjector(hasContent ? currentPageWords : []);
   
+  // 디버깅 로그
+  console.log('📊 페이지네이션 상태:', {
+    currentPage,
+    totalWords,
+    totalPages,
+    wordsPerPage,
+    currentPageWords: currentPageWords.length,
+    currentPageItems: currentPageItems.length,
+    sortedWords: sortedWords.length
+  });
+  
   // 페이지 변경 함수
-  const handlePageChange = (page) => {
+  const handlePageChange = (page, event) => {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('🔄 페이지 변경 시도:', { 
+      현재페이지: currentPage, 
+      목표페이지: page, 
+      전체페이지: totalPages,
+      전체단어수: totalWords
+    });
     setCurrentPage(page);
     // 페이지 변경 시 스크롤을 맨 위로 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -87,6 +108,9 @@ const Wordbook = () => {
     setShowMeaning(!showMeaning);
   };
 
+  // 정렬 변경 시에만 페이지를 1로 리셋하는 useRef 추가
+  const prevSortBy = useRef(sortBy);
+  
   useEffect(() => {
     if (isAuthenticated && savedWords) {
       const wordsCopy = [...savedWords];
@@ -134,8 +158,11 @@ const Wordbook = () => {
       setSortedWords([]);
     }
     
-    // 정렬이 변경되면 첫 페이지로 이동
-    setCurrentPage(1);
+    // 정렬이 변경된 경우에만 첫 페이지로 이동
+    if (prevSortBy.current !== sortBy) {
+      setCurrentPage(1);
+      prevSortBy.current = sortBy;
+    }
   }, [savedWords, sortBy, isAuthenticated]);
 
   // 단어 발음 재생
@@ -380,7 +407,7 @@ const Wordbook = () => {
                   </PaginationInfo>
                   <PaginationControls>
                     <PageButton 
-                      onClick={() => handlePageChange(currentPage - 1)}
+                      onClick={(e) => handlePageChange(currentPage - 1, e)}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -395,7 +422,7 @@ const Wordbook = () => {
                         return (
                           <PageNumber
                             key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
+                            onClick={(e) => handlePageChange(pageNum, e)}
                             $isActive={isCurrentPage}
                           >
                             {pageNum}
@@ -408,7 +435,7 @@ const Wordbook = () => {
                     })}
                     
                     <PageButton 
-                      onClick={() => handlePageChange(currentPage + 1)}
+                      onClick={(e) => handlePageChange(currentPage + 1, e)}
                       disabled={currentPage === totalPages}
                     >
                       Next
