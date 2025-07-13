@@ -1096,16 +1096,22 @@ const ArticleDetail = () => {
     }
     
     try {
+      // 현재 좋아요 상태 저장
+      const currentLikeStatus = isLiked;
+      
+      // 토글 실행
       const newLikeStatus = toggleLike(articleData, incrementArticleLikes);
       setIsLiked(newLikeStatus);
       
       // 활동 시간 업데이트
       updateActivityTime && updateActivityTime();
       
-      // 토스트 메시지 표시
-      if (newLikeStatus) {
+      // 토스트 메시지 표시 - 현재 상태 기반으로 메시지 결정
+      if (newLikeStatus && !currentLikeStatus) {
+        // 좋아요 추가된 경우
         toast.success('기사를 좋아요에 추가했습니다!');
-      } else {
+      } else if (!newLikeStatus && currentLikeStatus) {
+        // 좋아요 제거된 경우
         toast.info('기사를 좋아요에서 제거했습니다.');
       }
       
