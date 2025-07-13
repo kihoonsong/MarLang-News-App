@@ -70,29 +70,12 @@ const Wordbook = () => {
   const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
   const { itemsWithAds: currentPageItems } = useAdInjector(hasContent ? currentPageWords : []);
   
-  // 디버깅 로그
-  console.log('📊 페이지네이션 상태:', {
-    currentPage,
-    totalWords,
-    totalPages,
-    wordsPerPage,
-    currentPageWords: currentPageWords.length,
-    currentPageItems: currentPageItems.length,
-    sortedWords: sortedWords.length
-  });
-  
   // 페이지 변경 함수
   const handlePageChange = (page, event) => {
     if (event) {
       event.stopPropagation();
       event.preventDefault();
     }
-    console.log('🔄 페이지 변경 시도:', { 
-      현재페이지: currentPage, 
-      목표페이지: page, 
-      전체페이지: totalPages,
-      전체단어수: totalWords
-    });
     setCurrentPage(page);
     // 페이지 변경 시 스크롤을 맨 위로 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -398,54 +381,54 @@ const Wordbook = () => {
                   </WordCard>
                 );
               })}
-              
-              {/* 페이지네이션 */}
-              {totalPages > 1 && (
-                <PaginationContainer>
-                  <PaginationInfo>
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words (Page {currentPage} of {totalPages})
-                  </PaginationInfo>
-                  <PaginationControls>
-                    <PageButton 
-                      onClick={(e) => handlePageChange(currentPage - 1, e)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </PageButton>
-                    
-                    {[...Array(totalPages)].map((_, index) => {
-                      const pageNum = index + 1;
-                      const isCurrentPage = pageNum === currentPage;
-                      
-                      // 현재 페이지 주변 페이지만 표시 (1, 2, 3 페이지까지)
-                      if (pageNum <= 3 || Math.abs(pageNum - currentPage) <= 1 || pageNum === totalPages) {
-                        return (
-                          <PageNumber
-                            key={pageNum}
-                            onClick={(e) => handlePageChange(pageNum, e)}
-                            $isActive={isCurrentPage}
-                          >
-                            {pageNum}
-                          </PageNumber>
-                        );
-                      } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                        return <PageEllipsis key={pageNum}>...</PageEllipsis>;
-                      }
-                      return null;
-                    })}
-                    
-                    <PageButton 
-                      onClick={(e) => handlePageChange(currentPage + 1, e)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </PageButton>
-                  </PaginationControls>
-                </PaginationContainer>
-              )}
             </>
             )}
           </WordList>
+          
+          {/* 페이지네이션 - WordList 밖으로 이동 */}
+          {isAuthenticated && totalWords > 0 && totalPages > 1 && (
+            <PaginationContainer>
+              <PaginationInfo>
+                Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words (Page {currentPage} of {totalPages})
+              </PaginationInfo>
+              <PaginationControls>
+                <PageButton 
+                  onClick={(e) => handlePageChange(currentPage - 1, e)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </PageButton>
+                
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNum = index + 1;
+                  const isCurrentPage = pageNum === currentPage;
+                  
+                  // 현재 페이지 주변 페이지만 표시 (1, 2, 3 페이지까지)
+                  if (pageNum <= 3 || Math.abs(pageNum - currentPage) <= 1 || pageNum === totalPages) {
+                    return (
+                      <PageNumber
+                        key={pageNum}
+                        onClick={(e) => handlePageChange(pageNum, e)}
+                        $isActive={isCurrentPage}
+                      >
+                        {pageNum}
+                      </PageNumber>
+                    );
+                  } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                    return <PageEllipsis key={pageNum}>...</PageEllipsis>;
+                  }
+                  return null;
+                })}
+                
+                <PageButton 
+                  onClick={(e) => handlePageChange(currentPage + 1, e)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </PageButton>
+              </PaginationControls>
+            </PaginationContainer>
+          )}
         </PageContainer>
       </MobileContentWrapper>
     </>
@@ -1006,8 +989,21 @@ const PaginationContainer = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  margin-top: 40px;
+  margin: 40px auto 20px auto;
   padding: 20px;
+  max-width: 1200px;
+  width: 100%;
+  
+  @media (min-width: 768px) {
+    margin: 60px auto 40px auto;
+    padding: 30px 20px;
+  }
+  
+  @media (max-width: 480px) {
+    margin: 30px auto 20px auto;
+    padding: 15px 10px;
+    gap: 15px;
+  }
 `;
 
 const PaginationInfo = styled.div`
