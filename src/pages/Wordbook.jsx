@@ -16,7 +16,6 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import AdCard from '../components/AdCard';
 import { useAdInjector } from '../hooks/useAdInjector';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
 import { designTokens, getColor } from '../utils/designTokens';
 
@@ -28,6 +27,10 @@ const Wordbook = () => {
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
+  
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const wordsPerPage = 29;
   
   // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {
@@ -51,25 +54,28 @@ const Wordbook = () => {
     });
   };
 
-  // 무한 스크롤 설정
-  const {
-    visibleItems: visibleWords,
-    hasMore,
-    loading: scrollLoading,
-    error: scrollError,
-    lastItemRef,
-    totalItems,
-    visibleCount
-  } = useInfiniteScroll(sortedWords, 15, 15);
+  // 페이지네이션 계산
+  const totalWords = sortedWords.length;
+  const totalPages = Math.ceil(totalWords / wordsPerPage);
+  const startIndex = (currentPage - 1) * wordsPerPage;
+  const endIndex = startIndex + wordsPerPage;
+  const currentPageWords = sortedWords.slice(startIndex, endIndex);
 
   // 안전한 네비게이션 함수
   const safeNavigate = (path) => {
     navigate(path);
   };
 
-  // 광고가 포함된 단어 목록 생성 (무한 스크롤 적용된 단어들만)
-  const hasContent = isAuthenticated && visibleWords && visibleWords.length > 0;
-  const { itemsWithAds } = useAdInjector(hasContent ? visibleWords : []);
+  // 광고가 포함된 단어 목록 생성 (현재 페이지 단어들)
+  const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
+  const { itemsWithAds } = useAdInjector(hasContent ? currentPageWords : []);
+  
+  // 페이지 변경 함수
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // 페이지 변경 시 스크롤을 맨 위로 이동
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   // showMeaning 상태 변경 시 localStorage에 저장
   useEffect(() => {
@@ -127,6 +133,9 @@ const Wordbook = () => {
       // 비로그인 사용자는 빈 배열
       setSortedWords([]);
     }
+    
+    // 정렬이 변경되면 첫 페이지로 이동
+    setCurrentPage(1);
   }, [savedWords, sortBy, isAuthenticated]);
 
   // 단어 발음 재생
@@ -260,7 +269,7 @@ const Wordbook = () => {
                   </LoginButton>
                 </LoginPrompt>
               </GuestContent>
-            ) : sortedWords.length === 0 ? (
+            ) : totalWords === 0 ? (
               <EmptyState>
                 <EmptyIcon>📖</EmptyIcon>
                 <EmptyText>No words saved yet</EmptyText>
@@ -268,16 +277,8 @@ const Wordbook = () => {
               </EmptyState>
             ) : (
               <>
-                {/* 오류 메시지 표시 */}
-                {scrollError && (
-                  <ErrorMessage>
-                    {scrollError}
-                  </ErrorMessage>
-                )}
-                
-                {/* 무한 스크롤 적용된 단어 목록 */}
-                {(hasContent && visibleWords.length >= 3 ? itemsWithAds : visibleWords).map((item, index) => {
-                  const isLastItem = index === (hasContent && visibleWords.length >= 3 ? itemsWithAds : visibleWords).length - 1;
+                {/* 페이지네이션 적용된 단어 목록 */}
+                {(hasContent && currentPageWords.length >= 3 ? itemsWithAds : currentPageWords).map((item, index) => {
                 if (item.type === 'ad') {
                   return (
                     <WordbookAdCard key={item.id}>
@@ -308,7 +309,6 @@ const Wordbook = () => {
                 return (
                   <WordCard 
                     key={word.id}
-                    ref={isLastItem && hasMore ? lastItemRef : null}
                     onClick={() => handleGoToArticle(word.articleId)}
                   >
                     {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
@@ -370,22 +370,51 @@ const Wordbook = () => {
                     )}
                   </WordCard>
                 );
-              })
-              }
+              })}
               
-              {/* 로딩 상태 표시 */}
-              {scrollLoading && (
-                <LoadingContainer>
-                  <CircularProgress size={24} />
-                  <LoadingText>Loading more words...</LoadingText>
-                </LoadingContainer>
-              )}
-              
-              {/* 더 이상 로드할 데이터가 없을 때 */}
-              {!hasMore && sortedWords.length > 0 && (
-                <EndMessage>
-                  Showing {visibleCount} of {totalItems} words
-                </EndMessage>
+              {/* 페이지네이션 */}
+              {totalPages > 1 && (
+                <PaginationContainer>
+                  <PaginationInfo>
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words
+                  </PaginationInfo>
+                  <PaginationControls>
+                    <PageButton 
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </PageButton>
+                    
+                    {[...Array(totalPages)].map((_, index) => {
+                      const pageNum = index + 1;
+                      const isCurrentPage = pageNum === currentPage;
+                      
+                      // 현재 페이지 주변 페이지만 표시 (1, 2, 3 페이지까지)
+                      if (pageNum <= 3 || Math.abs(pageNum - currentPage) <= 1 || pageNum === totalPages) {
+                        return (
+                          <PageNumber
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            $isActive={isCurrentPage}
+                          >
+                            {pageNum}
+                          </PageNumber>
+                        );
+                      } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                        return <PageEllipsis key={pageNum}>...</PageEllipsis>;
+                      }
+                      return null;
+                    })}
+                    
+                    <PageButton 
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </PageButton>
+                  </PaginationControls>
+                </PaginationContainer>
               )}
             </>
             )}
@@ -945,37 +974,72 @@ const LoginButton = styled.button`
   }
 `;
 
-const LoadingContainer = styled.div`
+const PaginationContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
-  gap: 16px;
+  gap: 20px;
+  margin-top: 40px;
+  padding: 20px;
 `;
 
-const LoadingText = styled.p`
+const PaginationInfo = styled.div`
   color: #666;
   font-size: 14px;
-  margin: 0;
+  text-align: center;
 `;
 
-const EndMessage = styled.div`
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
+const PaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+`;
+
+const PageButton = styled.button`
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
   font-size: 14px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  margin-top: 20px;
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #1976d2;
+  }
+  
+  &:disabled {
+    background: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+  }
 `;
 
-const ErrorMessage = styled.div`
-  background: #fee;
-  color: #c33;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  text-align: center;
+const PageNumber = styled.button`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background: ${props => props.$isActive ? '#1976d2' : 'white'};
+  color: ${props => props.$isActive ? 'white' : '#333'};
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 40px;
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background: ${props => props.$isActive ? '#1565c0' : '#f5f5f5'};
+    border-color: #1976d2;
+  }
+`;
+
+const PageEllipsis = styled.span`
+  padding: 8px 4px;
+  color: #999;
+  font-size: 14px;
 `;
 
 export default Wordbook; 
