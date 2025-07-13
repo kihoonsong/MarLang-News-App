@@ -30,7 +30,7 @@ const Wordbook = () => {
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const wordsPerPage = 30;
+  const wordsPerPage = 10;
   
   // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {

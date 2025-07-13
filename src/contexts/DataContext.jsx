@@ -13,9 +13,9 @@ export const DataProvider = ({ children }) => {
   const [savedWords, setSavedWords] = useState([]);
   const [likedArticles, setLikedArticles] = useState([]);
   const [userSettings, setUserSettings] = useState({
-    language: 'en',
+    language: 'ko',
     translationLanguage: 'ko',
-    ttsSpeed: 0.8,
+    ttsSpeed: 1.0,
     ttsPause: 200,
     autoSaveWords: true,
     autoPlay: false,

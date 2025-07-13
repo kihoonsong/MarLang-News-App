@@ -207,7 +207,7 @@ export const ArticlesProvider = ({ children }) => {
     // 지난 이틀 (48시간) 기준으로 변경
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     
-    return [...allArticles]
+    const recentPopular = [...allArticles]
       .filter(article => {
         // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
         const isPublished = article.status === 'published';
@@ -222,6 +222,29 @@ export const ArticlesProvider = ({ children }) => {
         return scoreB - scoreA;
       })
       .slice(0, limit);
+
+    // 최근 2일간 데이터가 부족하면 일주일 통계로 대체
+    if (recentPopular.length < limit) {
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      
+      const weeklyPopular = [...allArticles]
+        .filter(article => {
+          const isPublished = article.status === 'published';
+          const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
+          const isRecent = new Date(article.publishedAt) >= oneWeekAgo;
+          return isPublished && isTimeToPublish && isRecent;
+        })
+        .sort((a, b) => {
+          const scoreA = (a.likes || 0) + (a.views || 0);
+          const scoreB = (b.likes || 0) + (b.views || 0);
+          return scoreB - scoreA;
+        })
+        .slice(0, limit);
+      
+      return weeklyPopular;
+    }
+    
+    return recentPopular;
   }, [allArticles]);
 
   const getArticleById = useCallback((articleId) => {
