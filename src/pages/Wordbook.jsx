@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { 
-  Select, MenuItem, FormControl, InputLabel, CircularProgress
+  Select, MenuItem, FormControl, InputLabel, CircularProgress, useMediaQuery, useTheme
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -24,13 +24,16 @@ const Wordbook = () => {
   const { isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { savedWords, removeWord } = useData();
   
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // md 이하는 모바일로 간주
+  
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
   
-  // 페이지네이션 상태
+  // 페이지네이션 상태 - 반응형으로 설정
   const [currentPage, setCurrentPage] = useState(1);
-  const wordsPerPage = 10;
+  const wordsPerPage = isMobile ? 10 : 30;
   
   // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {
@@ -81,6 +84,14 @@ const Wordbook = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
+  // 화면 크기 변경 시 페이지 범위 조정
+  useEffect(() => {
+    const newTotalPages = Math.ceil(totalWords / wordsPerPage);
+    if (currentPage > newTotalPages && newTotalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [isMobile, totalWords, wordsPerPage, currentPage]);
+
   // showMeaning 상태 변경 시 localStorage에 저장
   useEffect(() => {
     localStorage.setItem('wordbook_showMeaning', JSON.stringify(showMeaning));
