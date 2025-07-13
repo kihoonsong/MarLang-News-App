@@ -54,21 +54,21 @@ const Wordbook = () => {
     });
   };
 
-  // 페이지네이션 계산
-  const totalWords = sortedWords.length;
-  const totalPages = Math.ceil(totalWords / wordsPerPage);
-  const startIndex = (currentPage - 1) * wordsPerPage;
-  const endIndex = startIndex + wordsPerPage;
-  const currentPageWords = sortedWords.slice(startIndex, endIndex);
-
   // 안전한 네비게이션 함수
   const safeNavigate = (path) => {
     navigate(path);
   };
 
-  // 광고가 포함된 단어 목록 생성 (현재 페이지 단어들)
-  const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
-  const { itemsWithAds } = useAdInjector(hasContent ? currentPageWords : []);
+  // 전체 단어에 대해 광고가 포함된 목록 생성
+  const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
+  const { itemsWithAds: allItemsWithAds } = useAdInjector(hasContent ? sortedWords : []);
+  
+  // 페이지네이션 계산 (광고 포함된 전체 아이템 기준)
+  const totalItems = allItemsWithAds.length;
+  const totalPages = Math.ceil(totalItems / wordsPerPage);
+  const startIndex = (currentPage - 1) * wordsPerPage;
+  const endIndex = startIndex + wordsPerPage;
+  const currentPageItems = allItemsWithAds.slice(startIndex, endIndex);
   
   // 페이지 변경 함수
   const handlePageChange = (page) => {
@@ -269,7 +269,7 @@ const Wordbook = () => {
                   </LoginButton>
                 </LoginPrompt>
               </GuestContent>
-            ) : totalWords === 0 ? (
+            ) : sortedWords.length === 0 ? (
               <EmptyState>
                 <EmptyIcon>📖</EmptyIcon>
                 <EmptyText>No words saved yet</EmptyText>
@@ -278,7 +278,7 @@ const Wordbook = () => {
             ) : (
               <>
                 {/* 페이지네이션 적용된 단어 목록 */}
-                {(hasContent && currentPageWords.length >= 3 ? itemsWithAds : currentPageWords).map((item, index) => {
+                {currentPageItems.map((item, index) => {
                 if (item.type === 'ad') {
                   return (
                     <WordbookAdCard key={item.id}>
@@ -376,7 +376,7 @@ const Wordbook = () => {
               {totalPages > 1 && (
                 <PaginationContainer>
                   <PaginationInfo>
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {sortedWords.length} words (Page {currentPage} of {totalPages})
                   </PaginationInfo>
                   <PaginationControls>
                     <PageButton 
