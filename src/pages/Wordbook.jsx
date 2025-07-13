@@ -30,7 +30,7 @@ const Wordbook = () => {
   
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const wordsPerPage = 29;
+  const wordsPerPage = 30;
   
   // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {
@@ -59,16 +59,16 @@ const Wordbook = () => {
     navigate(path);
   };
 
-  // 전체 단어에 대해 광고가 포함된 목록 생성
-  const hasContent = isAuthenticated && sortedWords && sortedWords.length > 0;
-  const { itemsWithAds: allItemsWithAds } = useAdInjector(hasContent ? sortedWords : []);
-  
-  // 페이지네이션 계산 (광고 포함된 전체 아이템 기준)
-  const totalItems = allItemsWithAds.length;
-  const totalPages = Math.ceil(totalItems / wordsPerPage);
+  // 페이지네이션 계산 (단어만 기준으로)
+  const totalWords = sortedWords.length;
+  const totalPages = Math.ceil(totalWords / wordsPerPage);
   const startIndex = (currentPage - 1) * wordsPerPage;
   const endIndex = startIndex + wordsPerPage;
-  const currentPageItems = allItemsWithAds.slice(startIndex, endIndex);
+  const currentPageWords = sortedWords.slice(startIndex, endIndex);
+  
+  // 현재 페이지 단어들에 광고 주입
+  const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
+  const { itemsWithAds: currentPageItems } = useAdInjector(hasContent ? currentPageWords : []);
   
   // 페이지 변경 함수
   const handlePageChange = (page) => {
@@ -269,7 +269,7 @@ const Wordbook = () => {
                   </LoginButton>
                 </LoginPrompt>
               </GuestContent>
-            ) : sortedWords.length === 0 ? (
+            ) : totalWords === 0 ? (
               <EmptyState>
                 <EmptyIcon>📖</EmptyIcon>
                 <EmptyText>No words saved yet</EmptyText>
@@ -376,7 +376,7 @@ const Wordbook = () => {
               {totalPages > 1 && (
                 <PaginationContainer>
                   <PaginationInfo>
-                    Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {sortedWords.length} words (Page {currentPage} of {totalPages})
+                    Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words (Page {currentPage} of {totalPages})
                   </PaginationInfo>
                   <PaginationControls>
                     <PageButton 
