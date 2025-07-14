@@ -326,7 +326,7 @@ const ArticleDetail = () => {
     }
   }, [userSettings?.translationLanguage]);
 
-  // 하이라이트된 단어들을 사용자 단어장에서 로드
+  // 하이라이트된 단어들을 사용자 단어장에서 로드 (통합된 useEffect)
   useEffect(() => {
     if (articleData && savedWords) {
       // 현재 기사에 해당하는 저장된 단어들로 하이라이트 설정
@@ -339,24 +339,7 @@ const ArticleDetail = () => {
         console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
       }
     }
-  }, [articleData?.id, savedWords]);
-
-  // 단어장과 하이라이트 초기 동기화 (한 번만 실행)
-  useEffect(() => {
-    if (articleData && savedWords && savedWords.length > 0) {
-      // 현재 기사에 해당하는 저장된 단어들 찾기
-      const articleWords = savedWords
-        .filter(word => word.articleId === articleData.id)
-        .map(word => word.word.toLowerCase());
-      
-      if (articleWords.length > 0) {
-        if (import.meta.env.DEV) {
-          console.log('🔄 단어장 동기화:', articleWords);
-        }
-        setHighlightedWords(new Set(articleWords));
-      }
-    }
-  }, [articleData?.id]); // savedWords 제거하여 무한 루프 방지
+  }, [articleData?.id, savedWords])
 
   // 키보드 이벤트 핸들러 (화살표 키로 레벨 변경)
   useEffect(() => {
@@ -400,23 +383,12 @@ const ArticleDetail = () => {
     return () => window.removeEventListener('wordUpdated', handleWordUpdated);
   }, [articleData?.id, savedWords]);
 
-  // 하이라이트 상태 변경 시 DOM 업데이트
+  // 하이라이트 상태 변경 시 DOM 업데이트 (React 상태 기반으로 처리됨)
+  // DOM 직접 조작 제거: WordSpan 컴포넌트에서 isHighlighted prop을 통해 처리
   useEffect(() => {
-    if (articleData) {
-      // 모든 clickable-word 요소 찾기
-      const clickableWords = document.querySelectorAll('.clickable-word');
-      
-      clickableWords.forEach(element => {
-        const word = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
-        if (word && word.length > 2) {
-          // highlightSavedWords 설정이 켜져 있을 때만 하이라이트 적용
-          if ((userSettings?.highlightSavedWords !== false) && highlightedWords.has(word)) {
-            element.classList.add('highlighted-word');
-          } else {
-            element.classList.remove('highlighted-word');
-          }
-        }
-      });
+    // 이 useEffect는 디버깅용으로만 남겨두고 실제 DOM 조작은 제거
+    if (import.meta.env.DEV && articleData) {
+      console.log('🎨 하이라이트 상태 업데이트:', highlightedWords.size, '개 단어');
       
       if (import.meta.env.DEV) {
         console.log('🎨 DOM 하이라이트 업데이트:', highlightedWords.size, '개 단어');
@@ -1364,16 +1336,8 @@ const ArticleDetail = () => {
         detail: { articleId: articleData.id, highlights: [...newHighlights] }
       }));
       
-      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가 (설정이 켜져 있을 때만)
-      if (userSettings?.highlightSavedWords !== false) {
-        const allWordElements = document.querySelectorAll('.clickable-word');
-        allWordElements.forEach(element => {
-          const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
-          if (elementWord === cleanWord.toLowerCase()) {
-            element.classList.add('highlighted-word');
-          }
-        });
-      }
+      // DOM 직접 조작 제거: React 상태만으로 하이라이트 처리
+      // WordSpan 컴포넌트에서 isHighlighted prop을 통해 자동으로 처리됨
       
       // 조용한 토스트 메시지 (자동 저장이므로 덜 눈에 띄게)
       if (toast && toast.info) {
@@ -1455,16 +1419,8 @@ const ArticleDetail = () => {
         detail: { type: 'add', articleId: articleData.id, word: cleanWord }
       }));
       
-      // DOM에서 해당 단어의 모든 인스턴스에 하이라이트 클래스 추가 (설정이 켜져 있을 때만)
-      if (userSettings?.highlightSavedWords !== false) {
-        const allWordElements = document.querySelectorAll('.clickable-word');
-        allWordElements.forEach(element => {
-          const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
-          if (elementWord === wordPopup.word.toLowerCase()) {
-            element.classList.add('highlighted-word');
-          }
-        });
-      }
+      // DOM 직접 조작 제거: React 상태만으로 하이라이트 처리
+      // WordSpan 컴포넌트에서 isHighlighted prop을 통해 자동으로 처리됨
       
       // 토스트 메시지 표시 (언어별)
       if (toast && toast.success) {
@@ -1526,7 +1482,7 @@ const ArticleDetail = () => {
       console.log('🗑️ 단어 삭제:', cleanWord);
     }
     
-    // 하이라이트된 단어 목록에서 제거
+    // React 상태만 업데이트 (DOM 직접 조작 제거)
     const newHighlights = new Set([...highlightedWords]);
     newHighlights.delete(cleanWord);
     setHighlightedWords(newHighlights);
@@ -1547,15 +1503,6 @@ const ArticleDetail = () => {
     window.dispatchEvent(new CustomEvent('wordUpdated', {
       detail: { type: 'remove', articleId: articleData.id, word: cleanWord }
     }));
-    
-    // DOM에서 해당 단어의 모든 인스턴스에서 하이라이트 클래스 제거
-    const allWordElements = document.querySelectorAll('.clickable-word');
-    allWordElements.forEach(element => {
-      const elementWord = element.textContent.trim().toLowerCase().replace(/[^\w]/g, '');
-      if (elementWord === cleanWord) {
-        element.classList.remove('highlighted-word');
-      }
-    });
   }, [highlightedWords, savedWords, articleData, removeWord, updateActivityTime]);
 
   // 단어 팝업에서 언어 변경 처리
