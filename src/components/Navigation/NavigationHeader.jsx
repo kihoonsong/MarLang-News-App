@@ -112,7 +112,7 @@ const StyledToolbar = styled(Toolbar)`
   justify-content: space-between;
   align-items: center;
   padding: 0 1rem !important;
-  min-height: 64px !important;
+  min-height: 48px !important;
 `;
 
 const LeftSection = styled.div`

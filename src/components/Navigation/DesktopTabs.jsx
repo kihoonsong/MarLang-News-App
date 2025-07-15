@@ -58,13 +58,13 @@ const TabsContainer = styled(Box)`
 `;
 
 const StyledTabs = styled(Tabs)`
-  min-height: 64px !important;
-  height: 64px !important;
+  min-height: 48px !important;
+  height: 48px !important;
 `;
 
 const StyledTab = styled(Tab)`
-  min-height: 64px !important;
-  height: 64px !important;
+  min-height: 48px !important;
+  height: 48px !important;
   text-transform: none !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
