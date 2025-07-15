@@ -49,11 +49,9 @@ const NavigationHeader = ({
           )}
           <LogoSection onClick={() => navigate('/')}>
             {isMobile ? (
-              <LogoImage 
-                src={logoImage}
-                alt="NEWStep"
-                title="NEWStep"
-              />
+              <MobileLogoText>
+                NEWStep
+              </MobileLogoText>
             ) : (
               <LogoText>
                 {title || 'NEWStep Eng News'}
@@ -167,18 +165,15 @@ const LogoSection = styled.div`
   }
 `;
 
-const LogoImage = styled.img`
-  height: 40px;
+const MobileLogoText = styled(Typography)`
+  font-weight: bold !important;
+  font-size: 1.2rem !important;
+  color: #23408e !important;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
   
   &:hover {
-    opacity: 0.8;
-  }
-  
-  /* 모바일에서 로고 크기 조정 */
-  @media (max-width: 767px) {
-    height: 32px;
+    color: #1976d2 !important;
   }
 `;
 
