@@ -306,7 +306,7 @@ const Wordbook = () => {
                       <AdLabel>광고</AdLabel>
                       <AdContent>
                         <AdCard 
-                          adSlot="wordbook"
+                          adSlot="articleBanner"
                           minHeight="180px"
                           showLabel={false}
                           className="wordbook-ad"

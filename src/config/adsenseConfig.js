@@ -42,8 +42,8 @@ export const adsenseConfig = {
   
   // 개발 환경 설정
   development: {
-    // 개발 모드에서 애드센스 활성화 (실제 클라이언트 ID 설정됨)
-    enabled: true,
+    // 개발 모드에서 애드센스 비활성화 (에드센스 허가 전이므로)
+    enabled: false,
     // 테스트 광고 사용 여부
     useTestAds: false,
   }
@@ -55,7 +55,7 @@ export const getAdsenseConfig = () => {
   
   return {
     ...adsenseConfig,
-    enabled: isDevelopment ? adsenseConfig.development.enabled : true,
+    enabled: true,
     clientId: isDevelopment && adsenseConfig.development.useTestAds 
       ? 'ca-pub-TEST_CLIENT_ID' 
       : adsenseConfig.CLIENT_ID,

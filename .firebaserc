@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "marlang-app"
-  }
+  },
+  "targets": {
+    "marlang-app": {
+      "hosting": {
+        "marlang-app": [
+          "marlang-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

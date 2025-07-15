@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, collection, getDocs, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { getDefaultLanguageSettings } from '../utils/languageDetection';
 
 const DataContext = createContext();
 
@@ -12,15 +13,20 @@ export const DataProvider = ({ children }) => {
 
   const [savedWords, setSavedWords] = useState([]);
   const [likedArticles, setLikedArticles] = useState([]);
-  const [userSettings, setUserSettings] = useState({
-    language: 'ko',
-    translationLanguage: 'ko',
-    ttsSpeed: 1.0,
-    ttsPause: 200,
-    autoSaveWords: true,
-    autoPlay: false,
-    highlightSavedWords: true,
-  });
+  const getInitialSettings = () => {
+    const defaultLanguage = getDefaultLanguageSettings();
+    return {
+      language: defaultLanguage.language,
+      translationLanguage: defaultLanguage.translationLanguage,
+      ttsSpeed: 1.0,
+      ttsPause: 200,
+      autoSaveWords: true,
+      autoPlay: false,
+      highlightSavedWords: true,
+    };
+  };
+
+  const [userSettings, setUserSettings] = useState(getInitialSettings());
   const [viewRecords, setViewRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,7 +57,7 @@ export const DataProvider = ({ children }) => {
                 serverData.savedWords.filter(w => w && typeof w.word === 'string') : [];
               const sanitizedLikes = Array.isArray(serverData.likedArticles) ? 
                 serverData.likedArticles.filter(a => a && typeof a.id === 'string') : [];
-              const settings = serverData.settings || userSettings;
+              const settings = serverData.settings || getInitialSettings();
               const views = Array.isArray(serverData.viewRecords) ? serverData.viewRecords : [];
 
               setSavedWords(sanitizedWords);
@@ -68,7 +74,7 @@ export const DataProvider = ({ children }) => {
             // 서버 실패 시 로컬 저장소에서 로드
             const localWords = JSON.parse(localStorage.getItem(`haru_${user.uid}_savedWords`) || '[]');
             const localLikes = JSON.parse(localStorage.getItem(`haru_${user.uid}_likedArticles`) || '[]');
-            const localSettings = JSON.parse(localStorage.getItem(`haru_${user.uid}_settings`) || JSON.stringify(userSettings));
+            const localSettings = JSON.parse(localStorage.getItem(`haru_${user.uid}_settings`) || JSON.stringify(getInitialSettings()));
             const localViews = JSON.parse(localStorage.getItem(`haru_${user.uid}_viewRecords`) || '[]');
             
             setSavedWords(localWords);
@@ -106,7 +112,7 @@ export const DataProvider = ({ children }) => {
           const rawLikes = likesSnap.exists() ? likesSnap.data().articles : [];
           const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
 
-          const settings = settingsSnap.exists() ? settingsSnap.data().settings : userSettings;
+          const settings = settingsSnap.exists() ? settingsSnap.data().settings : getInitialSettings();
           const views = viewsSnap.exists() ? viewsSnap.data().records : [];
 
           setSavedWords(sanitizedWords);
@@ -130,7 +136,7 @@ export const DataProvider = ({ children }) => {
           const rawLikes = JSON.parse(localStorage.getItem('haru_guest_likes') || '[]');
           const sanitizedLikes = Array.isArray(rawLikes) ? rawLikes.filter(a => a && typeof a.id === 'string') : [];
 
-          const localSettings = JSON.parse(localStorage.getItem('haru_guest_settings') || JSON.stringify(userSettings));
+          const localSettings = JSON.parse(localStorage.getItem('haru_guest_settings') || JSON.stringify(getInitialSettings()));
           const localViews = JSON.parse(localStorage.getItem('haru_guest_views') || '[]');
           
           setSavedWords(sanitizedWords);

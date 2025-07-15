@@ -59,7 +59,9 @@
       "WebFetch(domain:react-icons.github.io)",
       "WebFetch(domain:console.firebase.google.com)",
       "Bash(npm test:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "mcp__ide__executeCode",
+      "WebFetch(domain:localhost)"
     ],
     "deny": []
   }
