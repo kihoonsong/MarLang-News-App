@@ -165,13 +165,6 @@ const LogoSection = styled.div`
   &:hover {
     opacity: 0.8;
   }
-  
-  /* 모바일에서 세로 배치 (로고 이미지 아래에 배타) */
-  @media (max-width: 767px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-  }
 `;
 
 const LogoImage = styled.img`
@@ -211,10 +204,9 @@ const BetaLabel = styled.span`
   line-height: 1.2;
   margin-left: 0.4rem;
   
-  /* 모바일에서 로고 아래에 배치 */
+  /* 모바일에서 배타 숨김 */
   @media (max-width: 767px) {
-    margin-left: 0;
-    margin-top: 0.2rem;
+    display: none;
   }
 `;
 
