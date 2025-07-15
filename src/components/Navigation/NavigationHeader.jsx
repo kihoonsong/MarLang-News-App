@@ -5,6 +5,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from './UserMenu';
 import SearchDropdown from '../SearchDropdown';
+import logoImage from '../../assets/logo.png';
 
 const NavigationHeader = ({ 
   showBackButton = false, 
@@ -47,9 +48,17 @@ const NavigationHeader = ({
             </IconButton>
           )}
           <LogoSection onClick={() => navigate('/')}>
-            <LogoText>
-              {isMobile ? 'NEWStep' : (title || 'NEWStep Eng News')}
-            </LogoText>
+            {isMobile ? (
+              <LogoImage 
+                src={logoImage}
+                alt="NEWStep"
+                title="NEWStep"
+              />
+            ) : (
+              <LogoText>
+                {title || 'NEWStep Eng News'}
+              </LogoText>
+            )}
             <BetaLabel>beta</BetaLabel>
           </LogoSection>
         </LeftSection>
@@ -156,6 +165,28 @@ const LogoSection = styled.div`
   &:hover {
     opacity: 0.8;
   }
+  
+  /* 데스크톱에서 세로 배치 */
+  @media (min-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+`;
+
+const LogoImage = styled.img`
+  height: 40px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  /* 모바일에서 로고 크기 조정 */
+  @media (max-width: 767px) {
+    height: 32px;
+  }
 `;
 
 const LogoText = styled(Typography)`
@@ -179,13 +210,14 @@ const BetaLabel = styled.span`
   text-transform: uppercase;
   line-height: 1.2;
   margin-left: 0.4rem;
+  
+  /* 데스크톱에서 로고 아래에 배치 */
+  @media (min-width: 768px) {
+    margin-left: 0;
+    margin-top: 0.2rem;
+  }
 `;
 
-const _TitleText = styled(Typography)`
-  font-weight: 600 !important;
-  font-size: 1.1rem !important;
-  color: #23408e !important;
-`;
 
 const UserAvatar = styled(Avatar)`
   cursor: pointer !important;

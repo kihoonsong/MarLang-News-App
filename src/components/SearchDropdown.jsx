@@ -222,9 +222,13 @@ const Container = styled('div')`
     `}
   }
   
-  /* 풀스크린(데스크톱)에서 크기 50% 확대 */
+  /* 데스크톱에서 서치바 더욱 확장 */
+  @media (min-width: 768px) {
+    max-width: 700px;
+  }
+  
   @media (min-width: 1024px) {
-    max-width: 600px; /* 400px → 600px (50% 증가) */
+    max-width: 800px;
   }
 `;
 
