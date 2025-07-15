@@ -218,6 +218,12 @@ const UserAvatar = styled(Avatar)`
   &:hover {
     transform: scale(1.1);
   }
+  
+  /* 모바일에서 로고와 동일한 크기로 조정 */
+  @media (max-width: 767px) {
+    width: 32px !important;
+    height: 32px !important;
+  }
 `;
 
 const LoginButton = styled.button`
