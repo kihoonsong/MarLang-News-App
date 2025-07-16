@@ -229,6 +229,32 @@ const ArticleManagement = ({
       console.log('🔄 기사 추가 시작...');
       console.log('📝 기사 폼 데이터:', articleForm);
       
+      // 이미지 업로드 처리
+      let imageUrl = articleForm.image || '/placeholder-image.svg';
+      
+      if (articleForm.imageFile) {
+        console.log('📸 이미지 파일 업로드 시작:', articleForm.imageFile.name);
+        
+        try {
+          // 이미지 업로드 유틸리티 동적 import
+          const { uploadImage } = await import('../utils/imageUpload');
+          
+          // Firebase Storage에 이미지 업로드
+          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+          imageUrl = uploadResult.url;
+          
+          console.log('✅ 이미지 업로드 성공:', imageUrl);
+        } catch (uploadError) {
+          console.error('🚨 이미지 업로드 실패:', uploadError);
+          setSnackbar({ 
+            open: true, 
+            message: `이미지 업로드 실패: ${uploadError.message}`, 
+            severity: 'error' 
+          });
+          return; // 이미지 업로드 실패 시 기사 추가 중단
+        }
+      }
+      
       const newArticleData = {
         title: articleForm.title.trim(),
         summary: truncateSummary(articleForm.summary.trim(), 100), // 저장 시 트림 로직 적용
@@ -238,7 +264,7 @@ const ArticleManagement = ({
           advanced: articleForm.content?.advanced?.trim() || ''
         },
         category: articleForm.category,
-        image: articleForm.image || '/placeholder-image.svg',
+        image: imageUrl, // 업로드된 이미지 URL 사용
         publishedAt: articleForm.publishType === 'immediate' 
           ? new Date().toISOString() 
           : convertLocalToKoreanISO(articleForm.publishedAt),
@@ -359,6 +385,35 @@ const ArticleManagement = ({
     }
 
     try {
+      console.log('🔄 기사 수정 시작...');
+      console.log('📝 기사 폼 데이터:', articleForm);
+      
+      // 이미지 업로드 처리 (새 이미지 파일이 있는 경우)
+      let imageUrl = articleForm.image;
+      
+      if (articleForm.imageFile) {
+        console.log('📸 새 이미지 파일 업로드 시작:', articleForm.imageFile.name);
+        
+        try {
+          // 이미지 업로드 유틸리티 동적 import
+          const { uploadImage } = await import('../utils/imageUpload');
+          
+          // Firebase Storage에 이미지 업로드
+          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+          imageUrl = uploadResult.url;
+          
+          console.log('✅ 이미지 업로드 성공:', imageUrl);
+        } catch (uploadError) {
+          console.error('🚨 이미지 업로드 실패:', uploadError);
+          setSnackbar({ 
+            open: true, 
+            message: `이미지 업로드 실패: ${uploadError.message}`, 
+            severity: 'error' 
+          });
+          return; // 이미지 업로드 실패 시 기사 수정 중단
+        }
+      }
+
       const updatedData = {
         title: articleForm.title.trim(),
         summary: truncateSummary(articleForm.summary.trim(), 100), // 저장 시 트림 로직 적용
@@ -368,7 +423,7 @@ const ArticleManagement = ({
           advanced: articleForm.content?.advanced?.trim() || ''
         },
         category: articleForm.category,
-        image: articleForm.image,
+        image: imageUrl, // 업로드된 이미지 URL 사용
         status: articleForm.publishType === 'scheduled' ? 'scheduled' : 
                 articleForm.publishType === 'immediate' ? 'published' : 
                 articleForm.status || 'published',
@@ -382,6 +437,8 @@ const ArticleManagement = ({
         tags: articleForm.category ? [articleForm.category] : []
       };
 
+      console.log('📋 수정할 기사 데이터:', updatedData);
+
       const success = await onUpdateArticle(editingArticle.id, updatedData);
       
       if (success) {
@@ -392,8 +449,13 @@ const ArticleManagement = ({
         setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다.', severity: 'error' });
       }
     } catch (error) {
-      console.error('Error updating article:', error);
-      setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다.', severity: 'error' });
+      console.error('🚨 기사 수정 중 예외 발생:', error);
+      console.error('🚨 에러 스택:', error.stack);
+      setSnackbar({ 
+        open: true, 
+        message: `기사 수정 중 오류가 발생했습니다: ${error.message}`, 
+        severity: 'error' 
+      });
     }
   };
 
