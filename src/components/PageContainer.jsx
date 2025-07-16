@@ -1,9 +1,13 @@
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
-  padding: 0 0.5rem 2rem 0.5rem;
+  padding: 0 0.25rem 1rem 0.25rem;
   width: 100%;
   box-sizing: border-box;
+  
+  @media (max-width: 480px) {
+    padding: 0 0.125rem 0.75rem 0.125rem;
+  }
   
   @media (min-width: 768px) {
     padding: 0 2rem 2rem 2rem;

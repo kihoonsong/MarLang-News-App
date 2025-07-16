@@ -2060,13 +2060,27 @@ const ThumbnailImage = styled.img`
   object-fit: cover;
   border-radius: 16px;
   margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    height: 250px;
+  }
+  
+  @media (max-width: 480px) {
+    height: 200px;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const MetaInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const DateText = styled.span`
@@ -2077,8 +2091,18 @@ const DateText = styled.span`
 const Title = styled.h1`
   font-size: 1.8rem;
   font-weight: bold;
-  margin-bottom: 2rem;
-  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  line-height: 1.3;
+  
+  @media (max-width: 768px) {
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const ControlsSection = styled.div`
@@ -2371,9 +2395,13 @@ const ContentHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e3f2fd;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const LevelChangeButton = styled.button`
@@ -2418,7 +2446,7 @@ const ContentTitle = styled.h3`
 
 const ContentText = styled.div`
   font-size: 1.1rem;
-  line-height: 1.8;
+  line-height: 1.6;
   cursor: text;
   flex: 1;
   overflow-y: auto;
@@ -2655,7 +2683,7 @@ const SwipeCard = styled.div`
   @media (max-width: 768px) {
     position: static; /* absolute → static으로 변경하여 문서 흐름에 포함 */
     width: 100%;
-    padding: 1.5rem;
+    padding: 1rem;
     box-sizing: border-box; /* 패딩을 너비 안에 포함 */
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     cursor: default;
@@ -2674,8 +2702,8 @@ const SwipeCard = styled.div`
     }
   }
 
-  @media (max-width: 600px) {
-    padding: 1rem;
+  @media (max-width: 480px) {
+    padding: 0.75rem;
     box-sizing: border-box; /* 패딩을 너비 안에 포함 */
   }
 `;
