@@ -20,19 +20,27 @@ export const getKoreanTimeISOString = () => {
 };
 
 /**
- * 로컬 시간 입력을 한국 시간 기준 ISO 문자열로 변환
+ * 로컬 시간 입력을 UTC ISO 문자열로 변환 (예약 발행용)
  * @param {string} localTimeString - 로컬 시간 문자열 (YYYY-MM-DDTHH:mm 형식)
- * @returns {string} 한국 시간 기준 ISO 문자열
+ * @returns {string} UTC 기준 ISO 문자열
  */
 export const convertLocalToKoreanISO = (localTimeString) => {
-  // 입력된 시간을 한국 시간으로 간주
-  const localDate = new Date(localTimeString);
+  console.log('🕐 시간 변환 시작:', localTimeString);
   
-  // 사용자가 입력한 시간이 한국 시간이라고 가정하고
-  // 이를 UTC로 변환하여 저장 (한국 시간 - 9시간 = UTC)
-  const utcTime = new Date(localDate.getTime() - (9 * 60 * 60 * 1000));
+  // 사용자 입력을 한국 시간으로 해석하여 UTC로 변환
+  // 방법: 입력값에 한국 시간대 정보를 명시적으로 추가
+  const koreanTimeString = localTimeString + ':00+09:00'; // KST 시간대 추가
+  const koreanDate = new Date(koreanTimeString);
   
-  return utcTime.toISOString();
+  console.log('📅 한국시간으로 해석:', koreanDate.toString());
+  
+  // 이미 UTC로 변환된 상태
+  const utcISO = koreanDate.toISOString();
+  
+  console.log('🌍 변환된 UTC 시간:', utcISO);
+  console.log('🇰🇷 확인용 한국시간:', new Date(utcISO).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }));
+  
+  return utcISO;
 };
 
 /**
@@ -51,14 +59,23 @@ export const compareKoreanTime = (timeString1, timeString2) => {
 };
 
 /**
- * 한국 시간 기준으로 현재 시간이 지정된 시간 이후인지 확인
- * @param {string} targetTimeString - 대상 시간 문자열
+ * UTC 기준으로 현재 시간이 지정된 시간 이후인지 확인 (예약 발행용)
+ * @param {string} targetTimeString - 대상 시간 문자열 (UTC)
  * @returns {boolean} 현재 시간이 대상 시간 이후인지 여부
  */
 export const isAfterKoreanTime = (targetTimeString) => {
-  const now = getKoreanTime();
-  const targetTime = new Date(targetTimeString);
-  return now >= targetTime;
+  const nowUTC = new Date(); // 현재 UTC 시간
+  const targetTimeUTC = new Date(targetTimeString); // DB에 저장된 UTC 시간
+  
+  console.log('⏰ 시간 비교:', {
+    현재UTC: nowUTC.toISOString(),
+    대상UTC: targetTimeUTC.toISOString(),
+    현재KST: nowUTC.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    대상KST: targetTimeUTC.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    결과: nowUTC >= targetTimeUTC
+  });
+  
+  return nowUTC >= targetTimeUTC;
 };
 
 /**
@@ -85,23 +102,29 @@ export const formatKoreanTime = (timeString) => {
  * @returns {string} datetime-local input에 사용할 값
  */
 export const getKoreanDateTimeLocalValue = (dateInput = null) => {
-  let date;
+  let koreanTime;
   
   if (dateInput) {
     // DB에서 가져온 UTC 시간을 한국 시간으로 변환
-    date = new Date(dateInput);
-    date = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    const utcDate = new Date(dateInput);
+    koreanTime = new Date(utcDate.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   } else {
     // 현재 한국 시간 사용
-    date = getKoreanTime();
+    koreanTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   }
   
+  console.log('🕐 datetime-local 값 생성:', {
+    입력: dateInput,
+    한국시간: koreanTime.toString(),
+    결과: `${koreanTime.getFullYear()}-${String(koreanTime.getMonth() + 1).padStart(2, '0')}-${String(koreanTime.getDate()).padStart(2, '0')}T${String(koreanTime.getHours()).padStart(2, '0')}:${String(koreanTime.getMinutes()).padStart(2, '0')}`
+  });
+  
   // 한국 시간 기준으로 YYYY-MM-DDTHH:mm 형식 생성
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const year = koreanTime.getFullYear();
+  const month = String(koreanTime.getMonth() + 1).padStart(2, '0');
+  const day = String(koreanTime.getDate()).padStart(2, '0');
+  const hours = String(koreanTime.getHours()).padStart(2, '0');
+  const minutes = String(koreanTime.getMinutes()).padStart(2, '0');
   
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };

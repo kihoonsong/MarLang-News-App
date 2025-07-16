@@ -72,10 +72,23 @@ const DatePage = () => {
   } = useArticles();
   const [articlesByDate, setArticlesByDate] = useState({});
 
-  // 기사 데이터가 로드되면 날짜별로 그룹핑
+  // 기사 데이터가 로드되면 날짜별로 그룹핑 (published 기사만)
   useEffect(() => {
     if (!articlesLoading && Array.isArray(allArticles) && allArticles.length > 0) {
-      const grouped = groupArticlesByDate(allArticles);
+      // published 상태인 기사만 필터링 (scheduled 기사 제외)
+      const publishedArticles = allArticles.filter(article => {
+        const isPublished = article.status === 'published';
+        
+        // 추가 안전장치: scheduled 상태면 무조건 제외
+        if (article.status === 'scheduled') {
+          console.log('🚫 예약 기사 제외 (Date 페이지):', article.title, article.status);
+          return false;
+        }
+        
+        return isPublished;
+      });
+      
+      const grouped = groupArticlesByDate(publishedArticles);
       setArticlesByDate(grouped);
       
       // 기사가 있는 가장 최근 날짜를 기본 선택

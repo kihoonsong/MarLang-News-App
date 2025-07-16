@@ -13,31 +13,41 @@ const db = admin.firestore();
 async function createTestScheduledArticle() {
   console.log('🧪 테스트용 예약 기사 생성 시작...');
   
-  // 5분 후 예약 발행 시간 설정
-  const now = new Date();
-  const scheduledTime = new Date(now.getTime() + (5 * 60 * 1000)); // 5분 후
+  // 현재 UTC 시간
+  const nowUTC = new Date();
   
-  // 클라이언트와 동일한 방식으로 UTC 변환
-  const utcScheduledTime = new Date(scheduledTime.getTime() - (9 * 60 * 60 * 1000));
-  const scheduledTimeISO = utcScheduledTime.toISOString();
+  // 2분 후 예약 발행 시간 설정 (테스트를 위해 짧게)
+  const scheduledTimeUTC = new Date(nowUTC.getTime() + (2 * 60 * 1000)); // 2분 후
+  const scheduledTimeISO = scheduledTimeUTC.toISOString();
   
-  console.log(`현재 시간 (한국): ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
-  console.log(`예약 시간 (한국): ${scheduledTime.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
-  console.log(`저장될 시간 (UTC): ${scheduledTimeISO}`);
+  // 한국 시간으로 표시용
+  const nowKST = new Date(nowUTC.getTime() + (9 * 60 * 60 * 1000));
+  const scheduledTimeKST = new Date(scheduledTimeUTC.getTime() + (9 * 60 * 60 * 1000));
+  
+  console.log(`현재 시간 - UTC: ${nowUTC.toISOString()}, KST: ${nowKST.toLocaleString('ko-KR')}`);
+  console.log(`예약 시간 - UTC: ${scheduledTimeISO}, KST: ${scheduledTimeKST.toLocaleString('ko-KR')}`);
   
   const testArticle = {
     title: '[테스트] 예약 발행 기능 테스트',
     content: `이 기사는 예약 발행 시스템 테스트를 위해 생성되었습니다.
-    
-예약 시간: ${scheduledTime.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
-생성 시간: ${now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
-    
-시스템이 정상 작동한다면 이 기사는 예약된 시간에 자동으로 발행됩니다.`,
+
+📅 예약 시간 (한국): ${scheduledTimeKST.toLocaleString('ko-KR')}
+📅 예약 시간 (UTC): ${scheduledTimeISO}
+🕐 생성 시간 (한국): ${nowKST.toLocaleString('ko-KR')}
+🕐 생성 시간 (UTC): ${nowUTC.toISOString()}
+
+시스템이 정상 작동한다면 이 기사는 예약된 시간에 자동으로 발행됩니다.
+
+테스트 절차:
+1. 이 기사가 'scheduled' 상태로 저장됨
+2. Cloud Scheduler가 5분마다 publishScheduledArticles 함수 호출
+3. 예약 시간이 지나면 자동으로 'published' 상태로 변경
+4. actualPublishedAt 필드에 실제 발행 시간 기록`,
     category: 'Technology',
     status: 'scheduled',
-    publishedAt: scheduledTimeISO,
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
+    publishedAt: scheduledTimeISO, // UTC 시간으로 저장
+    createdAt: nowUTC.toISOString(),
+    updatedAt: nowUTC.toISOString(),
     author: 'System Test',
     likes: 0,
     views: 0,

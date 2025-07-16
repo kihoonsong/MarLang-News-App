@@ -183,10 +183,16 @@ export const ArticlesProvider = ({ children }) => {
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
     const filtered = allArticles.filter(article => {
-      // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
+      // published 상태인 기사만 표시 (scheduled 기사는 제외)
       const isPublished = article.status === 'published';
-      const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
-      return article.category === categoryName && isPublished && isTimeToPublish;
+      
+      // 추가 안전장치: scheduled 상태면 무조건 제외
+      if (article.status === 'scheduled') {
+        console.log('🚫 예약 기사 제외:', article.title, article.status);
+        return false;
+      }
+      
+      return article.category === categoryName && isPublished;
     });
     return limit ? filtered.slice(0, limit) : filtered;
   }, [allArticles]);
@@ -194,10 +200,16 @@ export const ArticlesProvider = ({ children }) => {
   const getRecentArticles = useCallback((limit = 10) => {
     return [...allArticles]
       .filter(article => {
-        // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
+        // published 상태인 기사만 표시 (scheduled 기사는 제외)
         const isPublished = article.status === 'published';
-        const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
-        return isPublished && isTimeToPublish;
+        
+        // 추가 안전장치: scheduled 상태면 무조건 제외
+        if (article.status === 'scheduled') {
+          console.log('🚫 예약 기사 제외 (Recent):', article.title, article.status);
+          return false;
+        }
+        
+        return isPublished;
       })
       .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
       .slice(0, limit);
@@ -209,11 +221,17 @@ export const ArticlesProvider = ({ children }) => {
     
     const recentPopular = [...allArticles]
       .filter(article => {
-        // published 상태이고 발행 시간이 지난 기사만 표시 (한국 시간 기준)
+        // published 상태인 기사만 표시 (scheduled 기사는 제외)
         const isPublished = article.status === 'published';
-        const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
+        
+        // 추가 안전장치: scheduled 상태면 무조건 제외
+        if (article.status === 'scheduled') {
+          console.log('🚫 예약 기사 제외 (Popular):', article.title, article.status);
+          return false;
+        }
+        
         const isRecent = new Date(article.publishedAt) >= twoDaysAgo;
-        return isPublished && isTimeToPublish && isRecent;
+        return isPublished && isRecent;
       })
       .sort((a, b) => {
         // 좋아요 + 조회수를 합산한 인기도 점수로 정렬
@@ -230,9 +248,14 @@ export const ArticlesProvider = ({ children }) => {
       const weeklyPopular = [...allArticles]
         .filter(article => {
           const isPublished = article.status === 'published';
-          const isTimeToPublish = isAfterKoreanTime(article.publishedAt);
+          
+          // 추가 안전장치: scheduled 상태면 무조건 제외
+          if (article.status === 'scheduled') {
+            return false;
+          }
+          
           const isRecent = new Date(article.publishedAt) >= oneWeekAgo;
-          return isPublished && isTimeToPublish && isRecent;
+          return isPublished && isRecent;
         })
         .sort((a, b) => {
           const scoreA = (a.likes || 0) + (a.views || 0);
@@ -329,19 +352,20 @@ export const ArticlesProvider = ({ children }) => {
     }
   }, []);
 
-  // 수동 발행 기능 (예약 기사를 즉시 발행)
+  // 수동 발행 기능 (예약 기사를 즉시 발행) - UTC 기준으로 수정
   const publishArticleManually = useCallback(async (articleId) => {
     try {
       const articleDocRef = doc(db, 'articles', articleId);
-      const now = new Date();
-      const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
-      const koreanTimeISO = koreanTime.toISOString();
+      const nowUTC = new Date();
+      const nowUTCISO = nowUTC.toISOString();
+      
+      console.log(`🔧 수동 발행 시작: ${articleId} at ${nowUTCISO}`);
       
       await updateDoc(articleDocRef, {
         status: 'published',
-        actualPublishedAt: koreanTimeISO,
-        publishedAt: koreanTimeISO, // 발행 시간을 현재 시간으로 업데이트
-        updatedAt: koreanTimeISO
+        actualPublishedAt: nowUTCISO, // 실제 발행 시간 (UTC)
+        publishedAt: nowUTCISO, // 발행 시간을 현재 시간으로 업데이트 (UTC)
+        updatedAt: nowUTCISO
       });
 
       // 로컬 상태 업데이트
@@ -350,16 +374,17 @@ export const ArticlesProvider = ({ children }) => {
           ? { 
               ...article, 
               status: 'published', 
-              actualPublishedAt: koreanTimeISO, 
-              publishedAt: koreanTimeISO,
-              updatedAt: koreanTimeISO
+              actualPublishedAt: nowUTCISO, 
+              publishedAt: nowUTCISO,
+              updatedAt: nowUTCISO
             }
           : article
       ));
 
+      console.log(`✅ 수동 발행 완료: ${articleId}`);
       return true;
     } catch (error) {
-      console.error('수동 발행 실패:', error);
+      console.error('🚨 수동 발행 실패:', error);
       return false;
     }
   }, []);

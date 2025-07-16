@@ -696,7 +696,7 @@ exports.logoutUser = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// 예약 기사 자동 발행 함수 (HTTP 호출용으로 복원)
+// 예약 기사 자동 발행 함수 (시간 처리 로직 수정)
 exports.publishScheduledArticles = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정
   res.set('Access-Control-Allow-Origin', '*');
@@ -709,18 +709,22 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
   }
 
   try {
-    console.log('⏰ 예약 기사 자동 발행 체크 시작 (서버 사이드, 한국 시간 기준)');
+    console.log('⏰ 예약 기사 자동 발행 체크 시작');
     
-    // 한국 시간 기준 현재 시간
-    const now = new Date();
-    const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
-    const koreanTimeISO = koreanTime.toISOString();
+    // 현재 UTC 시간 (Firestore에 저장된 시간과 동일한 기준)
+    const nowUTC = new Date();
+    const nowUTCISO = nowUTC.toISOString();
     
-    // scheduled 상태이면서 발행 시간이 지난 기사들 조회
+    // 한국 시간으로 표시용
+    const nowKST = new Date(nowUTC.getTime() + (9 * 60 * 60 * 1000));
+    
+    console.log(`현재 시간 - UTC: ${nowUTCISO}, KST: ${nowKST.toLocaleString('ko-KR')}`);
+    
+    // scheduled 상태이면서 발행 시간이 지난 기사들 조회 (UTC 기준)
     const articlesRef = admin.firestore().collection('articles');
     const query = articlesRef
       .where('status', '==', 'scheduled')
-      .where('publishedAt', '<=', koreanTimeISO);
+      .where('publishedAt', '<=', nowUTCISO);
     
     const querySnapshot = await query.get();
     
@@ -732,21 +736,32 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
     
     let publishedCount = 0;
     const batch = admin.firestore().batch();
+    const publishedArticles = [];
     
     querySnapshot.forEach((doc) => {
       const articleData = doc.data();
       
-      // 실제 발행 시간이 지났는지 다시 확인
+      // 발행 시간 확인 (UTC 기준)
       const articlePublishTime = new Date(articleData.publishedAt);
-      if (koreanTime >= articlePublishTime) {
+      
+      console.log(`기사 "${articleData.title}" - 예약시간: ${articlePublishTime.toISOString()}, 현재시간: ${nowUTCISO}`);
+      
+      if (nowUTC >= articlePublishTime) {
         // 배치 업데이트 추가
         batch.update(doc.ref, {
           status: 'published',
-          actualPublishedAt: koreanTimeISO, // 실제 발행된 시간 기록 (한국 시간)
-          updatedAt: koreanTimeISO
+          actualPublishedAt: nowUTCISO, // 실제 발행된 시간 기록 (UTC)
+          updatedAt: nowUTCISO
         });
         
-        console.log(`✅ 예약 기사 자동 발행 예정 (한국 시간): ${articleData.title}`);
+        publishedArticles.push({
+          id: doc.id,
+          title: articleData.title,
+          scheduledTime: articlePublishTime.toISOString(),
+          publishedTime: nowUTCISO
+        });
+        
+        console.log(`✅ 예약 기사 발행 예정: ${articleData.title}`);
         publishedCount++;
       }
     });
@@ -755,12 +770,19 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
       // 배치 커밋
       await batch.commit();
       console.log(`🚀 총 ${publishedCount}개의 예약 기사가 자동 발행되었습니다.`);
+      
+      // 발행된 기사 목록 로그
+      publishedArticles.forEach(article => {
+        console.log(`📰 발행완료: ${article.title} (ID: ${article.id})`);
+      });
     }
     
     res.json({ 
       success: true, 
       publishedCount, 
-      message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.` 
+      message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.`,
+      publishedArticles: publishedArticles,
+      timestamp: nowUTCISO
     });
     
   } catch (error) {
@@ -768,12 +790,13 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
     res.status(500).json({ 
       success: false, 
       error: 'Internal server error', 
-      message: error.message 
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
 
-// 수동 예약 기사 발행 함수 (관리자용)
+// 수동 예약 기사 발행 함수 (관리자용) - UTC 기준으로 통일
 exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정
   res.set('Access-Control-Allow-Origin', '*');
@@ -786,18 +809,22 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
   }
 
   try {
-    console.log('⏰ 예약 기사 수동 발행 체크 시작 (서버 사이드, 한국 시간 기준)');
+    console.log('🔧 예약 기사 수동 발행 체크 시작 (관리자용)');
     
-    // 한국 시간 기준 현재 시간
-    const now = new Date();
-    const koreanTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
-    const koreanTimeISO = koreanTime.toISOString();
+    // 현재 UTC 시간 (자동 발행과 동일한 로직)
+    const nowUTC = new Date();
+    const nowUTCISO = nowUTC.toISOString();
     
-    // scheduled 상태이면서 발행 시간이 지난 기사들 조회
+    // 한국 시간으로 표시용
+    const nowKST = new Date(nowUTC.getTime() + (9 * 60 * 60 * 1000));
+    
+    console.log(`현재 시간 - UTC: ${nowUTCISO}, KST: ${nowKST.toLocaleString('ko-KR')}`);
+    
+    // scheduled 상태이면서 발행 시간이 지난 기사들 조회 (UTC 기준)
     const articlesRef = admin.firestore().collection('articles');
     const query = articlesRef
       .where('status', '==', 'scheduled')
-      .where('publishedAt', '<=', koreanTimeISO);
+      .where('publishedAt', '<=', nowUTCISO);
     
     const querySnapshot = await query.get();
     
@@ -809,21 +836,32 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
     
     let publishedCount = 0;
     const batch = admin.firestore().batch();
+    const publishedArticles = [];
     
     querySnapshot.forEach((doc) => {
       const articleData = doc.data();
       
-      // 실제 발행 시간이 지났는지 다시 확인
+      // 발행 시간 확인 (UTC 기준)
       const articlePublishTime = new Date(articleData.publishedAt);
-      if (koreanTime >= articlePublishTime) {
+      
+      console.log(`기사 "${articleData.title}" - 예약시간: ${articlePublishTime.toISOString()}, 현재시간: ${nowUTCISO}`);
+      
+      if (nowUTC >= articlePublishTime) {
         // 배치 업데이트 추가
         batch.update(doc.ref, {
           status: 'published',
-          actualPublishedAt: koreanTimeISO, // 실제 발행된 시간 기록 (한국 시간)
-          updatedAt: koreanTimeISO
+          actualPublishedAt: nowUTCISO, // 실제 발행된 시간 기록 (UTC)
+          updatedAt: nowUTCISO
         });
         
-        console.log(`✅ 예약 기사 자동 발행 예정 (한국 시간): ${articleData.title}`);
+        publishedArticles.push({
+          id: doc.id,
+          title: articleData.title,
+          scheduledTime: articlePublishTime.toISOString(),
+          publishedTime: nowUTCISO
+        });
+        
+        console.log(`✅ 예약 기사 수동 발행 예정: ${articleData.title}`);
         publishedCount++;
       }
     });
@@ -831,21 +869,30 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
     if (publishedCount > 0) {
       // 배치 커밋
       await batch.commit();
-      console.log(`🚀 총 ${publishedCount}개의 예약 기사가 자동 발행되었습니다.`);
+      console.log(`🚀 총 ${publishedCount}개의 예약 기사가 수동 발행되었습니다.`);
+      
+      // 발행된 기사 목록 로그
+      publishedArticles.forEach(article => {
+        console.log(`📰 수동발행완료: ${article.title} (ID: ${article.id})`);
+      });
     }
     
     res.json({ 
       success: true, 
       publishedCount, 
-      message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.` 
+      message: `${publishedCount}개의 예약 기사가 수동 발행되었습니다.`,
+      publishedArticles: publishedArticles,
+      timestamp: nowUTCISO,
+      type: 'manual'
     });
     
   } catch (error) {
-    console.error('🚨 예약 기사 자동 발행 중 오류 발생:', error);
+    console.error('🚨 예약 기사 수동 발행 중 오류 발생:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Internal server error', 
-      message: error.message 
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
