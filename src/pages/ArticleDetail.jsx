@@ -2446,12 +2446,35 @@ const ContentTitle = styled.h3`
 
 const ContentText = styled.div`
   font-size: 1.1rem;
-  line-height: 1.6;
+  line-height: 1.5;
   cursor: text;
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
   max-height: calc(100% - 100px); /* 제목 영역 제외 */
+  
+  p {
+    margin-bottom: 0.875rem;
+    margin-top: 0;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    line-height: 1.55;
+    
+    p {
+      margin-bottom: 1rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    
+    p {
+      margin-bottom: 0.875rem;
+    }
+  }
   
   /* 스크롤바 스타일 개선 */
   scrollbar-width: thin;
