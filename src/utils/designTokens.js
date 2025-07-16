@@ -96,6 +96,26 @@ export const designTokens = {
 // 기존 스타일에서 사용할 수 있는 헬퍼 함수들
 export const getSpacing = (size) => designTokens.spacing[size] || size;
 export const getColor = (path) => {
+  // Material-UI 테마 기반 색상 매핑
+  const colorMap = {
+    'background.paper': 'var(--color-background)',
+    'background.default': 'var(--color-background)',
+    'background.grey': 'var(--color-background-grey)',
+    'text.primary': 'var(--color-text-primary)',
+    'text.secondary': 'var(--color-text-secondary)',
+    'primary.main': 'var(--color-primary)',
+    'primary.light': 'var(--color-primary-light)',
+    'primary.dark': 'var(--color-primary-dark)',
+    'warning.main': 'var(--color-warning)',
+    'success.main': 'var(--color-success)'
+  };
+  
+  // CSS 변수 매핑이 있으면 사용
+  if (colorMap[path]) {
+    return colorMap[path];
+  }
+  
+  // 기존 로직 유지
   const keys = path.split('.');
   let result = designTokens.colors;
   for (const key of keys) {

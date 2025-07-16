@@ -21,7 +21,20 @@ const NavigationHeader = ({
 }) => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { isDarkMode, toggleDarkMode } = useCustomTheme();
+  // ThemeContext 안전하게 사용
+  let isDarkMode = false;
+  let toggleDarkMode = () => {};
+  
+  try {
+    const themeContext = useCustomTheme();
+    isDarkMode = themeContext?.isDarkMode || false;
+    toggleDarkMode = themeContext?.toggleDarkMode || (() => {});
+    
+    // 디버깅을 위한 로그
+    console.log('NavigationHeader - isDarkMode:', isDarkMode, 'toggleDarkMode:', toggleDarkMode);
+  } catch (error) {
+    console.error('ThemeContext 에러:', error);
+  }
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -76,8 +89,12 @@ const NavigationHeader = ({
           
           {/* 다크모드 토글 버튼 */}
           <DarkModeToggle
-            onClick={toggleDarkMode}
-            aria-label="Toggle dark mode"
+            onClick={() => {
+              console.log('다크 모드 버튼 클릭됨!');
+              toggleDarkMode();
+            }}
+            aria-label="다크 모드 전환"
+            title="다크 모드 전환"
           >
             {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
           </DarkModeToggle>

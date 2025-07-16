@@ -59,7 +59,7 @@ const darkTheme = createTheme({
     },
     text: {
       primary: '#ffffff',
-      secondary: '#b3b3b3',
+      secondary: '#cccccc',
     },
   },
   components: {
@@ -78,11 +78,16 @@ const darkTheme = createTheme({
 export const CustomThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('marlang_dark_mode');
-    return saved ? JSON.parse(saved) : false;
+    const darkMode = saved ? JSON.parse(saved) : false;
+    // 초기 로드 시 CSS 변수 설정
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    return darkMode;
   });
 
   useEffect(() => {
     localStorage.setItem('marlang_dark_mode', JSON.stringify(isDarkMode));
+    // CSS 변수와 동기화
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {

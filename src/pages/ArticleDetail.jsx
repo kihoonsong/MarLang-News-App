@@ -2109,7 +2109,7 @@ const ControlsSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: ${props => props.theme.palette.background.paper};
   border-radius: 16px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -2227,9 +2227,15 @@ const SpeedButton = styled.button`
     height: 24px;
     font-size: 0.75rem;
   }
-  background: ${props => props.disabled ? '#e9ecef' : '#fff'};
-  color: ${props => props.disabled ? '#adb5bd' : '#1976d2'};
-  border: 1px solid ${props => props.disabled ? '#dee2e6' : '#e3f2fd'};
+  background: ${props => props.disabled 
+    ? props.theme.palette.action.disabled 
+    : props.theme.palette.background.paper};
+  color: ${props => props.disabled 
+    ? props.theme.palette.text.disabled 
+    : props.theme.palette.primary.main};
+  border: 1px solid ${props => props.disabled 
+    ? props.theme.palette.divider 
+    : props.theme.palette.primary.light};
   border-radius: 8px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s ease;
@@ -2351,7 +2357,7 @@ const _LevelTab = styled.button`
 `;
 
 const _ContentCard = styled.div`
-  background: white;
+  background: ${props => props.theme.palette.background.paper};
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   padding: 2rem;
@@ -2366,19 +2372,29 @@ const StyledWordSpan = styled.span`
   -webkit-tap-highlight-color: transparent; /* iOS 터치 하이라이트 제거 */
   
   ${props => props.$isHighlighted ? `
-    background-color: #fff9c4;
+    background-color: ${props.theme.palette.mode === 'dark' 
+      ? 'rgba(255, 193, 7, 0.3)' 
+      : '#fff9c4'};
     &:hover {
-      background-color: #fff59d;
+      background-color: ${props.theme.palette.mode === 'dark' 
+        ? 'rgba(255, 193, 7, 0.4)' 
+        : '#fff59d'};
     }
     &:active {
-      background-color: #fff176;
+      background-color: ${props.theme.palette.mode === 'dark' 
+        ? 'rgba(255, 193, 7, 0.5)' 
+        : '#fff176'};
     }
   ` : `
     &:hover {
-      background-color: #f0f0f0;
+      background-color: ${props.theme.palette.mode === 'dark' 
+        ? 'rgba(255, 255, 255, 0.1)' 
+        : '#f0f0f0'};
     }
     &:active {
-      background-color: #e0e0e0;
+      background-color: ${props.theme.palette.mode === 'dark' 
+        ? 'rgba(255, 255, 255, 0.2)' 
+        : '#e0e0e0'};
     }
   `}
   
@@ -2438,7 +2454,7 @@ const LevelChangeButton = styled.button`
 const ContentTitle = styled.h3`
   font-size: 1.3rem;
   font-weight: bold;
-  color: #1976d2;
+  color: ${props => props.theme.palette.primary.main};
   text-align: center;
   margin: 0;
   flex-grow: 1;
@@ -2447,6 +2463,7 @@ const ContentTitle = styled.h3`
 const ContentText = styled.div`
   font-size: 1.1rem;
   line-height: 1.5;
+  color: ${props => props.theme.palette.text.primary};
   cursor: text;
   flex: 1;
   overflow-y: auto;
@@ -2478,25 +2495,25 @@ const ContentText = styled.div`
   
   /* 스크롤바 스타일 개선 */
   scrollbar-width: thin;
-  scrollbar-color: #1976d2 #f0f0f0;
+  scrollbar-color: ${props => props.theme.palette.primary.main} ${props => props.theme.palette.background.default};
   
   &::-webkit-scrollbar {
     width: 8px;
   }
   
   &::-webkit-scrollbar-track {
-    background: #f0f0f0;
+    background: ${props => props.theme.palette.background.default};
     border-radius: 4px;
     margin: 4px 0;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #1976d2;
+    background: ${props => props.theme.palette.primary.main};
     border-radius: 4px;
-    border: 1px solid #f0f0f0;
+    border: 1px solid ${props => props.theme.palette.background.default};
     
     &:hover {
-      background: #1565c0;
+      background: ${props => props.theme.palette.primary.dark};
     }
   }
   
@@ -2506,7 +2523,7 @@ const ContentText = styled.div`
     position: sticky;
     top: 0;
     height: 10px;
-    background: linear-gradient(to bottom, white, transparent);
+    background: linear-gradient(to bottom, ${props => props.theme.palette.background.paper}, transparent);
     z-index: 1;
     display: block;
     margin-bottom: -10px;
@@ -2517,14 +2534,16 @@ const ContentText = styled.div`
     position: sticky;
     bottom: 0;
     height: 10px;
-    background: linear-gradient(to top, white, transparent);
+    background: linear-gradient(to top, ${props => props.theme.palette.background.paper}, transparent);
     z-index: 1;
     display: block;
     margin-top: -10px;
   }
   
   .highlighted-word {
-    background-color: #fff9c4 !important;
+    background-color: ${props => props.theme.palette.mode === 'dark' 
+      ? 'rgba(255, 193, 7, 0.3)' 
+      : '#fff9c4'} !important;
     border-radius: 3px;
     padding: 1px 3px;
     cursor: pointer;
@@ -2662,7 +2681,7 @@ const SwipeCardContainer = styled.div`
 const SwipeCard = styled.div`
   position: absolute;
   top: 0;
-  background: white;
+  background: ${props => props.theme.palette.background.paper};
   border-radius: 16px;
   display: flex;
   flex-direction: column;

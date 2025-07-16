@@ -113,7 +113,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
           }}
           startAdornment={
             <SearchIcon 
-              sx={{ mr: 1, color: '#666', cursor: 'pointer' }} 
+              sx={{ mr: 1, color: 'text.secondary', cursor: 'pointer' }} 
               onClick={() => {
                 if (!isOpen) {
                   setIsOpen(true);
@@ -170,7 +170,7 @@ const SearchDropdown = ({ placeholder = "Search articles...", className, style, 
                       <Typography variant="body2" style={{ fontWeight: 600, marginBottom: '4px' }}>
                         {article.title}
                       </Typography>
-                      <Typography variant="caption" style={{ color: '#666' }}>
+                      <Typography variant="caption" color="text.secondary">
                         {article.category}
                       </Typography>
                     </div>
@@ -245,7 +245,7 @@ const SearchInputWrapper = styled('div')`
 `;
 
 const CloseButton = styled(IconButton)`
-  color: #666 !important;
+  color: ${props => props.theme.palette.text.secondary} !important;
   padding: 8px !important;
   
   &:hover {
@@ -358,16 +358,17 @@ const Item = styled('div')`
   position: relative;
   
   &:hover {
-    background-color: #f8f9fa;
+    background-color: ${props => props.theme.palette.action.hover};
   }
   
   /* 첫 번째 아이템 하이라이트 (엔터 키 대상) */
   ${props => props.$isFirst && `
-    background-color: #e3f2fd;
-    border-left: 3px solid #1976d2;
+    background-color: ${props.theme.palette.primary.light};
+    border-left: 3px solid ${props.theme.palette.primary.main};
     
     &:hover {
-      background-color: #bbdefb;
+      background-color: ${props.theme.palette.primary.light};
+      filter: brightness(0.9);
     }
     
     &::before {
@@ -376,7 +377,7 @@ const Item = styled('div')`
       right: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: #1976d2;
+      color: ${props.theme.palette.primary.main};
       font-weight: bold;
       font-size: 0.8rem;
     }

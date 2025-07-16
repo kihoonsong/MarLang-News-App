@@ -6,8 +6,8 @@ import { getAdsenseConfig, loadAdsenseScript, isAdBlockerActive } from '../confi
 const AdCardContainer = styled(Paper)`
   padding: 1rem;
   border-radius: 12px;
-  background-color: #f5f5f5;
-  border: 1px dashed #ccc;
+  background-color: ${props => props.theme.palette.background.default};
+  border: 1px dashed ${props => props.theme.palette.divider};
   display: flex;
   align-items: center;
   justify-content: center;
