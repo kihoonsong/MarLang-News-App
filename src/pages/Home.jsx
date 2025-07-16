@@ -334,6 +334,9 @@ const Home = () => {
 // 스타일드 컴포넌트들
 const ContentContainer = styled.div`
   padding: 0 1rem 2rem 1rem;
+  background-color: ${props => props.theme.palette.background.default};
+  color: ${props => props.theme.palette.text.primary};
+  min-height: 100vh;
   
   @media (min-width: 768px) {
     padding: 0 2rem 2rem 2rem;
@@ -358,15 +361,17 @@ const CategoryTitle = styled.h2`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #1976d2;
+  color: ${props => props.theme.palette.primary.main};
   margin: 0;
 `;
 
 const AllLabel = styled.span`
   font-size: 0.6rem;
   font-weight: bold;
-  background-color: rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.87);
+  background-color: ${props => props.theme.palette.mode === 'dark' 
+    ? 'rgba(255, 255, 255, 0.08)' 
+    : 'rgba(0, 0, 0, 0.08)'};
+  color: ${props => props.theme.palette.text.secondary};
   padding: 2px 4px;
   border-radius: 6px;
   margin-left: 6px;
@@ -402,16 +407,16 @@ const HorizontalScrollContainer = styled.div`
   }
   
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: ${props => props.theme.palette.mode === 'dark' ? '#2e2e2e' : '#f1f1f1'};
     border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: ${props => props.theme.palette.mode === 'dark' ? '#555' : '#c1c1c1'};
     border-radius: 3px;
     
     &:hover {
-      background: #a8a8a8;
+      background: ${props => props.theme.palette.mode === 'dark' ? '#777' : '#a8a8a8'};
     }
   }
 `;
@@ -446,9 +451,9 @@ const EmptyCategory = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9f9f9;
+  background: ${props => props.theme.palette.mode === 'dark' ? '#2e2e2e' : '#f9f9f9'};
   border-radius: 16px;
-  border: 2px dashed #ddd;
+  border: 2px dashed ${props => props.theme.palette.mode === 'dark' ? '#555' : '#ddd'};
 `;
 
 export default Home;

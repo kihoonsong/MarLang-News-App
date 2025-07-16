@@ -1,11 +1,10 @@
 import React, { useEffect } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
+import { CustomThemeProvider } from './contexts/ThemeContext';
 import { setupVoicesChangedListener, addVoicesChangedListener } from './utils/speechUtils';
 
 // 향상된 에러 처리 시스템 import
@@ -165,17 +164,7 @@ const VoiceManager = () => {
   return null;
 };
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+
 
 // Suspense 로딩 컴포넌트
 const PageLoadingFallback = ({ pageName }) => (
@@ -268,10 +257,8 @@ const PageWrapper = ({ children, pageName }) => {
 function App() {
   return (
     <ErrorBoundary>
-      <MuiThemeProvider theme={theme}>
-        <StyledThemeProvider theme={theme}>
-          <CssBaseline />
-          <EnhancedToastProvider>
+      <CustomThemeProvider>
+        <EnhancedToastProvider>
           <AuthProvider>
             <DataProvider>
               <ArticlesProvider>
@@ -401,8 +388,7 @@ function App() {
             </DataProvider>
           </AuthProvider>
         </EnhancedToastProvider>
-        </StyledThemeProvider>
-      </MuiThemeProvider>
+      </CustomThemeProvider>
     </ErrorBoundary>
   );
 }

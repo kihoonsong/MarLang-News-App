@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { AppBar, Toolbar, IconButton, Typography, Avatar, useMediaQuery, useTheme } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from './UserMenu';
 import SearchDropdown from '../SearchDropdown';
+import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
 import logoImage from '../../assets/logo.png';
 
 const NavigationHeader = ({ 
@@ -18,6 +21,7 @@ const NavigationHeader = ({
 }) => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { isDarkMode, toggleDarkMode } = useCustomTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -70,6 +74,14 @@ const NavigationHeader = ({
           {/* 데스크톱에서만 검색창 표시 */}
           {!isMobile && <SearchDropdown />}
           
+          {/* 다크모드 토글 버튼 */}
+          <DarkModeToggle
+            onClick={toggleDarkMode}
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </DarkModeToggle>
+          
           {isAuthenticated ? (
             <UserAvatar
               onClick={handleUserMenuOpen}
@@ -100,9 +112,11 @@ const NavigationHeader = ({
 };
 
 const StyledAppBar = styled(AppBar)`
-  background: white !important;
-  color: #333 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  background: ${props => props.theme.palette.background.paper} !important;
+  color: ${props => props.theme.palette.text.primary} !important;
+  box-shadow: ${props => props.theme.palette.mode === 'dark' 
+    ? '0 1px 3px rgba(255, 255, 255, 0.1)' 
+    : '0 1px 3px rgba(0, 0, 0, 0.1)'} !important;
 `;
 
 const StyledToolbar = styled(Toolbar)`
@@ -168,23 +182,23 @@ const LogoSection = styled.div`
 const MobileLogoText = styled(Typography)`
   font-weight: bold !important;
   font-size: 1.2rem !important;
-  color: #23408e !important;
+  color: ${props => props.theme.palette.mode === 'dark' ? '#90caf9' : '#23408e'} !important;
   cursor: pointer;
   transition: color 0.2s ease;
   
   &:hover {
-    color: #1976d2 !important;
+    color: ${props => props.theme.palette.primary.main} !important;
   }
 `;
 
 const LogoText = styled(Typography)`
   font-weight: bold !important;
   font-size: 1.5rem !important;
-  color: #23408e !important;
+  color: ${props => props.theme.palette.mode === 'dark' ? '#90caf9' : '#23408e'} !important;
   cursor: pointer;
   
   &:hover {
-    color: #1976d2 !important;
+    color: ${props => props.theme.palette.primary.main} !important;
   }
 `;
 
@@ -246,6 +260,25 @@ const LoginButton = styled.button`
   @media (max-width: 767px) {
     border-radius: 25px;
     min-height: 36px;
+  }
+`;
+
+const DarkModeToggle = styled(IconButton)`
+  color: inherit !important;
+  transition: all 0.2s ease !important;
+  
+  &:hover {
+    background-color: rgba(25, 118, 210, 0.04) !important;
+    transform: scale(1.1);
+  }
+  
+  /* 모바일에서 크기 조정 */
+  @media (max-width: 767px) {
+    padding: 6px !important;
+    
+    & .MuiSvgIcon-root {
+      font-size: 1.2rem;
+    }
   }
 `;
 
