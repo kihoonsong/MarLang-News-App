@@ -20,19 +20,29 @@ const HorizontalArticleScroll = ({
   
   const finalItems = showAds ? itemsWithAds : articles;
   
-  // 무한 루프를 위한 아이템 배열 생성 (첫 번째와 마지막 아이템 복제)
-  const infiniteItems = finalItems.length > 1 ? [
-    { ...finalItems[finalItems.length - 1], id: `clone-last-${finalItems[finalItems.length - 1].id}` },
-    ...finalItems,
-    { ...finalItems[0], id: `clone-first-${finalItems[0].id}` }
-  ] : finalItems;
-  
   // 자동 슬라이드 관련 상태 및 참조
   const containerRef = useRef(null);
-  const [currentIndex, setCurrentIndex] = useState(finalItems.length > 1 ? 1 : 0); // 실제 첫 번째 아이템부터 시작
+  const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef(null);
   const isVisibleRef = useRef(true);
   const isTransitioning = useRef(false);
+  
+  // 인덱스 기반 순환 함수
+  const getActualIndex = useCallback((index, totalItems) => {
+    return ((index % totalItems) + totalItems) % totalItems;
+  }, []);
+  
+  // 다음 아이템으로 이동
+  const goNext = useCallback(() => {
+    if (finalItems.length <= 1) return;
+    setCurrentIndex(prev => prev + 1);
+  }, [finalItems.length]);
+  
+  // 이전 아이템으로 이동
+  const goPrevious = useCallback(() => {
+    if (finalItems.length <= 1) return;
+    setCurrentIndex(prev => prev - 1);
+  }, [finalItems.length]);
   
   // 접근성: prefers-reduced-motion 사용자는 자동 슬라이드 비활성화
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -44,10 +54,10 @@ const HorizontalArticleScroll = ({
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       if (isVisibleRef.current && !isTransitioning.current) {
-        setCurrentIndex((prev) => prev + 1);
+        goNext();
       }
     }, delay);
-  }, [autoPlay, prefersReducedMotion, finalItems.length, delay]);
+  }, [autoPlay, prefersReducedMotion, finalItems.length, delay, goNext]);
 
   // 자동 슬라이드 일시 중지 함수
   const pauseAutoPlay = useCallback(() => {
@@ -63,7 +73,8 @@ const HorizontalArticleScroll = ({
     
     const cardWidth = container.children[0]?.offsetWidth || 0;
     const gap = parseInt(getComputedStyle(container).gap) || 0;
-    const scrollLeft = currentIndex * (cardWidth + gap);
+    const actualIndex = getActualIndex(currentIndex, finalItems.length);
+    const scrollLeft = actualIndex * (cardWidth + gap);
     
     isTransitioning.current = true;
     
@@ -72,35 +83,11 @@ const HorizontalArticleScroll = ({
       behavior: 'smooth'
     });
 
-    // 무한 루프 처리
-    if (finalItems.length > 1) {
-      const handleTransitionEnd = () => {
-        if (currentIndex === 0) {
-          // 복제된 마지막 아이템에서 실제 마지막 아이템으로 점프
-          container.scrollTo({
-            left: finalItems.length * (cardWidth + gap),
-            behavior: 'auto'
-          });
-          setCurrentIndex(finalItems.length);
-        } else if (currentIndex === infiniteItems.length - 1) {
-          // 복제된 첫 번째 아이템에서 실제 첫 번째 아이템으로 점프
-          container.scrollTo({
-            left: (cardWidth + gap),
-            behavior: 'auto'
-          });
-          setCurrentIndex(1);
-        }
-        isTransitioning.current = false;
-      };
-
-      // 스크롤 완료 후 무한 루프 처리
-      setTimeout(handleTransitionEnd, 300);
-    } else {
-      setTimeout(() => {
-        isTransitioning.current = false;
-      }, 300);
-    }
-  }, [currentIndex, finalItems.length, infiniteItems.length]);
+    // 트랜지션 완료 처리
+    setTimeout(() => {
+      isTransitioning.current = false;
+    }, 300);
+  }, [currentIndex, finalItems.length, getActualIndex]);
 
   // 자동 재생 시작/정지 관리
   useEffect(() => {
@@ -159,7 +146,7 @@ const HorizontalArticleScroll = ({
   return (
     <Container>
       <ScrollContainer ref={containerRef}>
-        {infiniteItems.map((item, _index) => {
+        {finalItems.map((item, _index) => {
           if (item.type === 'ad') {
             return (
               <CardWrapper key={item.id} $cardWidth={cardWidth}>
