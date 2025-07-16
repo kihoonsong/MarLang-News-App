@@ -237,7 +237,13 @@ const ArticleManagement = ({
         
         try {
           // 이미지 업로드 유틸리티 동적 import
-          const { uploadImage } = await import('../utils/imageUpload');
+          const { uploadImage, validateImageFile } = await import('../utils/imageUpload');
+          
+          // 파일 유효성 검사
+          const validation = validateImageFile(articleForm.imageFile);
+          if (!validation.isValid) {
+            throw new Error(validation.error);
+          }
           
           // Firebase Storage에 이미지 업로드
           const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
@@ -246,12 +252,34 @@ const ArticleManagement = ({
           console.log('✅ 이미지 업로드 성공:', imageUrl);
         } catch (uploadError) {
           console.error('🚨 이미지 업로드 실패:', uploadError);
+          
+          // Storage 설정 오류인 경우 더 친화적인 메시지
+          let errorMessage = uploadError.message;
+          if (uploadError.code === 'storage/unauthorized' || 
+              uploadError.message.includes('Firebase Storage has not been set up')) {
+            errorMessage = 'Firebase Storage 설정이 필요합니다. 관리자에게 문의하세요.';
+          } else if (uploadError.code === 'storage/unknown') {
+            errorMessage = 'Storage 권한 오류입니다. 관리자 권한을 확인하세요.';
+          }
+          
           setSnackbar({ 
             open: true, 
-            message: `이미지 업로드 실패: ${uploadError.message}`, 
+            message: `이미지 업로드 실패: ${errorMessage}`, 
             severity: 'error' 
           });
-          return; // 이미지 업로드 실패 시 기사 추가 중단
+          
+          // 이미지 없이 기사 저장할지 사용자에게 확인
+          const continueWithoutImage = window.confirm(
+            '이미지 업로드에 실패했습니다. 이미지 없이 기사를 저장하시겠습니까?'
+          );
+          
+          if (!continueWithoutImage) {
+            return; // 사용자가 취소한 경우 기사 추가 중단
+          }
+          
+          // 이미지 없이 계속 진행
+          imageUrl = '/placeholder-image.svg';
+          console.log('⚠️ 이미지 없이 기사 저장 진행');
         }
       }
       
@@ -396,7 +424,13 @@ const ArticleManagement = ({
         
         try {
           // 이미지 업로드 유틸리티 동적 import
-          const { uploadImage } = await import('../utils/imageUpload');
+          const { uploadImage, validateImageFile } = await import('../utils/imageUpload');
+          
+          // 파일 유효성 검사
+          const validation = validateImageFile(articleForm.imageFile);
+          if (!validation.isValid) {
+            throw new Error(validation.error);
+          }
           
           // Firebase Storage에 이미지 업로드
           const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
@@ -405,12 +439,33 @@ const ArticleManagement = ({
           console.log('✅ 이미지 업로드 성공:', imageUrl);
         } catch (uploadError) {
           console.error('🚨 이미지 업로드 실패:', uploadError);
+          
+          // Storage 설정 오류인 경우 더 친화적인 메시지
+          let errorMessage = uploadError.message;
+          if (uploadError.code === 'storage/unauthorized' || 
+              uploadError.message.includes('Firebase Storage has not been set up')) {
+            errorMessage = 'Firebase Storage 설정이 필요합니다. 관리자에게 문의하세요.';
+          } else if (uploadError.code === 'storage/unknown') {
+            errorMessage = 'Storage 권한 오류입니다. 관리자 권한을 확인하세요.';
+          }
+          
           setSnackbar({ 
             open: true, 
-            message: `이미지 업로드 실패: ${uploadError.message}`, 
+            message: `이미지 업로드 실패: ${errorMessage}`, 
             severity: 'error' 
           });
-          return; // 이미지 업로드 실패 시 기사 수정 중단
+          
+          // 이미지 없이 기사 수정할지 사용자에게 확인
+          const continueWithoutImage = window.confirm(
+            '이미지 업로드에 실패했습니다. 기존 이미지를 유지하고 수정하시겠습니까?'
+          );
+          
+          if (!continueWithoutImage) {
+            return; // 사용자가 취소한 경우 기사 수정 중단
+          }
+          
+          // 기존 이미지 유지하고 계속 진행
+          console.log('⚠️ 기존 이미지 유지하고 기사 수정 진행');
         }
       }
 

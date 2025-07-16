@@ -14,11 +14,18 @@ export const uploadImage = async (file, path = 'announcements') => {
       throw new Error('파일 크기가 5MB를 초과합니다.');
     }
 
+    // Storage 초기화 확인
+    if (!storage) {
+      throw new Error('Firebase Storage가 초기화되지 않았습니다.');
+    }
+
     // 파일명 생성 (중복 방지)
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 15);
     const extension = file.name.split('.').pop();
     const fileName = `${timestamp}_${randomId}.${extension}`;
+
+    console.log(`📸 이미지 업로드 시작: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
     // Storage 참조 생성
     const storageRef = ref(storage, `${path}/${fileName}`);
@@ -29,6 +36,8 @@ export const uploadImage = async (file, path = 'announcements') => {
     // 다운로드 URL 획득
     const downloadURL = await getDownloadURL(snapshot.ref);
     
+    console.log(`✅ 이미지 업로드 완료: ${downloadURL}`);
+    
     return {
       url: downloadURL,
       fileName: fileName,
@@ -37,7 +46,19 @@ export const uploadImage = async (file, path = 'announcements') => {
       type: file.type
     };
   } catch (error) {
-    console.error('이미지 업로드 실패:', error);
+    console.error('🚨 이미지 업로드 실패:', error);
+    
+    // 더 구체적인 에러 메시지 제공
+    if (error.code === 'storage/unauthorized') {
+      throw new Error('Firebase Storage 권한이 없습니다. 관리자 권한으로 로그인하세요.');
+    } else if (error.code === 'storage/unknown' || error.message.includes('Firebase Storage has not been set up')) {
+      throw new Error('Firebase Storage가 설정되지 않았습니다. 관리자에게 문의하세요.');
+    } else if (error.code === 'storage/quota-exceeded') {
+      throw new Error('Storage 용량이 초과되었습니다.');
+    } else if (error.code === 'storage/invalid-format') {
+      throw new Error('지원되지 않는 이미지 형식입니다.');
+    }
+    
     throw error;
   }
 };
