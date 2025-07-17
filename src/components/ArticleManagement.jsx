@@ -8,10 +8,11 @@ import {
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Publish, 
-  Visibility, CloudUpload, Schedule, PlayArrow
+  Visibility, CloudUpload, Schedule, PlayArrow, CropFree
 } from '@mui/icons-material';
 import { ActionButton } from './DashboardStyles';
 import RichTextEditor from './RichTextEditor';
+import ImageThumbnailPreview from './ImageThumbnailPreview';
 import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO, formatKoreanTime } from '../utils/timeUtils';
 import { useArticles } from '../contexts/ArticlesContext';
 
@@ -51,6 +52,8 @@ const ArticleManagement = ({
   const [editingArticle, setEditingArticle] = useState(null);
   const [activeContentTab, setActiveContentTab] = useState(0);
   const [articleStats, setArticleStats] = useState({});
+  const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
   // 반응형 디자인
   const theme = useTheme();
   const _isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -140,16 +143,34 @@ const ArticleManagement = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setArticleForm(prev => ({
-          ...prev,
-          image: e.target.result,
-          imageFile: file
-        }));
-      };
-      reader.readAsDataURL(file);
+      // 썸네일 미리보기 다이얼로그 열기
+      setSelectedImageFile(file);
+      setShowThumbnailPreview(true);
     }
+  };
+
+  // 썸네일 크롭 완료 처리
+  const handleThumbnailCropComplete = (cropResult) => {
+    setArticleForm(prev => ({
+      ...prev,
+      image: cropResult.thumbnail, // 크롭된 썸네일 사용
+      imageFile: selectedImageFile,
+      originalImage: cropResult.original,
+      cropData: cropResult.cropData
+    }));
+    setShowThumbnailPreview(false);
+    setSelectedImageFile(null);
+    setSnackbar({ 
+      open: true, 
+      message: '썸네일이 설정되었습니다!', 
+      severity: 'success' 
+    });
+  };
+
+  // 썸네일 미리보기 취소
+  const handleThumbnailCancel = () => {
+    setShowThumbnailPreview(false);
+    setSelectedImageFile(null);
   };
 
   // 임시저장 목록 불러오기
@@ -974,14 +995,17 @@ const ArticleManagement = ({
 
                 {/* 이미지 업로드 */}
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2 }}>대표 이미지</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                    📸 대표 이미지 (썸네일 미리보기 지원)
+                  </Typography>
+                  
                   <Button
                     variant="outlined"
                     component="label"
-                    startIcon={<CloudUpload />}
+                    startIcon={<CropFree />}
                     sx={{ mb: 2, width: '100%' }}
                   >
-                    이미지 업로드
+                    이미지 선택 및 썸네일 편집
                     <input
                       type="file"
                       hidden
@@ -991,18 +1015,52 @@ const ArticleManagement = ({
                   </Button>
                   
                   {articleForm.image && (
-                    <Box sx={{ textAlign: 'center' }}>
-                      <img 
-                        src={articleForm.image} 
-                        alt="Preview" 
-                        style={{ 
-                          maxWidth: '100%', 
-                          maxHeight: '200px', 
-                          borderRadius: '8px',
-                          objectFit: 'cover'
-                        }} 
-                      />
-                    </Box>
+                    <Card sx={{ p: 2, bgcolor: '#f8f9fa' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        썸네일 미리보기 (300×200px)
+                      </Typography>
+                      <Box sx={{ textAlign: 'center', mb: 2 }}>
+                        <img 
+                          src={articleForm.image} 
+                          alt="썸네일 미리보기" 
+                          style={{ 
+                            width: '300px',
+                            height: '200px', 
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '2px solid #e0e0e0'
+                          }} 
+                        />
+                      </Box>
+                      <Button
+                        variant="text"
+                        size="small"
+                        startIcon={<CropFree />}
+                        onClick={() => {
+                          if (articleForm.imageFile) {
+                            setSelectedImageFile(articleForm.imageFile);
+                            setShowThumbnailPreview(true);
+                          }
+                        }}
+                        sx={{ width: '100%' }}
+                      >
+                        썸네일 다시 편집
+                      </Button>
+                    </Card>
+                  )}
+                  
+                  {!articleForm.image && (
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      이미지를 선택하면 썸네일 편집 도구가 열립니다. 
+                      드래그, 확대/축소로 완벽한 썸네일을 만들어보세요!
+                    </Alert>
+                  )}
+                  
+                  {!articleForm.image && (
+                    <Alert severity="info" sx={{ mt: 1 }}>
+                      이미지를 선택하면 썸네일 편집 도구가 열립니다. 
+                      드래그, 확대/축소, 회전으로 완벽한 썸네일을 만들어보세요!
+                    </Alert>
                   )}
                 </Box>
 
@@ -1217,6 +1275,14 @@ const ArticleManagement = ({
           <Button onClick={() => setScheduledDialog(false)}>닫기</Button>
         </DialogActions>
       </Dialog>
+
+      {/* 썸네일 미리보기 다이얼로그 */}
+      <ImageThumbnailPreview
+        imageFile={selectedImageFile}
+        onCropComplete={handleThumbnailCropComplete}
+        onCancel={handleThumbnailCancel}
+        thumbnailSize={{ width: 300, height: 200 }}
+      />
     </Box>
   );
 };

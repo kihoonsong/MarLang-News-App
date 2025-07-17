@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { 
+import {
   Select, MenuItem, FormControl, InputLabel, CircularProgress, useMediaQuery, useTheme
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -22,18 +22,18 @@ const Wordbook = () => {
   const navigate = useNavigate();
   const { isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { savedWords, removeWord } = useData();
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // md 이하는 모바일로 간주
-  
+
   const [sortBy, setSortBy] = useState('recent');
   const [sortedWords, setSortedWords] = useState([]);
   const [isPlaying, setIsPlaying] = useState(null);
-  
+
   // 페이지네이션 상태 - 반응형으로 설정
   const [currentPage, setCurrentPage] = useState(1);
   const wordsPerPage = isMobile ? 10 : 30;
-  
+
   // 뜻 가리기/보이기 상태 (localStorage 연동) - 기본값 false로 강제 설정
   const [showMeaning, setShowMeaning] = useState(() => {
     const saved = localStorage.getItem('wordbook_showMeaning');
@@ -67,11 +67,11 @@ const Wordbook = () => {
   const startIndex = (currentPage - 1) * wordsPerPage;
   const endIndex = startIndex + wordsPerPage;
   const currentPageWords = sortedWords.slice(startIndex, endIndex);
-  
+
   // 단어장은 사용자 생성 콘텐츠로 애드센스 정책상 광고 표시 불가
   // 게시자 콘텐츠가 아닌 기능적 화면이므로 광고 제거
   const currentPageItems = currentPageWords;
-  
+
   // 페이지 변경 함수
   const handlePageChange = (page, event) => {
     if (event) {
@@ -82,7 +82,7 @@ const Wordbook = () => {
     // 페이지 변경 시 스크롤을 맨 위로 이동
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
+
   // 화면 크기 변경 시 페이지 범위 조정
   useEffect(() => {
     const newTotalPages = Math.ceil(totalWords / wordsPerPage);
@@ -103,11 +103,11 @@ const Wordbook = () => {
 
   // 정렬 변경 시에만 페이지를 1로 리셋하는 useRef 추가
   const prevSortBy = useRef(sortBy);
-  
+
   useEffect(() => {
     if (isAuthenticated && savedWords) {
       const wordsCopy = [...savedWords];
-      
+
       // 어떤 형태의 타임스탬프든 안전하게 Date 객체로 변환하는 강화된 함수
       const toDate = (timestamp) => {
         if (!timestamp) return new Date(0); // null 또는 undefined 처리
@@ -150,7 +150,7 @@ const Wordbook = () => {
       // 비로그인 사용자는 빈 배열
       setSortedWords([]);
     }
-    
+
     // 정렬이 변경된 경우에만 첫 페이지로 이동
     if (prevSortBy.current !== sortBy) {
       setCurrentPage(1);
@@ -174,7 +174,7 @@ const Wordbook = () => {
     }
 
     setIsPlaying(wordId);
-    
+
     try {
       await speakWord(word, 'en-US', 1.0);
       setIsPlaying(null);
@@ -203,40 +203,40 @@ const Wordbook = () => {
       <MobileNavigation />
       <MobileContentWrapper>
         <PageContainer>
-            {/* 헤더 - 정렬 기능을 우측 상단에 배치 */}
-            <Header>
-              <HeaderContent>
-                {/* 빈 공간 */}
-              </HeaderContent>
-              <HeaderControls>
-                {/* 뜻 가리기/보이기 토글 버튼 */}
-                <MeaningToggleButton
-                  onClick={toggleMeaningVisibility}
-                  $showMeaning={showMeaning}
-                  aria-pressed={showMeaning}
-                  aria-label={showMeaning ? "Hide word meanings" : "Show word meanings"}
-                  title={showMeaning ? "Hide meanings" : "Show meanings"}
-                >
-                  {showMeaning ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                </MeaningToggleButton>
-                
-                <SortContainer>
-                  <FilterListIcon sx={{ mr: 1, color: '#666' }} />
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel>Sort by</InputLabel>
-                    <Select
-                      value={sortBy}
-                      label="Sort by"
-                      onChange={(e) => setSortBy(e.target.value)}
-                    >
-                      <MenuItem value="alphabetical">Alphabetical</MenuItem>
-                      <MenuItem value="recent">Recently Added</MenuItem>
-                      <MenuItem value="article">By Article</MenuItem>
-                    </Select>
-                  </FormControl>
-                </SortContainer>
-              </HeaderControls>
-            </Header>
+          {/* 헤더 - 정렬 기능을 우측 상단에 배치 */}
+          <Header>
+            <HeaderContent>
+              {/* 빈 공간 */}
+            </HeaderContent>
+            <HeaderControls>
+              {/* 뜻 가리기/보이기 토글 버튼 */}
+              <MeaningToggleButton
+                onClick={toggleMeaningVisibility}
+                $showMeaning={showMeaning}
+                aria-pressed={showMeaning}
+                aria-label={showMeaning ? "Hide word meanings" : "Show word meanings"}
+                title={showMeaning ? "Hide meanings" : "Show meanings"}
+              >
+                {showMeaning ? <VisibilityIcon /> : <VisibilityOffIcon />}
+              </MeaningToggleButton>
+
+              <SortContainer>
+                <FilterListIcon sx={{ mr: 1, color: '#666' }} />
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Sort by</InputLabel>
+                  <Select
+                    value={sortBy}
+                    label="Sort by"
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <MenuItem value="alphabetical">Alphabetical</MenuItem>
+                    <MenuItem value="recent">Recently Added</MenuItem>
+                    <MenuItem value="article">By Article</MenuItem>
+                  </Select>
+                </FormControl>
+              </SortContainer>
+            </HeaderControls>
+          </Header>
 
           {/* 단어 목록 */}
           <WordList>
@@ -247,7 +247,7 @@ const Wordbook = () => {
                   <GuestTitle>개인 단어장</GuestTitle>
                   <GuestSubtitle>영어 학습을 위한 나만의 단어 저장소</GuestSubtitle>
                 </GuestHeader>
-                
+
                 <FeatureList>
                   <FeatureItem>
                     <FeatureIcon>🔖</FeatureIcon>
@@ -256,7 +256,7 @@ const Wordbook = () => {
                       <FeatureDesc>기사를 읽으며 모르는 단어를 클릭하면 자동으로 단어장에 저장됩니다</FeatureDesc>
                     </FeatureText>
                   </FeatureItem>
-                  
+
                   <FeatureItem>
                     <FeatureIcon>🔊</FeatureIcon>
                     <FeatureText>
@@ -264,7 +264,7 @@ const Wordbook = () => {
                       <FeatureDesc>저장된 단어의 정확한 발음을 음성으로 들을 수 있습니다</FeatureDesc>
                     </FeatureText>
                   </FeatureItem>
-                  
+
                   <FeatureItem>
                     <FeatureIcon>📖</FeatureIcon>
                     <FeatureText>
@@ -272,7 +272,7 @@ const Wordbook = () => {
                       <FeatureDesc>단어의 뜻과 함께 실제 기사에서 사용된 문맥을 확인할 수 있습니다</FeatureDesc>
                     </FeatureText>
                   </FeatureItem>
-                  
+
                   <FeatureItem>
                     <FeatureIcon>🎯</FeatureIcon>
                     <FeatureText>
@@ -281,7 +281,7 @@ const Wordbook = () => {
                     </FeatureText>
                   </FeatureItem>
                 </FeatureList>
-                
+
                 <LoginPrompt>
                   <LoginText>개인 단어장을 사용하려면 로그인이 필요합니다</LoginText>
                   <LoginButton onClick={signInWithGoogle}>
@@ -299,75 +299,75 @@ const Wordbook = () => {
               <>
                 {/* 페이지네이션 적용된 단어 목록 */}
                 {currentPageItems.map((word, index) => {
-                return (
-                  <WordCard 
-                    key={word.id}
-                    onClick={() => handleGoToArticle(word.articleId)}
-                  >
-                    {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
-                    <WordHeader>
-                      <LeftGroup>
-                        <WordColumn>
-                          <WordRow>
-                            <WordText>{word.word}</WordText>
-                            <PronunciationButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlayWord(word.word, word.id);
-                              }}
-                              disabled={!isSpeechSynthesisSupported()}
-                              title="Play pronunciation"
-                            >
-                              {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
-                            </PronunciationButton>
-                            {/* 개별 뜻 가리기/보이기 아이콘 (전체 가리기 모드에서만 표시) */}
-                            {!showMeaning && (
-                              <RevealButton
+                  return (
+                    <WordCard
+                      key={word.id}
+                      onClick={() => handleGoToArticle(word.articleId)}
+                    >
+                      {/* 단어+스피커 (상단), 품사 (하단) | 삭제 버튼 (우측) */}
+                      <WordHeader>
+                        <LeftGroup>
+                          <WordColumn>
+                            <WordRow>
+                              <WordText>{word.word}</WordText>
+                              <PronunciationButton
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleWordMeaning(word.id);
+                                  handlePlayWord(word.word, word.id);
                                 }}
-                                aria-pressed={revealedIds.has(word.id)}
-                                title={revealedIds.has(word.id) ? 'Hide meaning' : 'Show meaning'}
+                                disabled={!isSpeechSynthesisSupported()}
+                                title="Play pronunciation"
                               >
-                                {revealedIds.has(word.id) ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-                              </RevealButton>
+                                {isPlaying === word.id ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+                              </PronunciationButton>
+                              {/* 개별 뜻 가리기/보이기 아이콘 (전체 가리기 모드에서만 표시) */}
+                              {!showMeaning && (
+                                <RevealButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleWordMeaning(word.id);
+                                  }}
+                                  aria-pressed={revealedIds.has(word.id)}
+                                  title={revealedIds.has(word.id) ? 'Hide meaning' : 'Show meaning'}
+                                >
+                                  {revealedIds.has(word.id) ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                                </RevealButton>
+                              )}
+                            </WordRow>
+                            {word.partOfSpeech && (
+                              <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
                             )}
-                          </WordRow>
-                          {word.partOfSpeech && (
-                            <PartOfSpeech>{word.partOfSpeech}</PartOfSpeech>
-                          )}
-                        </WordColumn>
-                      </LeftGroup>
-                      <DeleteButton 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveWord(word.id);
-                        }}
-                        title="Remove word"
-                      >
-                        <CloseIcon fontSize="small" />
-                      </DeleteButton>
-                    </WordHeader>
-                  
-                    {/* 정의 */}
-                    <Definition $showMeaning={showMeaning || revealedIds.has(word.id)}>
-                      {word.definition}
-                    </Definition>
-                    
-                    {/* 예문 (있는 경우만) */}
-                    {word.example && (
-                      <Example>
-                        <strong>Example:</strong> "{word.example}"
-                      </Example>
-                    )}
-                  </WordCard>
-                );
-              })}
-            </>
+                          </WordColumn>
+                        </LeftGroup>
+                        <DeleteButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveWord(word.id);
+                          }}
+                          title="Remove word"
+                        >
+                          <CloseIcon fontSize="small" />
+                        </DeleteButton>
+                      </WordHeader>
+
+                      {/* 정의 */}
+                      <Definition $showMeaning={showMeaning || revealedIds.has(word.id)}>
+                        {word.definition}
+                      </Definition>
+
+                      {/* 예문 (있는 경우만) */}
+                      {word.example && (
+                        <Example>
+                          <strong>Example:</strong> "{word.example}"
+                        </Example>
+                      )}
+                    </WordCard>
+                  );
+                })}
+              </>
             )}
           </WordList>
-          
+
           {/* 페이지네이션 - WordList 밖으로 이동 */}
           {isAuthenticated && totalWords > 0 && totalPages > 1 && (
             <PaginationContainer>
@@ -375,17 +375,17 @@ const Wordbook = () => {
                 Showing {startIndex + 1}-{Math.min(endIndex, totalWords)} of {totalWords} words (Page {currentPage} of {totalPages})
               </PaginationInfo>
               <PaginationControls>
-                <PageButton 
+                <PageButton
                   onClick={(e) => handlePageChange(currentPage - 1, e)}
                   disabled={currentPage === 1}
                 >
                   Previous
                 </PageButton>
-                
+
                 {[...Array(totalPages)].map((_, index) => {
                   const pageNum = index + 1;
                   const isCurrentPage = pageNum === currentPage;
-                  
+
                   // 현재 페이지 주변 페이지만 표시 (1, 2, 3 페이지까지)
                   if (pageNum <= 3 || Math.abs(pageNum - currentPage) <= 1 || pageNum === totalPages) {
                     return (
@@ -402,8 +402,8 @@ const Wordbook = () => {
                   }
                   return null;
                 })}
-                
-                <PageButton 
+
+                <PageButton
                   onClick={(e) => handlePageChange(currentPage + 1, e)}
                   disabled={currentPage === totalPages}
                 >

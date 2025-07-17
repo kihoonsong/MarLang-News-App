@@ -56,7 +56,7 @@ const PrivacyPolicy = () => {
 
             <h2>5. Contact Us</h2>
             <p>
-              If you have questions or comments about this Privacy Policy, please contact us at: [Your Contact Email]
+              If you have questions or comments about this Privacy Policy, please contact us at: contact@marlang-app.web.app
             </p>
           </PolicyContainer>
         </PageContainer>

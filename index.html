@@ -18,11 +18,20 @@
     <title>NEWStep Eng News</title>
     <!-- Google AdSense verification meta tag -->
     <meta name="google-adsense-account" content="ca-pub-6930662244421305">
+    <!-- Google Analytics (에드센스 승인용 - 실제 GA ID 필요시 교체) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MEASUREMENT_ID');
+    </script>
+    
     <!-- Google AdSense script -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6930662244421305"
      crossorigin="anonymous"></script>
-    <meta name="description" content="최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요." />
-    <meta name="keywords" content="영어 뉴스, 영어 학습, AI 번역, 단어장, NEWStep" />
+    <meta name="description" content="최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요. 매일 업데이트되는 Technology, Science, Business, Culture 뉴스로 실용적인 영어 학습을 경험하세요." />
+    <meta name="keywords" content="영어 뉴스, 영어 학습, AI 번역, 단어장, NEWStep, English News, Technology News, Science News, Business News, Culture News, English Learning, Vocabulary" />
     <meta name="author" content="NEWStep Team" />
     
     <!-- Open Graph 메타 태그 -->
@@ -37,9 +46,133 @@
     <meta name="twitter:title" content="NEWStep Eng News - 영어 뉴스로 배우는 영어" />
     <meta name="twitter:description" content="최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요." />
     
+    <!-- 구조화된 데이터 (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "NEWStep Eng News",
+      "description": "최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요",
+      "url": "https://marlang-app.web.app/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://marlang-app.web.app/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NEWStep Team",
+        "email": "contact@marlang-app.web.app"
+      },
+      "mainEntity": {
+        "@type": "EducationalOrganization",
+        "name": "NEWStep Eng News",
+        "description": "영어 뉴스 기반 영어 학습 플랫폼",
+        "educationalCredentialAwarded": "English Language Learning",
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "English Learning Services",
+          "itemListElement": [
+            {
+              "@type": "Course",
+              "name": "English News Reading",
+              "description": "최신 영어 뉴스를 통한 영어 학습"
+            },
+            {
+              "@type": "Course", 
+              "name": "AI Translation Service",
+              "description": "AI 기반 번역 및 단어 학습"
+            }
+          ]
+        }
+      }
+    }
+    </script>
+    
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- 크롤러를 위한 기본 콘텐츠 (JavaScript 로드 전까지 표시) -->
+      <noscript>
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+          <h1>NEWStep Eng News - 영어 뉴스로 배우는 영어</h1>
+          <p>최신 영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요.</p>
+          <h2>주요 기능</h2>
+          <ul>
+            <li>실시간 영어 뉴스 (Technology, Science, Business, Culture)</li>
+            <li>AI 기반 번역 서비스</li>
+            <li>개인화된 단어장 기능</li>
+            <li>음성 읽기(TTS) 기능</li>
+            <li>카테고리별 뉴스 분류</li>
+          </ul>
+          <p>JavaScript를 활성화하여 전체 기능을 이용하세요.</p>
+        </div>
+      </noscript>
+      
+      <!-- 로딩 중 표시될 기본 구조 -->
+      <div id="initial-content" style="padding: 20px; font-family: Arial, sans-serif; display: block;">
+        <header>
+          <h1>NEWStep Eng News</h1>
+          <nav>
+            <a href="/">Home</a> | 
+            <a href="/category/technology">Technology</a> | 
+            <a href="/category/science">Science</a> | 
+            <a href="/category/business">Business</a> | 
+            <a href="/category/culture">Culture</a> | 
+            <a href="/search">Search</a> | 
+            <a href="/wordbook">Wordbook</a>
+          </nav>
+        </header>
+        
+        <main>
+          <section>
+            <h2>최신 영어 뉴스로 배우는 영어 학습 플랫폼</h2>
+            <p>매일 업데이트되는 다양한 카테고리의 영어 뉴스를 통해 실용적인 영어 실력을 향상시키세요.</p>
+            
+            <h3>Technology News</h3>
+            <p>최신 기술 동향과 혁신적인 발명품에 대한 영어 뉴스를 통해 IT 영어를 학습하세요.</p>
+            
+            <h3>Science News</h3>
+            <p>과학 연구와 발견에 관한 뉴스로 과학 영어 어휘를 확장하세요.</p>
+            
+            <h3>Business News</h3>
+            <p>경제와 비즈니스 뉴스를 통해 비즈니스 영어 표현을 익히세요.</p>
+            
+            <h3>Culture News</h3>
+            <p>문화와 예술 관련 뉴스로 다양한 영어 표현을 학습하세요.</p>
+          </section>
+          
+          <section>
+            <h3>주요 기능</h3>
+            <ul>
+              <li><strong>AI 번역:</strong> Gemini API를 활용한 정확한 번역 서비스</li>
+              <li><strong>단어장:</strong> 모르는 단어를 저장하고 체계적으로 학습</li>
+              <li><strong>음성 읽기:</strong> 정확한 발음으로 듣기 연습</li>
+              <li><strong>개인화:</strong> 사용자별 맞춤 학습 경험</li>
+            </ul>
+          </section>
+        </main>
+        
+        <footer>
+          <p><a href="/privacy">개인정보처리방침</a> | <a href="/terms">이용약관</a> | <a href="/contact">연락처</a></p>
+          <p>© 2024 NEWStep Eng News. All rights reserved.</p>
+        </footer>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- 초기 콘텐츠 숨기기 (React 로드 후) -->
+    <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        // React가 로드되면 초기 콘텐츠 숨기기
+        setTimeout(function() {
+          const initialContent = document.getElementById('initial-content');
+          if (initialContent && document.querySelector('[data-reactroot]')) {
+            initialContent.style.display = 'none';
+          }
+        }, 1000);
+      });
+    </script>
   </body>
 </html>

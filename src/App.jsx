@@ -33,6 +33,7 @@ const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
 const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const Contact = React.lazy(() => import('./pages/Contact'));
 const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 
@@ -349,6 +350,14 @@ function App() {
                       element={
                         <PageWrapper pageName="Privacy Policy">
                           <PrivacyPolicy />
+                        </PageWrapper>
+                      } 
+                    />
+                    <Route 
+                      path="/contact" 
+                      element={
+                        <PageWrapper pageName="Contact">
+                          <Contact />
                         </PageWrapper>
                       } 
                     />
