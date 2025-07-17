@@ -181,27 +181,58 @@ Convert the critical security fixes design into a series of coding tasks that ad
   - Create load testing for rate limiting under stress
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 7. Documentation and Deployment
+- [ ] 7. Apply Security Fixes to All Pages
+  - Ensure all pages (Home, Date, Profile, etc.) use secure authentication
+  - Update all components to use proper cleanup patterns
+  - Apply consistent security measures across the entire application
+  - _Requirements: All requirements across all pages_
+
+- [ ] 7.1 Update Date Page Security
+  - Apply secure authentication context to `src/pages/Date.jsx`
+  - Fix memory leaks in Date page event listeners and effects
+  - Ensure Date page uses HttpOnly cookie authentication
+  - Add proper cleanup for calendar navigation and article loading
+  - Fix potential XSS in date formatting and article rendering
+  - Secure article filtering and date parsing logic
+  - Add input validation for date parameters and category filters
+  - Implement proper error handling for invalid date ranges
+  - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 5.1, 5.2_
+
+- [ ] 7.2 Update Profile and Other Pages Security
+  - Apply security fixes to `src/pages/Profile.jsx`
+  - Update `src/pages/Like.jsx` with secure authentication
+  - Fix memory leaks in all remaining page components
+  - Ensure consistent security implementation across all routes
+  - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3_
+
+- [ ] 7.3 Update Navigation Components Security
+  - Apply security fixes to all Navigation components
+  - Fix memory leaks in `src/components/Navigation/` components
+  - Ensure secure token handling in navigation state
+  - Update mobile navigation with proper cleanup
+  - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3_
+
+- [ ] 8. Documentation and Deployment
   - Create security documentation for the implemented fixes
   - Update deployment procedures with new environment requirements
   - Add monitoring and alerting configuration
   - _Requirements: All requirements documentation_
 
-- [ ] 7.1 Create Security Documentation
+- [ ] 8.1 Create Security Documentation
   - Document new JWT security requirements and setup
   - Write cookie-based authentication migration guide
   - Create troubleshooting guide for common security issues
   - Document rate limiting configuration and monitoring
   - _Requirements: All requirements_
 
-- [ ] 7.2 Update Environment Configuration
+- [ ] 8.2 Update Environment Configuration
   - Update `.env.example` with new required security variables
   - Create environment validation checklist
   - Document minimum security requirements for deployment
   - Add security configuration verification scripts
   - _Requirements: 1.1, 1.4_
 
-- [ ] 7.3 Deploy Security Fixes
+- [ ] 8.3 Deploy Security Fixes
   - Deploy updated Firebase Functions with security fixes
   - Update client application with secure authentication
   - Verify all security measures are working in production
