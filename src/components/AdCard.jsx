@@ -145,20 +145,14 @@ const AdCard = ({
     loadAd();
   }, [adSlot, adsenseConfig]);
 
-  // 애드센스가 비활성화된 경우 또는 광고 차단기가 감지된 경우 플레이스홀더 표시
+  // 애드센스가 비활성화된 경우 또는 광고 차단기가 감지된 경우 아무것도 표시하지 않음
   if (!adsenseConfig.enabled || adBlockerDetected) {
-    return (
-      <AdCardContainer 
-        variant="outlined" 
-        style={{ minHeight, ...style }} 
-        className={className}
-      >
-        {showLabel && <AdLabel>Advertisement</AdLabel>}
-        <AdPlaceholderText>
-          {adBlockerDetected ? '광고 차단기가 감지되었습니다.' : 'Ad content will be displayed here.'}
-        </AdPlaceholderText>
-      </AdCardContainer>
-    );
+    return null;
+  }
+
+  // 광고 로드 실패 시에도 아무것도 표시하지 않음 (애드센스 정책 준수)
+  if (adLoadFailed) {
+    return null;
   }
 
   return (
@@ -167,19 +161,13 @@ const AdCard = ({
       style={{ 
         minHeight, 
         ...style,
-        // AdSense 로드 실패 시 고정 크기 유지로 레이아웃 시프트 방지
-        height: className?.includes('wordbook-ad') ? '180px' : (adLoadFailed ? minHeight : 'auto'),
+        height: className?.includes('wordbook-ad') ? '180px' : 'auto',
         overflow: 'hidden'
       }} 
       className={className}
       ref={adRef}
     >
       {showLabel && <AdLabel>Advertisement</AdLabel>}
-      {adLoadFailed && (
-        <AdPlaceholderText>
-          광고를 불러올 수 없습니다.
-        </AdPlaceholderText>
-      )}
     </AdCardContainer>
   );
 };

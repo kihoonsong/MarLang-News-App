@@ -85,7 +85,12 @@ const DatePage = () => {
           return false;
         }
         
-        return isPublished;
+        // 애드센스 정책 준수: 유효한 콘텐츠만 포함
+        const hasValidContent = article && 
+          article.title && 
+          (article.content || article.summary || article.description);
+        
+        return isPublished && hasValidContent;
       });
       
       const grouped = groupArticlesByDate(publishedArticles);

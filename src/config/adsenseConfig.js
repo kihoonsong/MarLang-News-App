@@ -2,29 +2,29 @@ export const adsenseConfig = {
   // 구글 애드센스 클라이언트 ID
   CLIENT_ID: 'ca-pub-6930662244421305',
   
-  // 광고 슬롯 설정
+  // 광고 슬롯 설정 (실제 슬롯 ID가 설정되기 전까지는 비활성화)
   adSlots: {
     // 기사 사이 배너 광고
     articleBanner: {
-      slot: 'YOUR_SLOT_ID_1',
+      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
       format: 'horizontal',
       responsive: true,
     },
     // 사이드바 광고
     sidebar: {
-      slot: 'YOUR_SLOT_ID_2', 
+      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
       format: 'vertical',
       responsive: true,
     },
     // 검색 결과 광고
     searchResults: {
-      slot: 'YOUR_SLOT_ID_3',
+      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
       format: 'auto',
       responsive: true,
     },
     // 단어장 페이지 광고
     wordbook: {
-      slot: 'YOUR_SLOT_ID_4',
+      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
       format: 'auto',
       responsive: true,
     }
@@ -55,7 +55,8 @@ export const getAdsenseConfig = () => {
   
   return {
     ...adsenseConfig,
-    enabled: true,
+    // 개발 환경에서는 완전히 비활성화 (애드센스 정책 준수)
+    enabled: !isDevelopment && import.meta.env.PROD,
     clientId: isDevelopment && adsenseConfig.development.useTestAds 
       ? 'ca-pub-TEST_CLIENT_ID' 
       : adsenseConfig.CLIENT_ID,

@@ -92,6 +92,19 @@ export const useAdInjector = (items) => {
       return items ? [...items] : [];
     }
 
+    // 실제 유효한 콘텐츠만 필터링 (애드센스 정책 준수)
+    const validItems = items.filter(item => 
+      item && 
+      item.title && 
+      (item.content || item.summary || item.description) &&
+      item.status === 'published'
+    );
+    
+    // 유효한 콘텐츠가 최소 임계값 미만이면 광고 표시 안함
+    if (validItems.length < minThreshold) {
+      return items ? [...items] : [];
+    }
+
     // 랜덤 시드 생성 및 광고 위치 결정
     const seed = generateRandomSeed(items);
     const adPositions = generateAdPositions(items.length, seed);
@@ -175,6 +188,19 @@ export const useVerticalAdInjector = (items, injectEvery = 3) => {
   const itemsWithAds = useMemo(() => {
     // 광고를 표시하지 않거나, 아이템이 없거나, 최소 임계값 미만인 경우
     if (!shouldShowAds || !items || items.length === 0 || items.length < injectEvery) {
+      return items ? [...items] : [];
+    }
+
+    // 실제 유효한 콘텐츠만 필터링 (애드센스 정책 준수)
+    const validItems = items.filter(item => 
+      item && 
+      item.title && 
+      (item.content || item.summary || item.description) &&
+      item.status === 'published'
+    );
+    
+    // 유효한 콘텐츠가 최소 임계값 미만이면 광고 표시 안함
+    if (validItems.length < injectEvery) {
       return items ? [...items] : [];
     }
 
