@@ -106,7 +106,7 @@ Convert the critical security fixes design into a series of coding tasks that ad
   - Create different rate limits for different endpoint types
   - _Requirements: 4.1, 4.2_
 
-- [x] 4.2 Apply Rate Limiting to Critical Endpoints
+- [ ] 4.2 Apply Rate Limiting to Critical Endpoints
   - Add rate limiting to `naverAuth` function (5 requests/minute)
   - Apply rate limiting to `createJWTToken` function (10 requests/minute)
   - Add rate limiting to `saveUserData` function (30 requests/minute)
