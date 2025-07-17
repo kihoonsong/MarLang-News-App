@@ -14,8 +14,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
-import AdCard from '../components/AdCard';
-import { useAdInjector } from '../hooks/useAdInjector';
+// AdCard와 useAdInjector 제거 - 단어장은 기능적 화면으로 애드센스 정책상 광고 금지
 import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
 import { designTokens, getColor } from '../utils/designTokens';
 
@@ -69,9 +68,9 @@ const Wordbook = () => {
   const endIndex = startIndex + wordsPerPage;
   const currentPageWords = sortedWords.slice(startIndex, endIndex);
   
-  // 현재 페이지 단어들에 광고 주입
-  const hasContent = isAuthenticated && currentPageWords && currentPageWords.length > 0;
-  const { itemsWithAds: currentPageItems } = useAdInjector(hasContent ? currentPageWords : []);
+  // 단어장은 사용자 생성 콘텐츠로 애드센스 정책상 광고 표시 불가
+  // 게시자 콘텐츠가 아닌 기능적 화면이므로 광고 제거
+  const currentPageItems = currentPageWords;
   
   // 페이지 변경 함수
   const handlePageChange = (page, event) => {
@@ -299,34 +298,7 @@ const Wordbook = () => {
             ) : (
               <>
                 {/* 페이지네이션 적용된 단어 목록 */}
-                {currentPageItems.map((item, index) => {
-                if (item.type === 'ad') {
-                  return (
-                    <WordbookAdCard key={item.id}>
-                      <AdLabel>광고</AdLabel>
-                      <AdContent>
-                        <AdCard 
-                          adSlot="articleBanner"
-                          minHeight="180px"
-                          showLabel={false}
-                          className="wordbook-ad"
-                          style={{ 
-                            background: 'transparent',
-                            border: 'none',
-                            padding: '0',
-                            margin: '0',
-                            boxShadow: 'none',
-                            borderRadius: '0',
-                            width: '100%',
-                            height: '180px'
-                          }}
-                        />
-                      </AdContent>
-                    </WordbookAdCard>
-                  );
-                }
-                
-                const word = item;
+                {currentPageItems.map((word, index) => {
                 return (
                   <WordCard 
                     key={word.id}
@@ -579,91 +551,7 @@ const WordList = styled.div`
   }
 `;
 
-const WordbookAdCard = styled.div`
-  background: ${getColor('background.paper')};
-  border-radius: 16px;
-  border: 1px solid ${getColor('border')};
-  padding: 20px;
-  transition: all 0.25s ease;
-  cursor: default;
-  height: 180px !important;
-  min-height: 180px !important;
-  max-height: 180px !important;
-  width: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  overflow: hidden;
-  
-  /* 단어카드와 완전히 동일한 호버 효과 */
-  &:hover {
-    border-color: ${getColor('primary')};
-    box-shadow: 0 8px 32px rgba(25, 118, 210, 0.12);
-    transform: translateY(-4px);
-  }
-`;
-
-const AdLabel = styled.div`
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  font-size: 0.7rem;
-  color: ${getColor('text.secondary')};
-  background: ${getColor('background.grey')};
-  padding: 1px 4px;
-  border-radius: 8px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1.2;
-  z-index: 1;
-`;
-
-const AdContent = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 8px;
-  overflow: hidden !important;
-  height: 180px !important;
-  min-height: 180px !important;
-  max-height: 180px !important;
-  width: 100% !important;
-  position: relative;
-  
-  /* 구글 애드센스 컨테이너 스타일 조정 */
-  .adsbygoogle,
-  ins {
-    width: 100% !important;
-    height: 180px !important;
-    max-height: 180px !important;
-    min-height: 180px !important;
-    overflow: hidden !important;
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-  }
-  
-  /* AdCard 내부 컨테이너도 고정 크기 적용 */
-  > * {
-    height: 180px !important;
-    min-height: 180px !important;
-    max-height: 180px !important;
-    width: 100% !important;
-    overflow: hidden !important;
-  }
-  
-  /* 모든 하위 요소 크기 제한 */
-  * {
-    max-height: 180px !important;
-    overflow: hidden !important;
-  }
-`;
+// 단어장 광고 관련 스타일드 컴포넌트 제거 - 애드센스 정책 준수
 
 const WordCard = styled.div`
   background: ${getColor('background.paper')};

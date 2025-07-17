@@ -11,7 +11,7 @@ Convert the critical security fixes design into a series of coding tasks that ad
   - Add token expiration and refresh logic with security best practices
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [-] 1.1 Create JWT Service with Environment Validation
+- [x] 1.1 Create JWT Service with Environment Validation
   - Write `functions/services/jwtService.js` with secure token generation
   - Implement environment variable validation for JWT_SECRET
   - Add minimum secret length validation (32+ characters)
