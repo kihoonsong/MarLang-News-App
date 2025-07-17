@@ -4,6 +4,10 @@ const admin = require("firebase-admin");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 
+// Import security middleware
+const { errorHandler, asyncErrorHandler } = require("./middleware/errorHandler");
+const { rateLimiters, applyRateLimit } = require("./middleware/rateLimiter");
+
 // Firebase Admin 초기화
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -64,7 +68,7 @@ exports.synthesizeSpeech = functions.https.onCall(async (data, context) => {
 });
 
 // 네이버 소셜 로그인 인증 함수 (업데이트됨)
-exports.naverAuth = functions.https.onRequest(async (req, res) => {
+exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth), async (req, res) => {
   // CORS 헤더 설정
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -256,7 +260,7 @@ exports.naverAuth = functions.https.onRequest(async (req, res) => {
 });
 
 // 사용자 데이터 저장 함수
-exports.saveUserData = functions.https.onRequest(async (req, res) => {
+exports.saveUserData = functions.https.onRequest(applyRateLimit(rateLimiters.data), async (req, res) => {
   // CORS 헤더 설정
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -382,7 +386,7 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
 });
 
 // JWT 토큰 생성 함수
-exports.createJWTToken = functions.https.onRequest(async (req, res) => {
+exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.auth), async (req, res) => {
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -406,10 +410,15 @@ exports.createJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || (() => {
-      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
-      return 'haru-default-jwt-secret-2025';
-    })();
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('🚨 JWT_SECRET environment variable is required');
+      res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'JWT_SECRET not configured' 
+      });
+      return;
+    }
     const accessTokenExpiry = '15m'; // 15분
     const refreshTokenExpiry = '7d'; // 7일
 
@@ -499,10 +508,15 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || (() => {
-      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
-      return 'haru-default-jwt-secret-2025';
-    })();
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('🚨 JWT_SECRET environment variable is required');
+      res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'JWT_SECRET not configured' 
+      });
+      return;
+    }
     
     try {
       const decoded = jwt.verify(accessToken, jwtSecret);
@@ -578,10 +592,15 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET || (() => {
-      console.warn('⚠️ Using default JWT secret - set JWT_SECRET environment variable');
-      return 'haru-default-jwt-secret-2025';
-    })();
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('🚨 JWT_SECRET environment variable is required');
+      res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'JWT_SECRET not configured' 
+      });
+      return;
+    }
     
     try {
       const decoded = jwt.verify(refreshToken, jwtSecret);
