@@ -93,8 +93,10 @@ const darkTheme = createTheme({
 
 export const CustomThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('marlang_dark_mode');
-    const darkMode = saved ? JSON.parse(saved) : false;
+    // 다크모드 비활성화 - 항상 false 반환
+    // const saved = localStorage.getItem('marlang_dark_mode');
+    // const darkMode = saved ? JSON.parse(saved) : false;
+    const darkMode = false;
     // 초기 로드 시 CSS 변수 설정
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     return darkMode;
@@ -107,7 +109,9 @@ export const CustomThemeProvider = ({ children }) => {
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(prev => !prev);
+    // 다크모드 토글 비활성화
+    // setIsDarkMode(prev => !prev);
+    console.log('다크모드 기능이 비활성화되었습니다.');
   };
 
   const theme = isDarkMode ? darkTheme : lightTheme;

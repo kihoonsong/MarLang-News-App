@@ -87,8 +87,8 @@ const NavigationHeader = ({
           {/* 데스크톱에서만 검색창 표시 */}
           {!isMobile && <SearchDropdown />}
           
-          {/* 다크모드 토글 버튼 */}
-          <DarkModeToggle
+          {/* 다크모드 토글 버튼 - 임시 비활성화 */}
+          {/* <DarkModeToggle
             onClick={() => {
               console.log('다크 모드 버튼 클릭됨!');
               toggleDarkMode();
@@ -97,7 +97,7 @@ const NavigationHeader = ({
             title="다크 모드 전환"
           >
             {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
-          </DarkModeToggle>
+          </DarkModeToggle> */}
           
           {isAuthenticated ? (
             <UserAvatar
