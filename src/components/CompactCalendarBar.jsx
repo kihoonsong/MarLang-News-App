@@ -4,7 +4,7 @@ import { IconButton } from '@mui/material';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { designTokens } from '../utils/designTokens';
+import { designTokens, getColor } from '../utils/designTokens';
 
 const CompactCalendarBar = ({ 
   selectedDate, 
@@ -145,11 +145,11 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   height: 48px;
-  background: white;
+  background: ${getColor('background.paper')};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 0 ${designTokens.spacing.sm};
   gap: ${designTokens.spacing.sm};
-  border-top: 1px solid ${designTokens.colors.border};
+  border-top: 1px solid ${getColor('border')};
   
   /* 모션을 줄이고 싶은 사용자를 위한 설정 */
   @media (prefers-reduced-motion: reduce) {
@@ -164,10 +164,10 @@ const CalendarButton = styled(IconButton)`
   && {
     width: 40px;
     height: 40px;
-    color: ${designTokens.colors.primary};
+    color: ${getColor('primary')};
     
     &:hover {
-      background-color: ${designTokens.colors.primary}20;
+      background-color: ${getColor('primaryLight')};
     }
   }
 `;
@@ -183,14 +183,14 @@ const NavButton = styled(IconButton)`
   && {
     width: 32px;
     height: 32px;
-    color: ${designTokens.colors.text.secondary};
+    color: ${getColor('text.secondary')};
     
     &:hover {
-      background-color: ${designTokens.colors.background.paper};
+      background-color: ${getColor('background.paper')};
     }
     
     &:disabled {
-      color: ${designTokens.colors.text.disabled};
+      color: ${getColor('text.hint')};
     }
   }
 `;
@@ -217,23 +217,23 @@ const DateItem = styled.div`
   
   /* 선택된 상태 */
   ${props => props.$isSelected && `
-    background-color: ${designTokens.colors.primary};
-    color: white;
+    background-color: ${getColor('primary')};
+    color: ${getColor('background')};
   `}
   
   /* 오늘 날짜 */
   ${props => props.$isToday && !props.$isSelected && `
-    background-color: ${designTokens.colors.primary}20;
-    color: ${designTokens.colors.primary};
+    background-color: ${getColor('primaryLight')};
+    color: ${getColor('primary')};
     font-weight: 600;
   `}
   
   /* 기본 상태 */
   ${props => !props.$isSelected && !props.$isToday && `
-    color: ${props.$hasArticles ? designTokens.colors.text.primary : designTokens.colors.text.secondary};
+    color: ${props.$hasArticles ? getColor('text.primary') : getColor('text.secondary')};
     
     &:hover {
-      background-color: ${designTokens.colors.background.paper};
+      background-color: ${getColor('background.paper')};
     }
   `}
   
@@ -245,7 +245,7 @@ const DateItem = styled.div`
   
   /* 포커스 상태 */
   &:focus {
-    outline: 2px solid ${designTokens.colors.primary};
+    outline: 2px solid ${getColor('primary')};
     outline-offset: 2px;
   }
 `;
@@ -260,7 +260,7 @@ const ArticleDot = styled.div`
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background-color: ${props => props.theme?.isSelected ? 'white' : designTokens.colors.primary};
+  background-color: ${props => props.theme?.isSelected ? getColor('background') : getColor('primary')};
   margin-top: 2px;
   position: absolute;
   bottom: 2px;

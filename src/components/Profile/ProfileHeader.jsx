@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { getColor } from '../../utils/designTokens';
 
 const ProfileHeader = ({ user, isAdmin, translations, onLogout: _onLogout }) => {
   return (
@@ -29,14 +30,16 @@ const ProfileHeader = ({ user, isAdmin, translations, onLogout: _onLogout }) => 
 };
 
 const HeaderContainer = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: ${getColor('background.paper')};
+  color: ${getColor('text.primary')};
   padding: 2rem;
   border-radius: 16px;
   margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border: 1px solid ${getColor('border')};
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 `;
 
 const UserInfo = styled.div`
@@ -49,12 +52,14 @@ const Avatar = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: ${getColor('background.grey')};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
   font-weight: bold;
+  color: ${getColor('text.primary')};
+  border: 2px solid ${getColor('border')};
   
   img {
     width: 100%;
@@ -74,20 +79,24 @@ const UserName = styled.h2`
   margin: 0;
   font-size: 1.5rem;
   font-weight: bold;
+  color: ${getColor('text.primary')};
 `;
 
 const UserEmail = styled.span`
   opacity: 0.8;
   font-size: 0.9rem;
+  color: ${getColor('text.secondary')};
 `;
 
 const UserRole = styled.span`
-  background: rgba(255, 255, 255, 0.2);
+  background: ${getColor('background.grey')};
+  color: ${getColor('text.primary')};
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.8rem;
   width: fit-content;
   margin-top: 0.5rem;
+  border: 1px solid ${getColor('border')};
 `;
 
 const _LogoutButton = styled.button`

@@ -502,11 +502,11 @@ const MeaningToggleButton = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #666;
+  color: ${getColor('text.secondary')};
   border-radius: 4px;
   
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: ${getColor('background.grey')};
     transform: scale(1.05);
   }
   
@@ -580,9 +580,9 @@ const WordList = styled.div`
 `;
 
 const WordbookAdCard = styled.div`
-  background: #ffffff;
+  background: ${getColor('background.paper')};
   border-radius: 16px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid ${getColor('border')};
   padding: 20px;
   transition: all 0.25s ease;
   cursor: default;
@@ -598,7 +598,7 @@ const WordbookAdCard = styled.div`
   
   /* 단어카드와 완전히 동일한 호버 효과 */
   &:hover {
-    border-color: #1976d2;
+    border-color: ${getColor('primary')};
     box-shadow: 0 8px 32px rgba(25, 118, 210, 0.12);
     transform: translateY(-4px);
   }
@@ -609,8 +609,8 @@ const AdLabel = styled.div`
   top: 16px;
   right: 16px;
   font-size: 0.7rem;
-  color: #666;
-  background: #f8f9fa;
+  color: ${getColor('text.secondary')};
+  background: ${getColor('background.grey')};
   padding: 1px 4px;
   border-radius: 8px;
   font-weight: 500;
@@ -666,9 +666,9 @@ const AdContent = styled.div`
 `;
 
 const WordCard = styled.div`
-  background: #ffffff;
+  background: ${getColor('background.paper')};
   border-radius: 16px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid ${getColor('border')};
   padding: 20px;
   transition: all 0.25s ease;
   cursor: pointer;
@@ -678,7 +678,7 @@ const WordCard = styled.div`
   flex-direction: column;
   
   &:hover {
-    border-color: #1976d2;
+    border-color: ${getColor('primary')};
     box-shadow: 0 8px 32px rgba(25, 118, 210, 0.12);
     transform: translateY(-4px);
   }
@@ -694,7 +694,7 @@ const DeleteButton = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #999;
+  color: ${getColor('text.hint')};
   border-radius: 50%;
   flex-shrink: 0;
   font-weight: bold;
@@ -705,7 +705,7 @@ const DeleteButton = styled.button`
   }
   
   &:hover {
-    color: #f44336;
+    color: ${getColor('error')};
     transform: scale(1.15);
   }
 `;
@@ -741,7 +741,7 @@ const WordText = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
-  color: #333;
+  color: ${getColor('text.primary')};
   word-break: break-word;
   line-height: 1.2;
 `;
@@ -753,7 +753,7 @@ const PronunciationButton = styled.button`
   padding: 4px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  color: #666;
+  color: ${getColor('text.secondary')};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -766,17 +766,17 @@ const PronunciationButton = styled.button`
   }
   
   &:hover {
-    background: #f5f5f5;
-    color: #1976d2;
+    background: ${getColor('background.grey')};
+    color: ${getColor('primary')};
   }
   
   &:disabled {
-    color: #ccc;
+    color: ${getColor('text.hint')};
     cursor: not-allowed;
     
     &:hover {
       background: none;
-      color: #ccc;
+      color: ${getColor('text.hint')};
     }
   }
 `;
@@ -788,7 +788,7 @@ const RevealButton = styled.button`
   padding: 4px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  color: #666;
+  color: ${getColor('text.secondary')};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -801,15 +801,15 @@ const RevealButton = styled.button`
   }
   
   &:hover {
-    background: #f5f5f5;
-    color: #1976d2;
+    background: ${getColor('background.grey')};
+    color: ${getColor('primary')};
   }
 `;
 
 const PartOfSpeech = styled.span`
   font-size: 0.7rem;
-  color: #666;
-  background: #f8f9fa;
+  color: ${getColor('text.secondary')};
+  background: ${getColor('background.grey')};
   padding: 1px 4px;
   border-radius: 8px;
   font-weight: 500;
@@ -825,7 +825,7 @@ const Definition = styled.p`
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
-  color: #555;
+  color: ${getColor('text.secondary')};
   flex: 1;
   overflow: hidden;
   display: -webkit-box;
@@ -847,11 +847,11 @@ const Example = styled.p`
   font-size: 0.8rem;
   line-height: 1.4;
   margin: 12px 0 0 0;
-  color: #666;
+  color: ${getColor('text.secondary')};
   padding: 8px 12px;
-  background: #f8fbff;
+  background: ${getColor('background.grey')};
   border-radius: 8px;
-  border-left: 3px solid #1976d2;
+  border-left: 3px solid ${getColor('primary')};
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -859,7 +859,7 @@ const Example = styled.p`
   font-style: normal;
   
   strong {
-    color: #1976d2;
+    color: ${getColor('primary')};
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -909,13 +909,13 @@ const GuestIcon = styled.div`
 const GuestTitle = styled.h2`
   font-size: 2rem;
   font-weight: 700;
-  color: #333;
+  color: ${getColor('text.primary')};
   margin: 0 0 0.5rem 0;
 `;
 
 const GuestSubtitle = styled.p`
   font-size: 1.1rem;
-  color: #666;
+  color: ${getColor('text.secondary')};
   margin: 0;
 `;
 
@@ -935,9 +935,9 @@ const FeatureItem = styled.div`
   align-items: flex-start;
   gap: 1rem;
   padding: 1.5rem;
-  background: #f8f9fa;
+  background: ${getColor('background.grey')};
   border-radius: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid ${getColor('border')};
 `;
 
 const FeatureIcon = styled.div`
@@ -952,13 +952,13 @@ const FeatureText = styled.div`
 const FeatureTitle = styled.h3`
   font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: ${getColor('text.primary')};
   margin: 0 0 0.5rem 0;
 `;
 
 const FeatureDesc = styled.p`
   font-size: 0.95rem;
-  color: #666;
+  color: ${getColor('text.secondary')};
   margin: 0;
   line-height: 1.5;
 `;
@@ -978,8 +978,8 @@ const LoginText = styled.p`
 `;
 
 const LoginButton = styled.button`
-  background: white;
-  color: #333;
+  background: ${getColor('background')};
+  color: ${getColor('text.primary')};
   border: none;
   padding: 12px 32px;
   border-radius: 8px;
@@ -989,7 +989,7 @@ const LoginButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #f8f9fa;
+    background: ${getColor('background.grey')};
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
@@ -1018,7 +1018,7 @@ const PaginationContainer = styled.div`
 `;
 
 const PaginationInfo = styled.div`
-  color: #666;
+  color: ${getColor('text.secondary')};
   font-size: 14px;
   text-align: center;
 `;
@@ -1033,31 +1033,31 @@ const PaginationControls = styled.div`
 
 const PageButton = styled.button`
   padding: 8px 16px;
-  border: 1px solid #ddd;
-  background: white;
-  color: #333;
+  border: 1px solid ${getColor('border')};
+  background: ${getColor('background')};
+  color: ${getColor('text.primary')};
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
   
   &:hover:not(:disabled) {
-    background: #f5f5f5;
-    border-color: #1976d2;
+    background: ${getColor('background.grey')};
+    border-color: ${getColor('primary')};
   }
   
   &:disabled {
-    background: #f5f5f5;
-    color: #999;
+    background: ${getColor('background.grey')};
+    color: ${getColor('text.hint')};
     cursor: not-allowed;
   }
 `;
 
 const PageNumber = styled.button`
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  background: ${props => props.$isActive ? '#1976d2' : 'white'};
-  color: ${props => props.$isActive ? 'white' : '#333'};
+  border: 1px solid ${getColor('border')};
+  background: ${props => props.$isActive ? getColor('primary') : getColor('background')};
+  color: ${props => props.$isActive ? getColor('background') : getColor('text.primary')};
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -1065,14 +1065,14 @@ const PageNumber = styled.button`
   transition: all 0.2s ease;
   
   &:hover:not(:disabled) {
-    background: ${props => props.$isActive ? '#1565c0' : '#f5f5f5'};
-    border-color: #1976d2;
+    background: ${props => props.$isActive ? getColor('primaryDark') : getColor('background.grey')};
+    border-color: ${getColor('primary')};
   }
 `;
 
 const PageEllipsis = styled.span`
   padding: 8px 4px;
-  color: #999;
+  color: ${getColor('text.hint')};
   font-size: 14px;
 `;
 

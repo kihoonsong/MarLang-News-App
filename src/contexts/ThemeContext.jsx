@@ -48,27 +48,43 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9',
+      main: '#58a6ff',
     },
     secondary: {
-      main: '#f48fb1',
+      main: '#79c0ff',
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#0d1117',
+      paper: '#21262d',
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#cccccc',
+      primary: '#e1e1e1',
+      secondary: '#b3b3b3',
     },
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1e1e1e',
-          color: '#ffffff',
-          boxShadow: '0 1px 3px rgba(255, 255, 255, 0.1)',
+          backgroundColor: '#21262d',
+          color: '#e1e1e1',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+          borderBottom: '1px solid #30363d',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#21262d',
+          borderColor: '#30363d',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          color: '#e1e1e1',
         },
       },
     },

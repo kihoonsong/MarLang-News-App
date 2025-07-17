@@ -5,6 +5,7 @@ import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import { getColor } from '../utils/designTokens';
 // Profile 컴포넌트들
 import ProfileHeader from '../components/Profile/ProfileHeader';
 import LearningStats from '../components/Profile/LearningStats';
@@ -299,10 +300,11 @@ const LoginPrompt = styled.div`
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  background: white;
+  background: ${getColor('background.paper')};
   border-radius: 16px;
   padding: 3rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid ${getColor('border')};
 `;
 
 const LoginIcon = styled.div`
@@ -312,19 +314,19 @@ const LoginIcon = styled.div`
 
 const LoginTitle = styled.h2`
   margin: 0 0 1rem 0;
-  color: #2d3748;
+  color: ${getColor('text.primary')};
   font-size: 1.5rem;
 `;
 
 const LoginMessage = styled.p`
   margin: 0 0 2rem 0;
-  color: #666;
+  color: ${getColor('text.secondary')};
   font-size: 1rem;
 `;
 
 const LoginButton = styled.button`
-  background: #1976d2;
-  color: white;
+  background: ${getColor('primary')};
+  color: ${getColor('background')};
   border: none;
   padding: 1rem 2rem;
   border-radius: 12px;
@@ -334,7 +336,7 @@ const LoginButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover {
-    background: #1565c0;
+    background: ${getColor('primaryDark')};
     transform: translateY(-2px);
   }
 `;

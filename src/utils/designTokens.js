@@ -103,11 +103,16 @@ export const getColor = (path) => {
     'background.grey': 'var(--color-background-grey)',
     'text.primary': 'var(--color-text-primary)',
     'text.secondary': 'var(--color-text-secondary)',
+    'text.hint': 'var(--color-text-hint)',
     'primary.main': 'var(--color-primary)',
     'primary.light': 'var(--color-primary-light)',
     'primary.dark': 'var(--color-primary-dark)',
     'warning.main': 'var(--color-warning)',
-    'success.main': 'var(--color-success)'
+    'success.main': 'var(--color-success)',
+    'error.main': 'var(--color-error)',
+    'border': 'var(--color-border)',
+    'shadow.card': 'var(--shadow-card)',
+    'shadow.large': 'var(--shadow-large)'
   };
   
   // CSS 변수 매핑이 있으면 사용
