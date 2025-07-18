@@ -285,10 +285,26 @@ class UnifiedTTS {
     utterance.pitch = this.options.pitch;
     utterance.volume = this.options.volume;
     
-    if (this.voice) {
-      utterance.voice = this.voice;
-      utterance.lang = this.voice.lang;
-    } else {
+    // 실시간으로 최신 음성 설정 적용
+    try {
+      const voiceManager = getVoiceManager();
+      const userSettings = this.getUserTTSSettings();
+      const currentVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+      
+      if (currentVoice) {
+        utterance.voice = currentVoice;
+        utterance.lang = currentVoice.lang;
+        if (import.meta.env.DEV) {
+          console.log('🎵 UnifiedTTS 실시간 음성 적용:', currentVoice.name, currentVoice.lang);
+        }
+      } else {
+        utterance.lang = 'en-US';
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ UnifiedTTS 음성을 찾을 수 없어 기본 언어 사용');
+        }
+      }
+    } catch (error) {
+      console.error('UnifiedTTS 음성 설정 오류:', error);
       utterance.lang = 'en-US';
     }
 
