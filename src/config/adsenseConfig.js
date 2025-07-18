@@ -2,29 +2,29 @@ export const adsenseConfig = {
   // 구글 애드센스 클라이언트 ID
   CLIENT_ID: 'ca-pub-6930662244421305',
   
-  // 광고 슬롯 설정 (실제 슬롯 ID가 설정되기 전까지는 비활성화)
+  // 광고 슬롯 설정 (애드센스 승인 후 설정 예정)
   adSlots: {
     // 기사 사이 배너 광고
     articleBanner: {
-      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
+      slot: null, // 애드센스 승인 후 설정
       format: 'horizontal',
       responsive: true,
     },
     // 사이드바 광고
     sidebar: {
-      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
+      slot: null, // 애드센스 승인 후 설정
       format: 'vertical',
       responsive: true,
     },
     // 검색 결과 광고
     searchResults: {
-      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
+      slot: null, // 애드센스 승인 후 설정
       format: 'auto',
       responsive: true,
     },
     // 단어장 페이지 광고
     wordbook: {
-      slot: '', // 실제 애드센스 슬롯 ID로 교체 필요
+      slot: null, // 애드센스 승인 후 설정
       format: 'auto',
       responsive: true,
     }
@@ -42,7 +42,7 @@ export const adsenseConfig = {
   
   // 개발 환경 설정
   development: {
-    // 개발 모드에서 애드센스 비활성화 (에드센스 허가 전이므로)
+    // 개발 모드에서 애드센스 비활성화 (애드센스 승인 전이므로)
     enabled: false,
     // 테스트 광고 사용 여부
     useTestAds: false,
@@ -55,8 +55,8 @@ export const getAdsenseConfig = () => {
   
   return {
     ...adsenseConfig,
-    // 개발 환경에서는 완전히 비활성화 (애드센스 정책 준수)
-    enabled: !isDevelopment && import.meta.env.PROD,
+    // 애드센스 승인 전까지는 완전히 비활성화 (애드센스 정책 준수)
+    enabled: false, // 승인 후 true로 변경
     clientId: isDevelopment && adsenseConfig.development.useTestAds 
       ? 'ca-pub-TEST_CLIENT_ID' 
       : adsenseConfig.CLIENT_ID,

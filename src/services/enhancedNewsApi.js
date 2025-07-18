@@ -1,21 +1,5 @@
-// 향상된 뉴스 API 서비스
+// 자체 제작 뉴스 콘텐츠 서비스
 // 에러 처리, 재시도 로직, 네트워크 상태 감지 포함
-
-const NEWS_API_ENDPOINTS = {
-  // NewsAPI.org (무료 계정: 100 requests/day)
-  newsapi: 'https://newsapi.org/v2/everything',
-  // The Guardian API (무료)
-  guardian: 'https://content.guardianapis.com/search',
-  // New York Times API (무료 계정: 1000 requests/day)
-  nytimes: 'https://api.nytimes.com/svc/search/v2/articlesearch.json',
-};
-
-// 환경 변수에서 API 키 가져오기
-const API_KEYS = {
-  newsapi: import.meta.env.VITE_NEWS_API_KEY,
-  guardian: import.meta.env.VITE_GUARDIAN_API_KEY,
-  nytimes: import.meta.env.VITE_NYTIMES_API_KEY,
-};
 
 // 카테고리 매핑
 const CATEGORY_MAPPING = {
@@ -247,79 +231,16 @@ class EnhancedNewsApiService {
     }
   }
 
-  // NewsAPI에서 기사 가져오기 (향상됨)
-  async fetchFromNewsAPI(category = 'technology', pageSize = 20) {
-    if (!API_KEYS.newsapi) {
-      throw new Error('NewsAPI key not configured');
-    }
 
-    const keywords = CATEGORY_MAPPING[category] || [category];
-    const query = keywords.join(' OR ');
-    
-    const url = new URL(NEWS_API_ENDPOINTS.newsapi);
-    url.searchParams.append('q', query);
-    url.searchParams.append('language', 'en');
-    url.searchParams.append('sortBy', 'publishedAt');
-    url.searchParams.append('pageSize', pageSize.toString());
-    url.searchParams.append('apiKey', API_KEYS.newsapi);
-
-    try {
-      const response = await enhancedFetch(url.toString());
-      const data = await response.json();
-      
-      if (data.status === 'error') {
-        throw new Error(`NewsAPI error: ${data.message}`);
-      }
-
-      if (import.meta.env.DEV) {
-        console.log(`📰 NewsAPI returned ${data.articles?.length || 0} articles`);
-      }
-      return this.transformNewsAPIData(data.articles || [], category);
-    } catch (error) {
-      this.logError(error, { api: 'newsapi', category, pageSize });
-      throw error;
-    }
-  }
-
-  // Guardian API에서 기사 가져오기 (향상됨)
-  async fetchFromGuardian(category = 'technology', pageSize = 20) {
-    if (!API_KEYS.guardian) {
-      throw new Error('Guardian API key not configured');
-    }
-
-    const url = new URL(NEWS_API_ENDPOINTS.guardian);
-    url.searchParams.append('section', category.toLowerCase());
-    url.searchParams.append('page-size', pageSize.toString());
-    url.searchParams.append('show-fields', 'thumbnail,bodyText,standfirst');
-    url.searchParams.append('api-key', API_KEYS.guardian);
-
-    try {
-      const response = await enhancedFetch(url.toString(), {}, 3, 15000);
-      const data = await response.json();
-      
-      if (data.response?.status === 'error') {
-        throw new Error(`Guardian API error: ${data.response.message}`);
-      }
-
-      if (import.meta.env.DEV) {
-        console.log(`📰 Guardian returned ${data.response?.results?.length || 0} articles`);
-      }
-      return this.transformGuardianData(data.response?.results || [], category);
-    } catch (error) {
-      this.logError(error, { api: 'guardian', category, pageSize });
-      throw error;
-    }
-  }
-
-  // 폴백용 샘플 데이터 (기존과 동일)
-  getFallbackData(category = 'Technology') {
+  // 자체 제작 콘텐츠 데이터
+  getArticleData(category = 'Technology') {
     if (import.meta.env.DEV) {
-      console.log('🔄 Using fallback data for category:', category);
+      console.log('📰 Using self-created content for category:', category);
     }
     
-    const fallbackArticles = [
+    const selfCreatedArticles = [
       {
-        id: 'fallback-1',
+        id: 'newstep-1',
         title: 'The Future of AI in Everyday Life',
         category: 'Technology',
         publishedAt: new Date().toISOString(),
@@ -333,7 +254,7 @@ class EnhancedNewsApiService {
         tags: ['AI', 'Technology']
       },
       {
-        id: 'fallback-2',
+        id: 'newstep-2',
         title: 'Climate Change Solutions: Renewable Energy Advances',
         category: 'Science',
         publishedAt: new Date(Date.now() - 86400000).toISOString(),
@@ -347,7 +268,7 @@ class EnhancedNewsApiService {
         tags: ['Climate', 'Energy', 'Environment', 'Science']
       },
       {
-        id: 'fallback-3',
+        id: 'newstep-3',
         title: 'Global Economic Trends: Digital Transformation Impact',
         category: 'Business',
         publishedAt: new Date(Date.now() - 172800000).toISOString(),
@@ -362,7 +283,7 @@ class EnhancedNewsApiService {
       }
     ];
 
-    return fallbackArticles.filter(article => 
+    return selfCreatedArticles.filter(article => 
       !category || article.category === category
     );
   }
@@ -535,60 +456,17 @@ class EnhancedNewsApiService {
       let articles = [];
       const errors = [];
 
-      // 1차 시도: NewsAPI
-      if (API_KEYS.newsapi) {
-        try {
-          const newsApiArticles = await this.fetchFromNewsAPI(category, Math.ceil(limit / 2));
-          articles = [...articles, ...newsApiArticles];
-          if (import.meta.env.DEV) {
-            console.log(`✅ NewsAPI: ${newsApiArticles.length} articles`);
-          }
-        } catch (error) {
-          errors.push({ api: 'NewsAPI', error: error.message });
-          if (import.meta.env.DEV) {
-            console.warn('❌ NewsAPI failed:', error.message);
-          }
-        }
+      // 자체 제작 콘텐츠 사용
+      if (import.meta.env.DEV) {
+        console.log('📰 Using self-created content');
       }
-
-      // 2차 시도: Guardian API (추가)
-      if (API_KEYS.guardian && articles.length < limit) {
-        try {
-          const guardianArticles = await this.fetchFromGuardian(category, limit - articles.length);
-          articles = [...articles, ...guardianArticles];
-          if (import.meta.env.DEV) {
-            console.log(`✅ Guardian: ${guardianArticles.length} articles`);
-          }
-        } catch (error) {
-          errors.push({ api: 'Guardian', error: error.message });
-          if (import.meta.env.DEV) {
-            console.warn('❌ Guardian API failed:', error.message);
-          }
-        }
-      }
-
-      // 3차 시도: 폴백 데이터
-      if (articles.length === 0) {
-        if (import.meta.env.DEV) {
-          console.warn('🔄 All APIs failed, using fallback data');
-        }
-        articles = this.getFallbackData(category);
-        
-        // 모든 API가 실패한 경우 에러 로그
-        this.logError(new Error('All news APIs failed'), {
-          category,
-          limit,
-          errors,
-          fallbackUsed: true
-        });
-      }
+      articles = this.getArticleData(category);
 
       // 중복 제거 및 제한
       const uniqueArticles = this.removeDuplicates(articles).slice(0, limit);
       
-      // 캐시 저장 (폴백 데이터의 경우 짧은 캐시)
-      const cacheTime = articles.length > 0 && !articles[0].id.includes('fallback') ? 
-        this.cacheExpiry : 5 * 60 * 1000; // 폴백 데이터는 5분만 캐시
+      // 캐시 저장
+      const cacheTime = this.cacheExpiry;
       
       this.cache.set(cacheKey, {
         data: uniqueArticles,
@@ -632,14 +510,8 @@ class EnhancedNewsApiService {
         let allArticles = [];
         
         for (const cat of categories) {
-          try {
-            const articles = await this.fetchArticles(cat, Math.ceil(limit / categories.length));
-            allArticles = [...allArticles, ...articles];
-          } catch (error) {
-            if (import.meta.env.DEV) {
-              console.warn(`Failed to fetch articles for category ${cat}:`, error.message);
-            }
-          }
+          const articles = await this.fetchArticles(cat, Math.ceil(limit / categories.length));
+          allArticles = [...allArticles, ...articles];
         }
 
         // 검색어로 필터링
@@ -713,7 +585,7 @@ class EnhancedNewsApiService {
       }
     }
 
-    const fallbackData = this.getFallbackData();
+    const fallbackData = this.getArticleData();
     return fallbackData.find(article => article.id === id) || null;
   }
 
@@ -736,7 +608,7 @@ class EnhancedNewsApiService {
       if (import.meta.env.DEV) {
         console.error('Failed to fetch trending articles:', error);
       }
-      return this.getFallbackData().slice(0, limit);
+      return this.getArticleData().slice(0, limit);
     }
   }
 
