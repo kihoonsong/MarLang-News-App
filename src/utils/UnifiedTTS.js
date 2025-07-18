@@ -1,8 +1,6 @@
 // 통합 TTS 엔진 - 모든 기능을 하나로 통합
 // 밑줄 하이라이팅, 배속 조절, 정지 등 모든 기존 기능 유지
 
-import { getVoiceManager } from './VoiceManager';
-
 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isAndroid = /Android/i.test(navigator.userAgent);
@@ -60,34 +58,18 @@ class UnifiedTTS {
   }
 
   /**
-   * 음성 초기화 (VoiceManager 사용)
+   * 음성 초기화 (단순한 방식)
    */
   async initializeVoice() {
     if (!window.speechSynthesis) return;
     
     try {
-      const voiceManager = getVoiceManager();
-      
-      // VoiceManager가 로드될 때까지 대기
-      if (!voiceManager.isVoicesLoaded()) {
-        await new Promise((resolve) => {
-          const removeListener = voiceManager.addListener(() => {
-            removeListener();
-            resolve();
-          });
-        });
-      }
-      
-      // 사용자 설정에서 선호 음성 가져오기
-      const userSettings = this.getUserTTSSettings();
-      this.voice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
-      
-      if (this.voice && import.meta.env.DEV) {
-        console.log('✅ UnifiedTTS 음성 설정:', this.voice.name, this.voice.lang);
+      // 단순하게 초기화만 수행 - 실제 음성 선택은 재생 시마다 수행
+      if (import.meta.env.DEV) {
+        console.log('✅ UnifiedTTS 음성 초기화 완료 (실시간 선택 방식)');
       }
     } catch (error) {
       console.error('UnifiedTTS 음성 초기화 오류:', error);
-      this.voice = null;
     }
   }
 
@@ -129,38 +111,80 @@ class UnifiedTTS {
   }
 
   /**
-   * 🔥 모바일 특화: 강력한 실시간 음성 설정 적용
+   * 🔥 단순하고 확실한 음성 설정 적용
    */
   applyVoiceSettings(utterance) {
     try {
-      // 매번 실시간으로 최신 설정 가져오기
       const userSettings = this.getUserTTSSettings();
-      const voiceManager = getVoiceManager();
+      const voices = window.speechSynthesis.getVoices();
       
       if (import.meta.env.DEV) {
-        console.log('🔥 [모바일 특화] 실시간 음성 설정 적용 시작');
+        console.log('🔥 [UnifiedTTS] 음성 설정 적용 시작');
         console.log('📱 현재 플랫폼:', this.getPlatform());
         console.log('⚙️ 사용자 설정:', userSettings);
+        console.log('🎵 사용 가능한 음성:', voices.length, '개');
       }
       
-      // VoiceManager가 로드되지 않은 경우 기본값 사용
-      if (!voiceManager.isVoicesLoaded()) {
+      if (!voices || voices.length === 0) {
         if (import.meta.env.DEV) {
-          console.warn('⚠️ VoiceManager 아직 로드되지 않음 - 기본 언어 사용');
+          console.warn('⚠️ 음성 목록이 비어있음 - 기본 언어 사용');
         }
         utterance.lang = 'en-US';
         return;
       }
       
-      // 최적의 영어 음성 선택
-      const selectedVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+      let selectedVoice = null;
       
+      // 1단계: 사용자가 설정한 음성 찾기
+      if (userSettings.preferredTTSVoice) {
+        // 정확한 이름 매칭
+        selectedVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
+        
+        // 부분 매칭 (iOS 호환성)
+        if (!selectedVoice) {
+          selectedVoice = voices.find(v => 
+            v.name.includes(userSettings.preferredTTSVoice) ||
+            userSettings.preferredTTSVoice.includes(v.name)
+          );
+        }
+        
+        if (selectedVoice) {
+          if (import.meta.env.DEV) {
+            console.log('✅ 사용자 설정 음성 발견:', selectedVoice.name, selectedVoice.lang);
+          }
+        } else {
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ 사용자 설정 음성을 찾을 수 없음:', userSettings.preferredTTSVoice);
+          }
+        }
+      }
+      
+      // 2단계: 기본 영어 음성 선택
+      if (!selectedVoice) {
+        const englishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+        
+        if (englishVoices.length > 0) {
+          // 우선순위: en-US 기본값 > en-US > en-GB > 기타 영어
+          selectedVoice = englishVoices.find(v => v.default && v.lang.startsWith('en-US'));
+          if (!selectedVoice) {
+            selectedVoice = englishVoices.find(v => v.lang.startsWith('en-US'));
+          }
+          if (!selectedVoice) {
+            selectedVoice = englishVoices.find(v => v.lang.startsWith('en-GB'));
+          }
+          if (!selectedVoice) {
+            selectedVoice = englishVoices[0];
+          }
+        }
+      }
+      
+      // 음성 적용
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         utterance.lang = selectedVoice.lang;
         
         if (import.meta.env.DEV) {
-          console.log('✅ [모바일 특화] 음성 적용 성공:', {
+          console.log('✅ [UnifiedTTS] 음성 적용 성공:', {
             name: selectedVoice.name,
             lang: selectedVoice.lang,
             default: selectedVoice.default,
@@ -173,23 +197,12 @@ class UnifiedTTS {
         utterance.lang = 'en-US';
         
         if (import.meta.env.DEV) {
-          console.warn('⚠️ [모바일 특화] 음성을 찾을 수 없음 - 기본 언어 사용');
-          console.log('🔍 사용 가능한 음성 목록:', voiceManager.getVoices().map(v => v.name));
+          console.warn('⚠️ [UnifiedTTS] 음성을 찾을 수 없음 - 기본 언어 사용');
         }
       }
       
-      // 모바일에서 추가 안정성 확보
-      if (isMobile) {
-        // 모바일에서는 음성 설정 후 짧은 지연
-        setTimeout(() => {
-          if (import.meta.env.DEV) {
-            console.log('📱 [모바일] 음성 설정 안정화 완료');
-          }
-        }, 50);
-      }
-      
     } catch (error) {
-      console.error('❌ [모바일 특화] 음성 설정 적용 오류:', error);
+      console.error('❌ [UnifiedTTS] 음성 설정 적용 오류:', error);
       // 에러 발생 시 안전한 기본값
       utterance.lang = 'en-US';
     }

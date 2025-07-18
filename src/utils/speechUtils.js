@@ -20,17 +20,73 @@ export const addVoiceChangeListener = (callback) => {
   return getVoiceManager().addListener(callback);
 };
 
-// 영어 발음에 적합한 음성 찾기 (VoiceManager 사용)
+// 영어 발음에 적합한 음성 찾기 (단순하고 확실한 방식)
 export const getEnglishVoice = () => {
   try {
     const userSettings = getUserTTSSettings();
-    const voiceManager = getVoiceManager();
+    const voices = window.speechSynthesis.getVoices();
     
-    // VoiceManager를 통해 최적의 영어 음성 선택
-    const selectedVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+    if (import.meta.env.DEV) {
+      console.log('🔍 음성 선택 시작 - 사용자 설정:', userSettings);
+      console.log('🎵 사용 가능한 음성:', voices.length, '개');
+    }
     
-    if (selectedVoice && import.meta.env.DEV) {
-      console.log('✅ VoiceManager 음성 선택:', selectedVoice.name, selectedVoice.lang);
+    if (!voices || voices.length === 0) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ 사용 가능한 음성이 없습니다');
+      }
+      return null;
+    }
+    
+    // 1단계: 사용자가 설정한 음성 찾기
+    if (userSettings.preferredTTSVoice) {
+      // 정확한 이름 매칭
+      let preferredVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
+      
+      // 부분 매칭 (iOS 호환성)
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => 
+          v.name.includes(userSettings.preferredTTSVoice) ||
+          userSettings.preferredTTSVoice.includes(v.name)
+        );
+      }
+      
+      if (preferredVoice) {
+        if (import.meta.env.DEV) {
+          console.log('✅ 사용자 설정 음성 발견:', preferredVoice.name, preferredVoice.lang);
+        }
+        return preferredVoice;
+      } else {
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ 사용자 설정 음성을 찾을 수 없음:', userSettings.preferredTTSVoice);
+        }
+      }
+    }
+    
+    // 2단계: 영어 음성 중 최적 선택
+    const englishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+    
+    if (englishVoices.length === 0) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ 영어 음성을 찾을 수 없음');
+      }
+      return voices[0] || null;
+    }
+    
+    // 우선순위: en-US 기본값 > en-US > en-GB > 기타 영어
+    let selectedVoice = englishVoices.find(v => v.default && v.lang.startsWith('en-US'));
+    if (!selectedVoice) {
+      selectedVoice = englishVoices.find(v => v.lang.startsWith('en-US'));
+    }
+    if (!selectedVoice) {
+      selectedVoice = englishVoices.find(v => v.lang.startsWith('en-GB'));
+    }
+    if (!selectedVoice) {
+      selectedVoice = englishVoices[0];
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ 선택된 음성:', selectedVoice.name, selectedVoice.lang);
     }
     
     return selectedVoice;
