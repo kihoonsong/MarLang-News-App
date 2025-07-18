@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import SimpleSEO from '../components/SimpleSEO';
 
 const PolicyContainer = styled.div`
   padding: 2rem;
@@ -17,6 +18,9 @@ const PolicyContainer = styled.div`
 const PrivacyPolicy = () => {
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO />
+      
       <MobileNavigation />
       <MobileContentWrapper>
         <PageContainer>

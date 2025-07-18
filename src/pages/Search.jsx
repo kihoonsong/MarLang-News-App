@@ -16,6 +16,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import PageContainer from '../components/PageContainer';
 import ArticleCard from '../components/ArticleCard';
+import SimpleSEO from '../components/SimpleSEO';
 import { SearchResultAdComponent } from '../components/AdComponents';
 
 // 샘플 기사 데이터 (검색용)
@@ -241,6 +242,13 @@ const Search = () => {
 
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO 
+        title={searchQuery ? `Search results for "${searchQuery}" - NEWStep News` : undefined}
+        description={searchQuery ? `Find English news articles about "${searchQuery}". Learn English through relevant news with AI translation and vocabulary features.` : undefined}
+        keywords={searchQuery ? `${searchQuery}, English news search, find articles, English learning, NEWStep` : undefined}
+      />
+      
       {/* 상단바 - 데스크톱만 표시 */}
       {!isMobile && (
         <AppBar position="static" color="default" elevation={1}>

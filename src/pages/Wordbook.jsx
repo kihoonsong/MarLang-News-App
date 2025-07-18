@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
+import SimpleSEO from '../components/SimpleSEO';
 import PageContainer from '../components/PageContainer';
 // AdCard와 useAdInjector 제거 - 단어장은 기능적 화면으로 애드센스 정책상 광고 금지
 import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
@@ -200,6 +201,9 @@ const Wordbook = () => {
 
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO />
+      
       <MobileNavigation />
       <MobileContentWrapper>
         <PageContainer>

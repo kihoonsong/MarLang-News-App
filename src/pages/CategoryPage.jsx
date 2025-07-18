@@ -13,6 +13,7 @@ import PageContainer from '../components/PageContainer';
 import VerticalArticleList from '../components/VerticalArticleList';
 import ArticleCard from '../components/ArticleCard';
 import AdCard from '../components/AdCard';
+import SimpleSEO from '../components/SimpleSEO';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
 import { useAdInjector } from '../hooks/useAdInjector';
 import { designTokens } from '../utils/designTokens';
@@ -107,6 +108,11 @@ const CategoryPage = () => {
 
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO 
+        category={currentCategory}
+      />
+      
       <MobileNavigation />
       <MobileContentWrapper>
         <ContentContainer>

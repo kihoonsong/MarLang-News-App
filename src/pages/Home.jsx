@@ -22,6 +22,7 @@ import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
 import AdCard from '../components/AdCard';
+import SimpleSEO from '../components/SimpleSEO';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { useAdInjector } from '../hooks/useAdInjector';
@@ -85,6 +86,9 @@ const Home = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const toast = useEnhancedToast();
+
+  // 오류 상태 추가
+  const [homeError, setHomeError] = useState(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsData, setAllNewsData] = useState({});
@@ -109,16 +113,19 @@ const Home = () => {
   // 동적 카테고리 관리 - ArticlesContext에서 가져오기
   const [localCategories, setLocalCategories] = useState(defaultCategories);
   
-  // Use shared articles context
+  // Use shared articles context with null check
+  const articlesContext = useArticles();
+  
+  // Context가 null인 경우 기본값 설정
   const { 
-    loading, 
-    error, 
-    categories: contextCategories,
-    getRecentArticles, 
-    getPopularArticles, 
-    getArticlesByCategory, 
-    refreshArticles 
-  } = useArticles();
+    loading = true, 
+    error = null, 
+    categories: contextCategories = [],
+    getRecentArticles = () => [], 
+    getPopularArticles = () => [], 
+    getArticlesByCategory = () => [], 
+    refreshArticles = () => {}
+  } = articlesContext || {};
 
   // 카테고리 동기화
   const categories = Array.isArray(contextCategories) && contextCategories.length > 0 
@@ -173,28 +180,40 @@ const Home = () => {
 
   // Load category data from context with proper guards
   useEffect(() => {
-    if (!loading && Array.isArray(categories)) {
-      const categoryData = {};
-
-      // 안전한 기사 데이터 로드
+    const loadCategoryData = async () => {
       try {
-        categoryData.recent = getRecentArticles(10) || [];
-        categoryData.popular = getPopularArticles(10) || [];
+        setHomeError(null);
+        
+        if (!loading && Array.isArray(categories)) {
+          const categoryData = {};
 
-        categories.forEach((category) => {
-          if (category && category.type === 'category' && category.id && category.name) {
-            categoryData[category.id] = getArticlesByCategory(category.name, 5) || [];
+          // 안전한 기사 데이터 로드
+          if (getRecentArticles && typeof getRecentArticles === 'function') {
+            categoryData.recent = getRecentArticles(10) || [];
           }
-        });
+          
+          if (getPopularArticles && typeof getPopularArticles === 'function') {
+            categoryData.popular = getPopularArticles(10) || [];
+          }
 
-        setAllNewsData(categoryData);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('기사 데이터 로드 중 오류:', error);
+          categories.forEach((category) => {
+            if (category && category.type === 'category' && category.id && category.name) {
+              if (getArticlesByCategory && typeof getArticlesByCategory === 'function') {
+                categoryData[category.id] = getArticlesByCategory(category.name, 5) || [];
+              }
+            }
+          });
+
+          setAllNewsData(categoryData);
         }
+      } catch (error) {
+        console.error('🚨 Home 컴포넌트 데이터 로드 오류:', error);
+        setHomeError(error.message || 'Failed to load home data');
         setAllNewsData({});
       }
-    }
+    };
+
+    loadCategoryData();
   }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
   const handleCategoryClick = (category) => {
     const element = document.getElementById(`category-${category.id}`);
@@ -222,6 +241,9 @@ const Home = () => {
   
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO />
+      
       {/* 통합 네비게이션 */}
       <MainNavigation 
         showCategoryTabs={true}
@@ -259,7 +281,7 @@ const Home = () => {
       
       <MobileContentWrapper>
         {/* 에러 상태 처리 */}
-        {error && (
+        {(error || homeError) && (
           <Box sx={{ p: 2 }}>
             <ErrorBoundary fallback={NewsListErrorFallback}>
               <Alert 
@@ -271,7 +293,7 @@ const Home = () => {
                 }
                 sx={{ mb: 2 }}
               >
-                Failed to load news: {error}
+                Failed to load news: {error || homeError}
               </Alert>
             </ErrorBoundary>
           </Box>

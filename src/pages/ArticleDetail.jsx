@@ -28,6 +28,7 @@ import { optimizeTextForTTS, debugTTSOptimization } from '../utils/ttsTextPatch'
 import { getTTSOptimizationSettings, isIOS } from '../utils/deviceDetect';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
+import SimpleSEO from '../components/SimpleSEO';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
@@ -1666,6 +1667,13 @@ const ArticleDetail = () => {
 
   return (
     <>
+      {/* SEO 메타데이터 */}
+      <SimpleSEO 
+        article={articleData}
+        publishedTime={articleData?.publishedAt}
+        type="article"
+      />
+      
       {/* 통합 네비게이션 */}
       <MobileNavigation 
         showBackButton={true}
