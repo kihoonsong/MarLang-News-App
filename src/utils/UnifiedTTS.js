@@ -129,6 +129,73 @@ class UnifiedTTS {
   }
 
   /**
+   * 🔥 모바일 특화: 강력한 실시간 음성 설정 적용
+   */
+  applyVoiceSettings(utterance) {
+    try {
+      // 매번 실시간으로 최신 설정 가져오기
+      const userSettings = this.getUserTTSSettings();
+      const voiceManager = getVoiceManager();
+      
+      if (import.meta.env.DEV) {
+        console.log('🔥 [모바일 특화] 실시간 음성 설정 적용 시작');
+        console.log('📱 현재 플랫폼:', this.getPlatform());
+        console.log('⚙️ 사용자 설정:', userSettings);
+      }
+      
+      // VoiceManager가 로드되지 않은 경우 기본값 사용
+      if (!voiceManager.isVoicesLoaded()) {
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ VoiceManager 아직 로드되지 않음 - 기본 언어 사용');
+        }
+        utterance.lang = 'en-US';
+        return;
+      }
+      
+      // 최적의 영어 음성 선택
+      const selectedVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        utterance.lang = selectedVoice.lang;
+        
+        if (import.meta.env.DEV) {
+          console.log('✅ [모바일 특화] 음성 적용 성공:', {
+            name: selectedVoice.name,
+            lang: selectedVoice.lang,
+            default: selectedVoice.default,
+            platform: this.getPlatform(),
+            userPreference: userSettings.preferredTTSVoice
+          });
+        }
+      } else {
+        // 폴백: 기본 언어 설정
+        utterance.lang = 'en-US';
+        
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ [모바일 특화] 음성을 찾을 수 없음 - 기본 언어 사용');
+          console.log('🔍 사용 가능한 음성 목록:', voiceManager.getVoices().map(v => v.name));
+        }
+      }
+      
+      // 모바일에서 추가 안정성 확보
+      if (isMobile) {
+        // 모바일에서는 음성 설정 후 짧은 지연
+        setTimeout(() => {
+          if (import.meta.env.DEV) {
+            console.log('📱 [모바일] 음성 설정 안정화 완료');
+          }
+        }, 50);
+      }
+      
+    } catch (error) {
+      console.error('❌ [모바일 특화] 음성 설정 적용 오류:', error);
+      // 에러 발생 시 안전한 기본값
+      utterance.lang = 'en-US';
+    }
+  }
+
+  /**
    * 텍스트를 문장으로 분할
    */
   splitIntoSentences(text) {
@@ -285,28 +352,8 @@ class UnifiedTTS {
     utterance.pitch = this.options.pitch;
     utterance.volume = this.options.volume;
     
-    // 실시간으로 최신 음성 설정 적용
-    try {
-      const voiceManager = getVoiceManager();
-      const userSettings = this.getUserTTSSettings();
-      const currentVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
-      
-      if (currentVoice) {
-        utterance.voice = currentVoice;
-        utterance.lang = currentVoice.lang;
-        if (import.meta.env.DEV) {
-          console.log('🎵 UnifiedTTS 실시간 음성 적용:', currentVoice.name, currentVoice.lang);
-        }
-      } else {
-        utterance.lang = 'en-US';
-        if (import.meta.env.DEV) {
-          console.warn('⚠️ UnifiedTTS 음성을 찾을 수 없어 기본 언어 사용');
-        }
-      }
-    } catch (error) {
-      console.error('UnifiedTTS 음성 설정 오류:', error);
-      utterance.lang = 'en-US';
-    }
+    // 🔥 모바일 특화: 강력한 실시간 음성 설정 적용
+    this.applyVoiceSettings(utterance);
 
     // 재생 시작 시간 기록
     const startTime = Date.now();
