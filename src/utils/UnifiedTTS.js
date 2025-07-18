@@ -1,6 +1,8 @@
 // 통합 TTS 엔진 - 모든 기능을 하나로 통합
 // 밑줄 하이라이팅, 배속 조절, 정지 등 모든 기존 기능 유지
 
+import { getVoiceManager } from './VoiceManager';
+
 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isAndroid = /Android/i.test(navigator.userAgent);
@@ -58,42 +60,71 @@ class UnifiedTTS {
   }
 
   /**
-   * 음성 초기화
+   * 음성 초기화 (VoiceManager 사용)
    */
   async initializeVoice() {
     if (!window.speechSynthesis) return;
     
-    // iOS에서는 음성 로딩 대기
-    if (isIOS) {
-      const loadVoices = () => {
-        return new Promise((resolve) => {
-          const voices = window.speechSynthesis.getVoices();
-          if (voices.length > 0) {
-            resolve(voices);
-          } else {
-            window.speechSynthesis.onvoiceschanged = () => {
-              resolve(window.speechSynthesis.getVoices());
+    try {
+      const voiceManager = getVoiceManager();
+      
+      // VoiceManager가 로드될 때까지 대기
+      if (!voiceManager.isVoicesLoaded()) {
+        await new Promise((resolve) => {
+          const removeListener = voiceManager.addListener(() => {
+            removeListener();
+            resolve();
+          });
+        });
+      }
+      
+      // 사용자 설정에서 선호 음성 가져오기
+      const userSettings = this.getUserTTSSettings();
+      this.voice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+      
+      if (this.voice && import.meta.env.DEV) {
+        console.log('✅ UnifiedTTS 음성 설정:', this.voice.name, this.voice.lang);
+      }
+    } catch (error) {
+      console.error('UnifiedTTS 음성 초기화 오류:', error);
+      this.voice = null;
+    }
+  }
+
+  /**
+   * 사용자 TTS 설정 가져오기
+   */
+  getUserTTSSettings() {
+    try {
+      // localStorage에서 사용자 설정 가져오기
+      const authData = localStorage.getItem('haru_auth_data');
+      if (authData) {
+        const parsedAuth = JSON.parse(authData);
+        if (parsedAuth.user?.uid) {
+          const userSettingsKey = `haru_${parsedAuth.user.uid}_settings`;
+          const userSettings = localStorage.getItem(userSettingsKey);
+          if (userSettings) {
+            const settings = JSON.parse(userSettings);
+            return {
+              ttsSpeed: settings.ttsSpeed || 0.8,
+              preferredTTSVoice: settings.preferredTTSVoice || null
             };
           }
-        });
-      };
-      
-      const voices = await loadVoices();
-      // 영어 음성 우선 선택 (Siri 등)
-      this.voice = voices.find(v => v.lang.startsWith('en-US') && v.name.includes('Siri')) ||
-                   voices.find(v => v.lang.startsWith('en-US')) ||
-                   voices.find(v => v.lang.startsWith('en')) ||
-                   voices[0];
-    } else {
-      // 다른 플랫폼에서는 즉시 음성 설정
-      const voices = window.speechSynthesis.getVoices();
-      this.voice = voices.find(v => v.lang.startsWith('en-US')) ||
-                   voices.find(v => v.lang.startsWith('en')) ||
-                   voices[0];
-    }
-    
-    if (this.voice && import.meta.env.DEV) {
-      console.log('✅ 선택된 음성:', this.voice.name, this.voice.lang);
+        }
+      }
+      // 게스트 사용자 설정 확인
+      const guestSettings = localStorage.getItem('haru_guest_settings');
+      if (guestSettings) {
+        const settings = JSON.parse(guestSettings);
+        return {
+          ttsSpeed: settings.ttsSpeed || 0.8,
+          preferredTTSVoice: settings.preferredTTSVoice || null
+        };
+      }
+      return { ttsSpeed: 0.8, preferredTTSVoice: null };
+    } catch (error) {
+      console.warn('Failed to get user TTS settings:', error);
+      return { ttsSpeed: 0.8, preferredTTSVoice: null };
     }
   }
 

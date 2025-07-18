@@ -5,7 +5,6 @@ import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
 import { CustomThemeProvider } from './contexts/ThemeContext';
-import { setupVoicesChangedListener, addVoicesChangedListener } from './utils/speechUtils';
 
 // 향상된 에러 처리 시스템 import
 import ErrorBoundary from './components/ErrorBoundary';
@@ -36,6 +35,7 @@ const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
+const TTSTest = React.lazy(() => import('./pages/TTSTest'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -145,21 +145,16 @@ const NetworkMonitor = () => {
   return null;
 };
 
-// 음성 목록 관리 컴포넌트 (실시간 조회 방식으로 변경)
-const VoiceManager = () => {
+// VoiceManager 초기화 컴포넌트
+const VoiceManagerInitializer = () => {
   useEffect(() => {
-    // voiceschanged 이벤트 영구 구독 설정
-    const removeVoicesListener = setupVoicesChangedListener();
-
-    // 음성 변경 이벤트 리스너 등록
-    const removeAppListener = addVoicesChangedListener((voices) => {
-      console.log('🔄 앱 레벨 음성 설정 변경 감지됨:', voices.length, '개');
+    // VoiceManager 싱글톤 인스턴스 초기화
+    import('./utils/VoiceManager').then(({ getVoiceManager }) => {
+      const manager = getVoiceManager();
+      if (import.meta.env.DEV) {
+        console.log('🎵 VoiceManager 초기화 완료');
+      }
     });
-
-    return () => {
-      removeVoicesListener && removeVoicesListener();
-      removeAppListener();
-    };
   }, []);
 
   return null;
@@ -267,7 +262,7 @@ function App() {
                   {/* 전역 시스템 컴포넌트들 */}
                   <GlobalErrorHandler />
                   <NetworkMonitor />
-                  <VoiceManager />
+                  <VoiceManagerInitializer />
                   <TTSManager />
                   
                   {/* 오프라인 알림 배너 */}
@@ -371,6 +366,18 @@ function App() {
                         </PageWrapper>
                       } 
                     />
+                    
+                    {/* TTS 테스트 페이지 (개발 환경에서만) */}
+                    {import.meta.env.DEV && (
+                      <Route 
+                        path="/tts-test" 
+                        element={
+                          <PageWrapper pageName="TTS Test">
+                            <TTSTest />
+                          </PageWrapper>
+                        } 
+                      />
+                    )}
                     
                     {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}
                     <Route 

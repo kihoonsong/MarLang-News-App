@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { 
-  Typography, Slider, FormControlLabel, Switch, FormControl, Select, MenuItem, InputLabel
+  Typography, Slider, FormControlLabel, Switch, FormControl, Select, MenuItem, InputLabel, CircularProgress, Chip
 } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PaletteIcon from '@mui/icons-material/Palette';
-// import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useData } from '../../contexts/DataContext';
 import { getSupportedLanguages } from '../../utils/dictionaryApi';
 import { useTranslations } from '../../hooks/useTranslations';
+import { getVoiceManager } from '../../utils/VoiceManager';
+import { speakText } from '../../utils/speechUtils';
 
 const interfaceLanguageOptions = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -20,38 +23,32 @@ const interfaceLanguageOptions = [
 const UserSettings = () => {
   const { userSettings, updateSettings } = useData();
   const { t } = useTranslations();
-  // const [availableVoices, setAvailableVoices] = useState([]); // TTS Voice 기능 임시 비활성화
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [voicesLoading, setVoicesLoading] = useState(true);
+  const [testingVoice, setTestingVoice] = useState(null);
 
-  /* TTS Voice 기능 임시 비활성화 (개발 중)
-  // 음성 목록 가져오기 (실시간 조회 방식)
+  // VoiceManager를 통한 음성 목록 로딩
   useEffect(() => {
-    const loadVoices = () => {
-      // 항상 실시간으로 음성 목록 조회
-      const voices = window.speechSynthesis.getVoices();
-      // 영어 음성만 필터링
-      const englishVoices = voices.filter(voice => 
-        voice.lang.toLowerCase().startsWith('en')
-      );
-      setAvailableVoices(englishVoices);
-      console.log('🎵 Settings 음성 목록 갱신:', englishVoices.length, '개');
-    };
-
-    // 초기 로드
-    loadVoices();
-
-    // 음성 목록 변경 감지 (영구 리스너)
-    const handleVoicesChanged = () => {
-      console.log('🔄 Settings voiceschanged 이벤트 감지');
-      loadVoices();
-    };
-
-    window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+    const voiceManager = getVoiceManager();
     
-    return () => {
-      window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-    };
+    // 음성 변경 리스너 등록
+    const removeListener = voiceManager.addListener((voices) => {
+      setAvailableVoices(voices);
+      setVoicesLoading(false);
+      if (import.meta.env.DEV) {
+        console.log('🎵 UserSettings 음성 목록 업데이트:', voices.length, '개');
+      }
+    });
+
+    // 이미 로드된 경우 즉시 설정
+    if (voiceManager.isVoicesLoaded()) {
+      setAvailableVoices(voiceManager.getVoices());
+      setVoicesLoading(false);
+    }
+
+    // 컴포넌트 언마운트 시 리스너 제거
+    return removeListener;
   }, []);
-  */
 
   const handleSettingChange = (key, value) => {
     // TTS 음성 설정 변경 시 현재 재생 중지
@@ -65,6 +62,49 @@ const UserSettings = () => {
     updateSettings({
       [key]: value
     });
+  };
+
+  // 음성 테스트 함수
+  const handleTestVoice = async (voiceName) => {
+    if (testingVoice) return; // 이미 테스트 중이면 무시
+    
+    setTestingVoice(voiceName);
+    
+    try {
+      // 현재 재생 중인 TTS 중지
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      
+      // 테스트 문장
+      const testText = "Hello! This is a voice test. How does this sound?";
+      
+      // VoiceManager를 통해 특정 음성으로 직접 테스트
+      const voiceManager = getVoiceManager();
+      const testVoice = voiceManager.findVoice(voiceName);
+      
+      if (testVoice) {
+        // 직접 SpeechSynthesisUtterance 생성하여 테스트
+        const utterance = new SpeechSynthesisUtterance(testText);
+        utterance.voice = testVoice;
+        utterance.lang = testVoice.lang;
+        utterance.rate = userSettings?.ttsSpeed || 0.8;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        // 테스트 완료 후 상태 초기화
+        utterance.onend = () => setTestingVoice(null);
+        utterance.onerror = () => setTestingVoice(null);
+        
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.warn('테스트할 음성을 찾을 수 없음:', voiceName);
+        setTestingVoice(null);
+      }
+    } catch (error) {
+      console.error('음성 테스트 오류:', error);
+      setTestingVoice(null);
+    }
   };
 
   return (
@@ -164,34 +204,79 @@ const UserSettings = () => {
               label={t.autoPlayPronunciation}
             />
 
-{/* TTS Voice 선택 기능 임시 비활성화 (개발 중)
-            <FormControl size="small" fullWidth>
-              <InputLabel>TTS Voice</InputLabel>
-              <Select
-                value={userSettings?.preferredTTSVoice || ''}
-                label="TTS Voice"
-                onChange={(e) => handleSettingChange('preferredTTSVoice', e.target.value)}
-              >
-                <MenuItem value="">
-                  <VoiceOption>
-                    <RecordVoiceOverIcon sx={{ fontSize: 16, mr: 1 }} />
-                    <span>Auto (System Default)</span>
-                  </VoiceOption>
-                </MenuItem>
-                {availableVoices.map((voice) => (
-                  <MenuItem key={voice.name} value={voice.name}>
+            <VoiceSelectionContainer>
+              <FormControl size="small" fullWidth>
+                <InputLabel>TTS Voice</InputLabel>
+                <Select
+                  value={userSettings?.preferredTTSVoice || ''}
+                  label="TTS Voice"
+                  onChange={(e) => handleSettingChange('preferredTTSVoice', e.target.value)}
+                  disabled={voicesLoading}
+                >
+                  <MenuItem value="">
                     <VoiceOption>
                       <RecordVoiceOverIcon sx={{ fontSize: 16, mr: 1 }} />
-                      <VoiceInfo>
-                        <span>{voice.name}</span>
-                        <VoiceDetail>({voice.lang})</VoiceDetail>
-                      </VoiceInfo>
+                      <span>Auto (System Default)</span>
                     </VoiceOption>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            */}
+                  {availableVoices.map((voice) => (
+                    <MenuItem key={voice.name} value={voice.name}>
+                      <VoiceOption>
+                        <RecordVoiceOverIcon sx={{ fontSize: 16, mr: 1 }} />
+                        <VoiceInfo>
+                          <VoiceNameContainer>
+                            <span>{voice.name}</span>
+                            <VoiceDetail>({voice.lang})</VoiceDetail>
+                          </VoiceNameContainer>
+                          <VoiceTestButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTestVoice(voice.name);
+                            }}
+                            disabled={testingVoice !== null}
+                            $testing={testingVoice === voice.name}
+                          >
+                            {testingVoice === voice.name ? (
+                              <CircularProgress size={12} />
+                            ) : (
+                              <PlayArrowIcon sx={{ fontSize: 14 }} />
+                            )}
+                          </VoiceTestButton>
+                        </VoiceInfo>
+                      </VoiceOption>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              {voicesLoading && (
+                <VoiceLoadingContainer>
+                  <CircularProgress size={16} />
+                  <Typography variant="caption" color="text.secondary">
+                    Loading voices...
+                  </Typography>
+                </VoiceLoadingContainer>
+              )}
+              
+              {!voicesLoading && availableVoices.length === 0 && (
+                <VoiceErrorContainer>
+                  <Typography variant="caption" color="error">
+                    No English voices available
+                  </Typography>
+                </VoiceErrorContainer>
+              )}
+              
+              {!voicesLoading && availableVoices.length > 0 && (
+                <VoiceInfoContainer>
+                  <Chip 
+                    size="small" 
+                    label={`${availableVoices.length} voices available`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </VoiceInfoContainer>
+              )}
+            </VoiceSelectionContainer>
           </SettingsGrid>
         </SettingSection>
 
@@ -290,24 +375,80 @@ const LanguageOption = styled.div`
   gap: 0.75rem;
 `;
 
-const _VoiceOption = styled.div`
+const VoiceSelectionContainer = styled.div`
+  grid-column: 1 / -1; /* 전체 폭 사용 */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const VoiceOption = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
 `;
 
-const _VoiceInfo = styled.div`
+const VoiceInfo = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+`;
+
+const VoiceNameContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.125rem;
+  flex: 1;
 `;
 
-const _VoiceDetail = styled.span`
+const VoiceDetail = styled.span`
   font-size: 0.75rem;
   color: #666;
   font-weight: 400;
+`;
+
+const VoiceTestButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: ${props => props.$testing ? '#1976d2' : '#f5f5f5'};
+  color: ${props => props.$testing ? 'white' : '#666'};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background: #1976d2;
+    color: white;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+  }
+`;
+
+const VoiceLoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+`;
+
+const VoiceErrorContainer = styled.div`
+  padding: 0.5rem 0;
+`;
+
+const VoiceInfoContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.25rem 0;
 `;
 
 export default UserSettings;

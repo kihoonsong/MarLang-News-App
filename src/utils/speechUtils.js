@@ -9,150 +9,41 @@ export const isSpeechSynthesisSupported = () => {
 const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-// 음성 목록 변경 이벤트 리스너 관리 (캐시 제거, 실시간 조회로 변경)
-let _voicesListeners = new Set();
+import { getVoiceManager } from './VoiceManager';
 
-// 음성 목록 변경 이벤트 리스너 추가
-export const addVoicesChangedListener = (callback) => {
-  _voicesListeners.add(callback);
-  
-  // 리스너 제거 함수 반환
-  return () => {
-    _voicesListeners.delete(callback);
-  };
-};
-
-// 음성 목록 변경 알림 (실시간 음성 목록 전달)
-const notifyVoicesChanged = () => {
-  const currentVoices = window.speechSynthesis.getVoices();
-  _voicesListeners.forEach(callback => {
-    try {
-      callback(currentVoices);
-    } catch (error) {
-      console.error('음성 변경 콜백 오류:', error);
-    }
-  });
-};
-
-// 실시간 음성 목록 가져오기 (캐시 제거)
+// VoiceManager 편의 함수들 재내보내기
 export const getAvailableVoices = () => {
-  if (!isSpeechSynthesisSupported()) {
-    console.warn('⚠️ Speech Synthesis가 지원되지 않습니다');
-    return [];
-  }
-  
-  // 항상 실시간으로 음성 목록 조회
-  const voices = window.speechSynthesis.getVoices();
-  console.log('🔄 실시간 음성 목록 조회:', voices.length, '개');
-  
-  return voices;
+  return getVoiceManager().getVoices();
 };
 
-// voiceschanged 이벤트 영구 구독 설정
-export const setupVoicesChangedListener = () => {
-  if (!window.speechSynthesis) return;
-  
-  const handleVoicesChanged = () => {
-    const voices = window.speechSynthesis.getVoices();
-    console.log('🔄 음성 목록 변경 감지됨:', voices.length, '개');
-    notifyVoicesChanged();
-  };
-  
-  // 기존 리스너 제거 후 새로 등록
-  window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-  window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
-  
-  return () => {
-    window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-  };
+export const addVoiceChangeListener = (callback) => {
+  return getVoiceManager().addListener(callback);
 };
 
-// 영어 발음에 적합한 음성 찾기 (사용자 설정 우선 적용)
+// 영어 발음에 적합한 음성 찾기 (VoiceManager 사용)
 export const getEnglishVoice = () => {
   try {
-    // 매번 실시간으로 음성 목록 조회 (시스템 변경 즉시 반영)
-    const voices = window.speechSynthesis.getVoices();
-    
-    if (!voices || voices.length === 0) {
-      console.warn('⚠️ 사용 가능한 음성이 없습니다');
-      return null;
-    }
-    
-    // 사용자 설정 확인
     const userSettings = getUserTTSSettings();
-    console.log('🔍 사용자 TTS 설정:', userSettings);
-    console.log('🎵 사용 가능한 음성 목록:', voices.map(v => `${v.name} (${v.lang}) [default: ${v.default}]`));
+    const voiceManager = getVoiceManager();
     
-    // 1단계: 사용자가 설정한 음성 찾기 (최우선, 관용 매칭 포함)
-    if (userSettings.preferredTTSVoice) {
-      // 정확한 이름 매칭 시도
-      let preferredVoice = voices.find(v => v.name === userSettings.preferredTTSVoice);
-      
-      // 정확한 매칭 실패 시 부분 매칭 시도 (예: "Samantha" vs "Samantha (Enhanced)")
-      if (!preferredVoice) {
-        preferredVoice = voices.find(v => 
-          v.name.startsWith(userSettings.preferredTTSVoice) ||
-          userSettings.preferredTTSVoice.startsWith(v.name)
-        );
-      }
-      
-      if (preferredVoice) {
-        console.log('✅ 사용자 설정 음성 발견:', preferredVoice.name, preferredVoice.lang);
-        return preferredVoice;
-      } else {
-        console.warn('⚠️ 사용자 설정 음성을 찾을 수 없음:', userSettings.preferredTTSVoice);
-        console.log('🔍 사용 가능한 음성 이름들:', voices.map(v => v.name));
-      }
+    // VoiceManager를 통해 최적의 영어 음성 선택
+    const selectedVoice = voiceManager.getBestEnglishVoice(userSettings.preferredTTSVoice);
+    
+    if (selectedVoice && import.meta.env.DEV) {
+      console.log('✅ VoiceManager 음성 선택:', selectedVoice.name, selectedVoice.lang);
     }
     
-    // 2단계: 시스템 기본값이면서 미국 영어인 음성 찾기
-    const defaultUSVoice = voices.find(v => 
-      v.default === true && v.lang.startsWith('en-US')
-    );
-    if (defaultUSVoice) {
-      console.log('✅ 시스템 기본 미국 음성 발견:', defaultUSVoice.name, defaultUSVoice.lang);
-      return defaultUSVoice;
-    }
-    
-    // 3단계: 미국 영어 음성 찾기 (기본값 아니어도 됨)
-    const usVoice = voices.find(v => v.lang.startsWith('en-US'));
-    if (usVoice) {
-      console.log('✅ 미국 영어 음성 발견:', usVoice.name, usVoice.lang);
-      return usVoice;
-    }
-    
-    // 4단계: 다른 영어 음성 찾기 (우선순위 순서)
-    const preferredVoices = ['en-GB', 'en-AU', 'en-CA', 'en'];
-    for (const langCode of preferredVoices) {
-      const voice = voices.find(v => v.lang.startsWith(langCode));
-      if (voice) {
-        console.log('✅ 대체 영어 음성 발견:', voice.name, voice.lang);
-        return voice;
-      }
-    }
-    
-    // 5단계: 어떤 영어 음성이든 찾기
-    const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().includes('en'));
-    if (anyEnglishVoice) {
-      console.log('✅ 일반 영어 음성 발견:', anyEnglishVoice.name, anyEnglishVoice.lang);
-      return anyEnglishVoice;
-    }
-    
-    // 6단계: 기본 음성 사용
-    const defaultVoice = voices[0];
-    console.log('⚠️ 기본 음성 사용:', defaultVoice ? defaultVoice.name : 'none');
-    return defaultVoice || null;
-    
+    return selectedVoice;
   } catch (error) {
     console.error('❌ getEnglishVoice 오류:', error);
     return null;
   }
 };
 
-// 사용자 설정 가져오기 함수
+// 사용자 설정 가져오기 함수 (실시간 업데이트)
 const getUserTTSSettings = () => {
   try {
-    // localStorage에서 사용자 설정 가져오기
+    // localStorage에서 사용자 설정 가져오기 (매번 실시간 조회)
     const authData = localStorage.getItem('haru_auth_data');
     if (authData) {
       const parsedAuth = JSON.parse(authData);
@@ -214,14 +105,20 @@ export const speakText = async (text, options = {}) => {
   utterance.pitch = settings.pitch;
   utterance.volume = settings.volume;
 
-  // 영어 음성 설정 (실시간 조회)
+  // VoiceManager를 통한 영어 음성 설정
   try {
     const englishVoice = getEnglishVoice();
     if (englishVoice) {
       utterance.voice = englishVoice;
       utterance.lang = englishVoice.lang;
+      if (import.meta.env.DEV) {
+        console.log('🎵 TTS 음성 설정:', englishVoice.name, englishVoice.lang);
+      }
     } else {
       utterance.lang = 'en-US'; // 기본값
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ 영어 음성을 찾을 수 없어 기본 언어 사용');
+      }
     }
   } catch (error) {
     console.warn('Failed to get English voice:', error);
