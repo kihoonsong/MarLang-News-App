@@ -18,3 +18,8 @@ Allow: /wordbook
 # Disallow admin or sensitive areas (if any)
 Disallow: /admin/
 Disallow: /api/keys/
+
+# Disallow OAuth callback and other utility pages (no content value)
+Disallow: /oauth-callback.html
+Disallow: /test.html
+Disallow: /test-simple.html

@@ -64,7 +64,8 @@
       "WebFetch(domain:localhost)",
       "Bash(git rebase:*)",
       "Bash(git pull:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "WebFetch(domain:marlang-app--temp-lgceu7ev.web.app)"
     ],
     "deny": []
   }
