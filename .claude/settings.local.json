@@ -63,7 +63,8 @@
       "mcp__ide__executeCode",
       "WebFetch(domain:localhost)",
       "Bash(git rebase:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git config:*)"
     ],
     "deny": []
   }
