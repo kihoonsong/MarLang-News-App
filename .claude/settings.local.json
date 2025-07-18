@@ -61,7 +61,8 @@
       "Bash(npm test:*)",
       "Bash(git rm:*)",
       "mcp__ide__executeCode",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(git rebase:*)"
     ],
     "deny": []
   }

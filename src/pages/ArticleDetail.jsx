@@ -506,8 +506,36 @@ const ArticleDetail = () => {
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
-        // 기존 음성 설정 적용
-        if (window.speechSynthesis) {
+        // iOS에서는 사용 가능한 영어 음성 우선 사용, 다른 플랫폼에서는 기존 로직 사용
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          const voices = window.speechSynthesis.getVoices();
+          
+          // 1순위: Alex
+          const alexVoice = voices.find(v => v.name === 'Alex');
+          if (alexVoice) {
+            utterance.voice = alexVoice;
+            utterance.lang = alexVoice.lang;
+          } else {
+            // 2순위: Samantha
+            const samanthaVoice = voices.find(v => v.name === 'Samantha');
+            if (samanthaVoice) {
+              utterance.voice = samanthaVoice;
+              utterance.lang = samanthaVoice.lang;
+            } else {
+              // 3순위: 기타 영어 음성
+              const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
+                                  voices.find(v => v.lang.startsWith('en-GB')) || 
+                                  voices.find(v => v.lang.startsWith('en'));
+              if (englishVoice) {
+                utterance.voice = englishVoice;
+                utterance.lang = englishVoice.lang;
+              } else {
+                utterance.lang = 'en-US'; // 기본 음성
+              }
+            }
+          }
+        } else if (window.speechSynthesis) {
           const voices = window.speechSynthesis.getVoices();
           const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
                               voices.find(v => v.lang.startsWith('en-GB')) || 
@@ -756,15 +784,45 @@ const ArticleDetail = () => {
           newUtterance.pitch = 1.0;
           newUtterance.volume = 1.0;
           
-          // 음성 설정 적용
-          const voices = window.speechSynthesis.getVoices();
-          const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
-                              voices.find(v => v.lang.startsWith('en-GB')) || 
-                              voices.find(v => v.lang.startsWith('en')) || 
-                              voices[0];
-          if (englishVoice) {
-            newUtterance.voice = englishVoice;
-            newUtterance.lang = englishVoice.lang;
+          // iOS에서는 사용 가능한 영어 음성 우선 사용, 다른 플랫폼에서는 기존 로직 사용
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          if (isIOS) {
+            const voices = window.speechSynthesis.getVoices();
+            
+            // 1순위: Alex
+            const alexVoice = voices.find(v => v.name === 'Alex');
+            if (alexVoice) {
+              newUtterance.voice = alexVoice;
+              newUtterance.lang = alexVoice.lang;
+            } else {
+              // 2순위: Samantha
+              const samanthaVoice = voices.find(v => v.name === 'Samantha');
+              if (samanthaVoice) {
+                newUtterance.voice = samanthaVoice;
+                newUtterance.lang = samanthaVoice.lang;
+              } else {
+                // 3순위: 기타 영어 음성
+                const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
+                                    voices.find(v => v.lang.startsWith('en-GB')) || 
+                                    voices.find(v => v.lang.startsWith('en'));
+                if (englishVoice) {
+                  newUtterance.voice = englishVoice;
+                  newUtterance.lang = englishVoice.lang;
+                } else {
+                  newUtterance.lang = 'en-US'; // 기본 음성
+                }
+              }
+            }
+          } else {
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(v => v.lang.startsWith('en-US')) || 
+                                voices.find(v => v.lang.startsWith('en-GB')) || 
+                                voices.find(v => v.lang.startsWith('en')) || 
+                                voices[0];
+            if (englishVoice) {
+              newUtterance.voice = englishVoice;
+              newUtterance.lang = englishVoice.lang;
+            }
           }
           
           // 이벤트 핸들러 설정
