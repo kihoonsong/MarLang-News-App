@@ -264,22 +264,16 @@ const ArticleManagement = ({
             throw new Error(validation.error);
           }
           
-          // 임시로 Base64로 변환하여 사용 (Firebase Storage 설정 전까지)
-          const reader = new FileReader();
-          const base64Promise = new Promise((resolve, reject) => {
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(articleForm.imageFile);
-          });
-          
-          imageUrl = await base64Promise;
-          console.log('✅ 이미지 Base64 변환 완료');
+          // Firebase Storage에 이미지 업로드
+          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+          imageUrl = uploadResult.url;
+          console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
           
           // 사용자에게 알림
           setSnackbar({ 
             open: true, 
-            message: '이미지가 임시로 저장되었습니다. Firebase Storage 설정 후 정식 업로드가 가능합니다.', 
-            severity: 'warning' 
+            message: '이미지가 성공적으로 업로드되었습니다!', 
+            severity: 'success' 
           });
           
         } catch (error) {
@@ -452,22 +446,16 @@ const ArticleManagement = ({
             throw new Error(validation.error);
           }
           
-          // 임시로 Base64로 변환하여 사용 (Firebase Storage 설정 전까지)
-          const reader = new FileReader();
-          const base64Promise = new Promise((resolve, reject) => {
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(articleForm.imageFile);
-          });
-          
-          imageUrl = await base64Promise;
-          console.log('✅ 이미지 Base64 변환 완료');
+          // Firebase Storage에 이미지 업로드
+          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+          imageUrl = uploadResult.url;
+          console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
           
           // 사용자에게 알림
           setSnackbar({ 
             open: true, 
-            message: '이미지가 임시로 저장되었습니다. Firebase Storage 설정 후 정식 업로드가 가능합니다.', 
-            severity: 'warning' 
+            message: '이미지가 성공적으로 업로드되었습니다!', 
+            severity: 'success' 
           });
           
         } catch (error) {

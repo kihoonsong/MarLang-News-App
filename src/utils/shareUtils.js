@@ -21,7 +21,34 @@ export const shareWithNativeAPI = async (article, socialImageUrl) => {
     url: articleUrl
   };
 
-  // 네이티브 공유는 텍스트와 링크만 공유 (이미지는 메타데이터로 자동 처리)
+  // 이미지가 있을 경우 Web Share API Level 2로 이미지 포함 시도
+  if (article.image && navigator.canShare) {
+    try {
+      // 이미지 URL을 절대 경로로 변환
+      const imageUrl = article.image.startsWith('http') ? article.image : `${window.location.origin}${article.image}`;
+      
+      // 이미지를 fetch해서 File 객체로 변환
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const imageFile = new File([blob], `${article.id}-image.jpg`, { type: blob.type });
+      
+      const shareDataWithImage = {
+        ...shareData,
+        files: [imageFile]
+      };
+
+      // 이미지 포함 공유가 가능한지 확인
+      if (navigator.canShare(shareDataWithImage)) {
+        await navigator.share(shareDataWithImage);
+        console.log('이미지 포함 네이티브 공유 성공');
+        return true;
+      }
+    } catch (imageError) {
+      console.log('이미지 포함 공유 실패, 텍스트만 공유 시도:', imageError);
+    }
+  }
+
+  // 이미지 없이 텍스트와 링크만 공유 (메타데이터의 og:image가 자동으로 표시됨)
   try {
     await navigator.share(shareData);
     return true;
@@ -143,13 +170,7 @@ export const shareArticle = async (article, socialImageUrl, platform = 'native')
 // 공유 가능한 플랫폼 목록
 export const getAvailablePlatforms = () => {
   const platforms = [
-    { id: 'copy', name: 'Copy Link', icon: '🔗' },
-    { id: 'facebook', name: 'Facebook', icon: '📘' },
-    { id: 'twitter', name: 'Twitter', icon: '🐦' },
-    { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
-    { id: 'whatsapp', name: 'WhatsApp', icon: '💬' },
-    { id: 'telegram', name: 'Telegram', icon: '✈️' },
-    { id: 'email', name: 'Email', icon: '📧' }
+    { id: 'copy', name: 'Copy Link', icon: '🔗' }
   ];
 
   // 네이티브 공유가 지원되면 맨 앞에 추가

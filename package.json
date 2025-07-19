@@ -37,6 +37,7 @@
     "dotenv": "^16.6.0",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.4.0",
+    "html2canvas": "^1.4.1",
     "ora": "^8.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

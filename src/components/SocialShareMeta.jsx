@@ -84,7 +84,7 @@ const SocialShareMeta = ({ article }) => {
       // Base64 이미지인 경우 - 소셜 플랫폼에서 지원하지 않으므로 기본 이미지 사용
       if (articleImage.startsWith('data:image/')) {
         console.warn('⚠️ Base64 이미지는 소셜 메타 태그에서 지원되지 않습니다. 기본 이미지를 사용합니다.');
-        imageUrl = `${baseUrl}/og-image.png`;
+        imageUrl = `${baseUrl}/placeholder-image.png`;
       } 
       // HTTP/HTTPS URL인 경우 그대로 사용
       else if (articleImage.startsWith('http')) {
@@ -127,7 +127,7 @@ const SocialShareMeta = ({ article }) => {
       });
     } else {
       // 이미지가 없을 때 기본 이미지 사용
-      const defaultImage = `${baseUrl}/og-image.png`;
+      const defaultImage = `${baseUrl}/placeholder-image.png`;
       updateMetaTag('meta[property="og:image"]', 'property', defaultImage);
       updateMetaTag('meta[property="og:image:secure_url"]', 'property', defaultImage);
       updateMetaTag('meta[name="twitter:image"]', 'name', defaultImage);
@@ -161,7 +161,7 @@ const SocialShareMeta = ({ article }) => {
       "@type": "NewsArticle",
       "headline": article.title,
       "description": description,
-      "image": articleImage || `${baseUrl}/og-image.png`,
+      "image": articleImage || `${baseUrl}/placeholder-image.png`,
       "url": articleUrl,
       "author": {
         "@type": "Organization",
