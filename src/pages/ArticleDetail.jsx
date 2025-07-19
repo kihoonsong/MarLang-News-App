@@ -272,6 +272,15 @@ const ArticleDetail = () => {
       if (foundArticle) {
         if (import.meta.env.DEV) {
           console.log('🔍 원본 기사 데이터 확인:', foundArticle);
+          console.log('🔍 이미지 관련 필드 확인:', {
+            image: foundArticle.image,
+            imageUrl: foundArticle.imageUrl,
+            thumbnail: foundArticle.thumbnail,
+            hasImage: !!foundArticle.image,
+            hasImageUrl: !!foundArticle.imageUrl,
+            hasThumbnail: !!foundArticle.thumbnail,
+            allKeys: Object.keys(foundArticle)
+          });
         }
         
         // 기사 데이터를 ArticleDetail 형태로 변환
@@ -293,6 +302,12 @@ const ArticleDetail = () => {
         
         if (import.meta.env.DEV) {
           console.log('🔧 변환된 기사 데이터:', transformedArticle);
+          console.log('🔧 변환된 이미지 필드:', {
+            originalImage: foundArticle.image,
+            transformedImage: transformedArticle.image,
+            imageType: typeof transformedArticle.image,
+            imageLength: transformedArticle.image ? transformedArticle.image.length : 0
+          });
         }
         setArticleData(transformedArticle);
         
