@@ -204,6 +204,8 @@ const UserSettings = () => {
               label={t.autoPlayPronunciation}
             />
 
+            {/* TTS Voice Selection - Temporarily Disabled */}
+            {/*
             <VoiceSelectionContainer>
               <FormControl size="small" fullWidth>
                 <InputLabel>TTS Voice</InputLabel>
@@ -277,6 +279,7 @@ const UserSettings = () => {
                 </VoiceInfoContainer>
               )}
             </VoiceSelectionContainer>
+            */}
           </SettingsGrid>
         </SettingSection>
 
