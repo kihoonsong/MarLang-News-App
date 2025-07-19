@@ -15,6 +15,7 @@ import RichTextEditor from './RichTextEditor';
 import ImageThumbnailPreview from './ImageThumbnailPreview';
 import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO, formatKoreanTime } from '../utils/timeUtils';
 import { useArticles } from '../contexts/ArticlesContext';
+import { uploadImage, validateImageFile } from '../utils/imageUpload';
 
 // 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
 const truncateSummary = (text, limit = 50) => {
@@ -258,23 +259,42 @@ const ArticleManagement = ({
         
         try {
           // 파일 유효성 검사
-          const { validateImageFile } = await import('../utils/imageUpload');
           const validation = validateImageFile(articleForm.imageFile);
           if (!validation.isValid) {
             throw new Error(validation.error);
           }
           
-          // Firebase Storage에 이미지 업로드
-          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
-          imageUrl = uploadResult.url;
-          console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
-          
-          // 사용자에게 알림
-          setSnackbar({ 
-            open: true, 
-            message: '이미지가 성공적으로 업로드되었습니다!', 
-            severity: 'success' 
-          });
+          // Firebase Storage에 이미지 업로드 시도
+          try {
+            const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+            imageUrl = uploadResult.url;
+            console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
+            
+            setSnackbar({ 
+              open: true, 
+              message: '이미지가 성공적으로 업로드되었습니다!', 
+              severity: 'success' 
+            });
+          } catch (storageError) {
+            console.warn('⚠️ Firebase Storage 업로드 실패, Base64로 폴백:', storageError);
+            
+            // Base64로 폴백
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve, reject) => {
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(articleForm.imageFile);
+            });
+            
+            imageUrl = await base64Promise;
+            console.log('✅ Base64 폴백 완료');
+            
+            setSnackbar({ 
+              open: true, 
+              message: '이미지가 임시로 저장되었습니다. (Storage 업로드 실패)', 
+              severity: 'warning' 
+            });
+          }
           
         } catch (error) {
           console.error('🚨 이미지 처리 실패:', error);
@@ -440,23 +460,42 @@ const ArticleManagement = ({
         
         try {
           // 파일 유효성 검사
-          const { validateImageFile } = await import('../utils/imageUpload');
           const validation = validateImageFile(articleForm.imageFile);
           if (!validation.isValid) {
             throw new Error(validation.error);
           }
           
-          // Firebase Storage에 이미지 업로드
-          const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
-          imageUrl = uploadResult.url;
-          console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
-          
-          // 사용자에게 알림
-          setSnackbar({ 
-            open: true, 
-            message: '이미지가 성공적으로 업로드되었습니다!', 
-            severity: 'success' 
-          });
+          // Firebase Storage에 이미지 업로드 시도
+          try {
+            const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
+            imageUrl = uploadResult.url;
+            console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
+            
+            setSnackbar({ 
+              open: true, 
+              message: '이미지가 성공적으로 업로드되었습니다!', 
+              severity: 'success' 
+            });
+          } catch (storageError) {
+            console.warn('⚠️ Firebase Storage 업로드 실패, Base64로 폴백:', storageError);
+            
+            // Base64로 폴백
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve, reject) => {
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(articleForm.imageFile);
+            });
+            
+            imageUrl = await base64Promise;
+            console.log('✅ Base64 폴백 완료');
+            
+            setSnackbar({ 
+              open: true, 
+              message: '이미지가 임시로 저장되었습니다. (Storage 업로드 실패)', 
+              severity: 'warning' 
+            });
+          }
           
         } catch (error) {
           console.error('🚨 이미지 처리 실패:', error);
