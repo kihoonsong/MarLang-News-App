@@ -10,7 +10,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import ShareIcon from '@mui/icons-material/Share';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 
@@ -29,6 +28,8 @@ import { getTTSOptimizationSettings, isIOS } from '../utils/deviceDetect';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 import SimpleSEO from '../components/SimpleSEO';
+import SocialShareMeta from '../components/SocialShareMeta';
+import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
@@ -1158,31 +1159,7 @@ const ArticleDetail = () => {
     }
   };
 
-  const handleShare = async () => {
-    const shareData = {
-      title: articleData.title,
-      text: `Check out this article: ${articleData.title}`,
-      url: window.location.href
-    };
 
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        toast.success('기사가 공유되었습니다');
-      } else {
-        // 공유 API가 지원되지 않는 경우 클립보드에 복사
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('링크가 클립보드에 복사되었습니다');
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Share failed:', error);
-      }
-      if (error.name !== 'AbortError') {
-        toast.error('공유에 실패했습니다');
-      }
-    }
-  };
 
   const onWordClick = useCallback(async (event, word, isHighlighted) => {
     // 이벤트 전파 중지 및 기본 동작 방지
@@ -1732,6 +1709,9 @@ const ArticleDetail = () => {
         type="article"
       />
       
+      {/* 소셜 공유 메타데이터 */}
+      <SocialShareMeta article={articleData} />
+      
       {/* 통합 네비게이션 */}
       <MobileNavigation 
         showBackButton={true}
@@ -1806,9 +1786,11 @@ const ArticleDetail = () => {
               <ActionButton onClick={handleLike} $isLiked={isLiked} title="좋아요">
                 {isLiked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
               </ActionButton>
-              <ActionButton onClick={handleShare} title="공유">
-                <ShareIcon />
-              </ActionButton>
+              <SocialShareButton 
+                article={articleData} 
+                size="medium" 
+                color="default" 
+              />
             </ActionButtons>
           </ControlsSection>
 
