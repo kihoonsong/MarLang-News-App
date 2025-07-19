@@ -437,7 +437,7 @@ class EnhancedNewsApiService {
       .replace(/\b(approximately|essentially|particularly)\b/gi, 'about');
   }
 
-  // 향상된 메인 API 호출 함수
+  // 향상된 메인 API 호출 함수 - Firebase 데이터 우선 사용
   async fetchArticles(category = 'Technology', limit = 20) {
     const cacheKey = `articles-${category}-${limit}`;
     
@@ -456,11 +456,97 @@ class EnhancedNewsApiService {
       let articles = [];
       const errors = [];
 
-      // 자체 제작 콘텐츠 사용
-      if (import.meta.env.DEV) {
-        console.log('📰 Using self-created content');
+      try {
+        // Firebase에서 실제 기사 데이터 가져오기
+        const { collection, getDocs, getFirestore } = await import('firebase/firestore');
+        const { initializeApp, getApps } = await import('firebase/app');
+        
+        // Firebase 앱이 초기화되지 않은 경우에만 초기화
+        let app;
+        if (getApps().length === 0) {
+          const firebaseConfig = {
+            apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+            storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+            appId: import.meta.env.VITE_FIREBASE_APP_ID
+          };
+          app = initializeApp(firebaseConfig);
+        } else {
+          app = getApps()[0];
+        }
+        
+        const db = getFirestore(app);
+        const articlesCol = collection(db, 'articles');
+        const snapshot = await getDocs(articlesCol);
+        
+        const firebaseArticles = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          // published 상태인 기사만 포함
+          if (data.status === 'published') {
+            firebaseArticles.push({
+              id: doc.id,
+              ...data
+            });
+          }
+        });
+        
+        // 카테고리 필터링 (카테고리 매핑 고려)
+        const filteredArticles = category === 'Technology' ? 
+          firebaseArticles.filter(article => 
+            article.category === 'Tech 📱' || 
+            article.category === 'Technology' ||
+            article.category === 'Tech'
+          ) :
+          category === 'Business' ?
+          firebaseArticles.filter(article => 
+            article.category === 'Businiess 📈' || 
+            article.category === 'Business' ||
+            article.category === 'Businiess'
+          ) :
+          category === 'Culture' ?
+          firebaseArticles.filter(article => 
+            article.category === 'Culture 🎉' || 
+            article.category === 'Culture'
+          ) :
+          category === 'World' ?
+          firebaseArticles.filter(article => 
+            article.category === 'World 🌐' || 
+            article.category === 'World'
+          ) :
+          category === 'Politics' ?
+          firebaseArticles.filter(article => 
+            article.category === 'Politics 🗣️' || 
+            article.category === 'Politics'
+          ) :
+          firebaseArticles.filter(article => 
+            article.category === category
+          );
+        
+        articles = filteredArticles;
+        
+        if (import.meta.env.DEV) {
+          console.log(`🔥 Firebase에서 ${articles.length}개 기사 로드 (카테고리: ${category})`);
+        }
+        
+      } catch (firebaseError) {
+        console.error('🚨 Firebase 데이터 로드 실패, 폴백 사용:', firebaseError);
+        // Firebase 실패 시 자체 제작 콘텐츠 사용
+        articles = this.getArticleData(category);
       }
-      articles = this.getArticleData(category);
+
+      // Firebase에서 데이터를 못 가져온 경우 폴백
+      if (articles.length === 0) {
+        if (import.meta.env.DEV) {
+          console.log('📰 Firebase 데이터 없음, 자체 제작 콘텐츠 사용');
+        }
+        articles = this.getArticleData(category);
+      }
+
+      // 발행 시간 기준 정렬 (최신순)
+      articles.sort((a, b) => new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt));
 
       // 중복 제거 및 제한
       const uniqueArticles = this.removeDuplicates(articles).slice(0, limit);
