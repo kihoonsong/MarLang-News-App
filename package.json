@@ -17,7 +17,13 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test:run && npm run test:e2e",
-    "test:ci": "npm run lint && npm run test:coverage && npm run test:e2e"
+    "test:ci": "npm run lint && npm run test:coverage && npm run test:e2e",
+    "generate:sitemap": "node scripts/generate-sitemap-safe.js",
+    "generate:sitemap:fallback": "node generate-dynamic-sitemap.js",
+    "prerender:articles": "node prerender-articles.js",
+    "build:seo": "npm run generate:sitemap && npm run build",
+    "deploy:seo": "npm run build:seo && firebase deploy",
+    "deploy:full": "npm run generate:sitemap && npm run build && firebase deploy"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

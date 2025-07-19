@@ -29,6 +29,10 @@
         "destination": "/index.html"
       },
       {
+        "source": "/article/**",
+        "function": "prerenderArticle"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

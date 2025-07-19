@@ -815,6 +815,10 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
   }
 });
 
+// 기사 프리렌더링 함수 (SEO 최적화)
+const { prerenderArticle } = require('./prerenderArticle');
+exports.prerenderArticle = prerenderArticle;
+
 // 수동 예약 기사 발행 함수 (관리자용) - UTC 기준으로 통일
 exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정
