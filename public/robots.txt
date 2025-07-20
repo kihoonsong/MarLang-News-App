@@ -8,7 +8,11 @@ Sitemap: https://marlang-app.web.app/sitemap.xml
 Allow: /ads.txt
 
 # Important pages for crawling
-Allow: /category/
+Allow: /business
+Allow: /politics
+Allow: /tech
+Allow: /culture
+Allow: /world
 Allow: /search
 Allow: /privacy
 Allow: /terms

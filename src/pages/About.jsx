@@ -50,13 +50,13 @@ const About = () => {
             
             <h2>Our Mission</h2>
             <p>
-              NEWStep Eng News는 최신 영어 뉴스를 통해 실용적인 영어 학습을 제공하는 교육 플랫폼입니다. 
+              NEWStep Eng News는 영어 뉴스를 통해 실용적인 영어 학습을 제공하는 교육 플랫폼입니다. 
               우리는 영어 학습자들이 실제 뉴스 콘텐츠를 통해 자연스럽고 효과적으로 영어 실력을 향상시킬 수 있도록 돕습니다.
             </p>
             
             <h2>What We Offer</h2>
             <ul>
-              <li><strong>Daily English News:</strong> Technology, Science, Business, Culture 등 다양한 분야의 최신 영어 뉴스</li>
+              <li><strong>English News Learning:</strong> Technology, Business, Politics, Culture 등 다양한 분야의 영어 뉴스</li>
               <li><strong>AI-Powered Translation:</strong> Gemini API를 활용한 정확하고 자연스러운 번역 서비스</li>
               <li><strong>Personal Vocabulary:</strong> 개인화된 단어장으로 체계적인 어휘 학습</li>
               <li><strong>Text-to-Speech:</strong> 정확한 발음으로 듣기 연습 지원</li>
@@ -66,7 +66,7 @@ const About = () => {
             <h2>Our Approach</h2>
             <p>
               전통적인 교과서 영어가 아닌, 실제 사용되는 살아있는 영어를 학습할 수 있도록 합니다. 
-              매일 업데이트되는 실시간 뉴스를 통해 현재 트렌드와 함께 영어를 배우며, 
+              엄선된 영어 뉴스를 통해 현재 트렌드와 함께 영어를 배우며, 
               AI 기술을 활용하여 개인별 맞춤 학습을 제공합니다.
             </p>
             
@@ -89,7 +89,7 @@ const About = () => {
               <li>React 기반의 반응형 웹 애플리케이션</li>
               <li>Google Gemini API를 통한 고품질 번역</li>
               <li>Firebase를 활용한 실시간 데이터 동기화</li>
-              <li>다양한 뉴스 API를 통한 실시간 콘텐츠 업데이트</li>
+              <li>체계적인 콘텐츠 관리 시스템</li>
             </ul>
             
             <h2>Contact Information</h2>

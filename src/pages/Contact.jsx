@@ -52,7 +52,7 @@ const Contact = () => {
             <h2>문의 유형</h2>
             <ul>
               <li><strong>기술 지원:</strong> 사이트 이용 중 발생하는 기술적 문제</li>
-              <li><strong>콘텐츠 문의:</strong> 뉴스 기사나 번역 관련 문의</li>
+              <li><strong>콘텐츠 문의:</strong> 기사나 번역 관련 문의</li>
               <li><strong>계정 문의:</strong> 로그인이나 계정 관련 문제</li>
               <li><strong>제안 및 피드백:</strong> 서비스 개선을 위한 제안</li>
               <li><strong>비즈니스 문의:</strong> 파트너십이나 광고 관련 문의</li>

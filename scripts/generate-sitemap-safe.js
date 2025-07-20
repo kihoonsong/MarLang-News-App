@@ -26,13 +26,7 @@ function generateBasicSitemap() {
   
   <!-- 카테고리 페이지들 -->
   <url>
-    <loc>${SITE_URL}/technology</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${SITE_URL}/science</loc>
+    <loc>${SITE_URL}/tech</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -44,13 +38,19 @@ function generateBasicSitemap() {
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>${SITE_URL}/politics</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>${SITE_URL}/culture</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>${SITE_URL}/society</loc>
+    <loc>${SITE_URL}/world</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -164,11 +164,11 @@ async function generateDynamicSitemap() {
     } catch (error) {
       console.log('⚠️ 카테고리 정보 사용 기본값');
       categories = [
-        { id: 'technology', name: 'Technology' },
-        { id: 'science', name: 'Science' },
+        { id: 'tech', name: 'Technology' },
         { id: 'business', name: 'Business' },
+        { id: 'politics', name: 'Politics' },
         { id: 'culture', name: 'Culture' },
-        { id: 'society', name: 'Society' }
+        { id: 'world', name: 'World' }
       ];
     }
     

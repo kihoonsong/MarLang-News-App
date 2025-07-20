@@ -4,7 +4,7 @@
 
 ## 🚀 주요 기능
 
-- **실시간 영어 뉴스**: 다양한 카테고리의 최신 영어 뉴스 제공
+- **영어 뉴스 학습**: 다양한 카테고리의 영어 뉴스를 통한 학습
 - **AI 번역**: Gemini API를 활용한 고품질 번역 기능
 - **단어장**: 모르는 단어를 저장하고 학습할 수 있는 개인화된 단어장
 - **음성 읽기**: 텍스트를 음성으로 들을 수 있는 TTS 기능
@@ -43,7 +43,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your-firebase-messaging-sender-id
 VITE_FIREBASE_APP_ID=your-firebase-app-id
 VITE_GEMINI_API_KEY=your-gemini-api-key
-VITE_NEWS_API_KEY=your-news-api-key
+
 ```
 
 ### 4. 개발 서버 실행
@@ -143,7 +143,7 @@ NewStep-Gemini-CLI/
 - **성능 최적화**: 지연 로딩으로 페이지 성능 향상
 
 ### 뉴스 시스템
-- **실시간 뉴스**: NewsAPI를 통한 실시간 뉴스 데이터
+- **영어 뉴스 학습**: 엄선된 영어 뉴스를 통한 학습
 - **카테고리별 분류**: 기술, 과학, 비즈니스 등 다양한 카테고리
 - **검색 기능**: 키워드 기반 뉴스 검색
 - **즐겨찾기**: 관심 있는 기사 저장 기능
