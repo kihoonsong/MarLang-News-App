@@ -100,8 +100,8 @@ const SocialShareMeta = ({ article }) => {
       });
     }
 
-    // 기본 이미지 (뉴스 관련) - 더 일반적인 뉴스 이미지
-    let metaImageUrl = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&h=630';
+    // 기본 이미지 (NEWStep 브랜드 이미지)
+    let metaImageUrl = `${baseUrl}/newstep-social-image.jpg`;
 
     // 강제로 기사 이미지 우선 사용
     console.log('🚀 기사 이미지 강제 우선 처리 시작');
