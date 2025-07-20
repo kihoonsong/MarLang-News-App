@@ -32,7 +32,11 @@ const Contact = () => {
   return (
     <>
       {/* SEO 메타데이터 */}
-      <SimpleSEO />
+      <SimpleSEO 
+        title="Contact Us - NEWStep Eng News"
+        description="Get in touch with NEWStep Eng News team. Contact us for support, feedback, technical issues, or business inquiries."
+        keywords="contact, support, feedback, help, customer service, NEWStep"
+      />
       
       <MobileNavigation />
       <MobileContentWrapper>

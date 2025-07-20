@@ -100,6 +100,12 @@ const About = () => {
               <strong>Team:</strong> NEWStep Team
             </p>
             
+            <h2>Get in Touch</h2>
+            <p>
+              궁금한 점이나 제안사항이 있으시면 언제든지 <a href="/contact" style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 'bold' }}>문의해 주세요</a>.
+              저희 팀이 신속하게 답변드리겠습니다.
+            </p>
+            
             <h2>Privacy & Terms</h2>
             <p>
               사용자의 개인정보 보호를 최우선으로 생각합니다. 
