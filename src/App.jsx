@@ -8,14 +8,13 @@ import { CustomThemeProvider } from './contexts/ThemeContext';
 
 // 향상된 에러 처리 시스템 import
 import ErrorBoundary from './components/ErrorBoundary';
-import { 
-  EnhancedToastProvider, 
-  useEnhancedToast, 
-  setupGlobalErrorHandling 
+import {
+  EnhancedToastProvider,
+  useEnhancedToast,
+  setupGlobalErrorHandling
 } from './components/EnhancedToastProvider';
-import { 
-  OfflineBanner, 
-  NetworkStatusIndicator 
+import {
+  NetworkStatusIndicator
 } from './components/EnhancedLoadingComponents';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
@@ -50,12 +49,12 @@ const TTSManager = () => {
         // 진행 중인 발화를 즉시 중단
         window.speechSynthesis.cancel();
       }
-      
+
       // 전역 TTS 중지 함수 호출
       if (window.stopCurrentSpeech) {
         window.stopCurrentSpeech();
       }
-      
+
       // 다른 컴포넌트에서 실행 중인 TTS도 중지
       if (window.stopCurrentTTS) {
         window.stopCurrentTTS();
@@ -64,7 +63,7 @@ const TTSManager = () => {
 
     // location이 변경될 때마다 TTS를 중지
     forceStopTTS();
-    
+
     // 전역 중지 함수 등록
     window.globalStopTTS = forceStopTTS;
 
@@ -78,13 +77,7 @@ const TTSManager = () => {
   useEffect(() => {
     // 전역 TTS 함수에 오프라인 체크 기능 추가
     window.checkTTSAvailability = () => {
-      if (!isOnline) {
-        warning('TTS may not work properly while offline', {
-          group: 'tts-offline',
-          duration: 4000
-        });
-        return false;
-      }
+      // 오프라인 TTS 경고 제거
       return true;
     };
 
@@ -135,11 +128,7 @@ const NetworkMonitor = () => {
   }, [isSlowConnection, warning]);
 
   useEffect(() => {
-    if (!isOnline) {
-      console.log('📱 App went offline');
-    } else {
-      console.log('🌐 App back online');
-    }
+    // 네트워크 상태 로깅 제거
   }, [isOnline]);
 
   return null;
@@ -164,8 +153,8 @@ const VoiceManagerInitializer = () => {
 
 // Suspense 로딩 컴포넌트
 const PageLoadingFallback = ({ pageName }) => (
-  <div style={{ 
-    padding: '2rem', 
+  <div style={{
+    padding: '2rem',
     textAlign: 'center',
     minHeight: '50vh',
     display: 'flex',
@@ -198,10 +187,10 @@ const PageLoadingFallback = ({ pageName }) => (
 // 향상된 페이지 래퍼 컴포넌트 (Suspense + ErrorBoundary)
 const PageWrapper = ({ children, pageName }) => {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       fallback={(props) => (
-        <div style={{ 
-          padding: '2rem', 
+        <div style={{
+          padding: '2rem',
           textAlign: 'center',
           minHeight: '50vh',
           display: 'flex',
@@ -211,7 +200,7 @@ const PageWrapper = ({ children, pageName }) => {
           <h2>Oops! Something went wrong in {pageName}</h2>
           <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
           <div style={{ marginTop: '1rem' }}>
-            <button 
+            <button
               onClick={props.retry}
               style={{
                 padding: '0.5rem 1rem',
@@ -225,7 +214,7 @@ const PageWrapper = ({ children, pageName }) => {
             >
               Try Again
             </button>
-            <button 
+            <button
               onClick={props.goHome}
               style={{
                 padding: '0.5rem 1rem',
@@ -264,139 +253,138 @@ function App() {
                   <NetworkMonitor />
                   <VoiceManagerInitializer />
                   <TTSManager />
-                  
-                  {/* 오프라인 알림 배너 */}
-                  <OfflineBanner />
-                  
+
+
+
                   <Routes>
                     {/* 공개 페이지 */}
-                    <Route 
-                      path="/" 
+                    <Route
+                      path="/"
                       element={
                         <PageWrapper pageName="Home">
                           <Home />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/article/:id" 
+                    <Route
+                      path="/article/:id"
                       element={
                         <PageWrapper pageName="Article">
                           <ArticleDetail />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/search" 
+                    <Route
+                      path="/search"
                       element={
                         <PageWrapper pageName="Search">
                           <Search />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/date" 
+                    <Route
+                      path="/date"
                       element={
                         <PageWrapper pageName="Date">
                           <DatePage />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    
+
                     {/* 단어장 페이지 (로그인 선택사항) */}
-                    <Route 
-                      path="/wordbook" 
+                    <Route
+                      path="/wordbook"
                       element={
                         <PageWrapper pageName="Wordbook">
                           <Wordbook />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    
+
                     {/* 인증이 필요한 페이지 */}
-                    <Route 
-                      path="/like" 
+                    <Route
+                      path="/like"
                       element={
                         <PageWrapper pageName="Liked Articles">
                           <Like />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/profile" 
+                    <Route
+                      path="/profile"
                       element={
                         <PageWrapper pageName="Profile">
                           <Profile />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/dashboard" 
+                    <Route
+                      path="/dashboard"
                       element={
                         <AuthGuard requireAdmin={true}>
                           <PageWrapper pageName="Dashboard">
-                          <BlogStyleDashboard />
+                            <BlogStyleDashboard />
                           </PageWrapper>
                         </AuthGuard>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/privacy" 
+                    <Route
+                      path="/privacy"
                       element={
                         <PageWrapper pageName="Privacy Policy">
                           <PrivacyPolicy />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    <Route 
-                      path="/contact" 
+                    <Route
+                      path="/contact"
                       element={
                         <PageWrapper pageName="Contact">
                           <Contact />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    
+
                     {/* 네이버 로그인 콜백 */}
-                    <Route 
-                      path="/auth/naver/callback" 
+                    <Route
+                      path="/auth/naver/callback"
                       element={
                         <PageWrapper pageName="Naver Login">
                           <NaverCallback />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    
+
                     {/* TTS 테스트 페이지 (개발 환경에서만) */}
                     {import.meta.env.DEV && (
-                      <Route 
-                        path="/tts-test" 
+                      <Route
+                        path="/tts-test"
                         element={
                           <PageWrapper pageName="TTS Test">
                             <TTSTest />
                           </PageWrapper>
-                        } 
+                        }
                       />
                     )}
-                    
+
                     {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}
-                    <Route 
-                      path="/:categorySlug" 
+                    <Route
+                      path="/:categorySlug"
                       element={
                         <PageWrapper pageName="Category">
                           <CategoryPage />
                         </PageWrapper>
-                      } 
+                      }
                     />
-                    
+
                     {/* 404 페이지 - 맨 마지막에 배치 */}
-                    <Route 
-                      path="*" 
+                    <Route
+                      path="*"
                       element={
                         <PageWrapper pageName="Not Found">
                           <NotFound />
                         </PageWrapper>
-                      } 
+                      }
                     />
                   </Routes>
                 </BrowserRouter>

@@ -78,55 +78,7 @@ export const NetworkStatusIndicator = ({ showDetails = false }) => {
   );
 };
 
-// 오프라인 알림 배너
-export const OfflineBanner = () => {
-  const { isOnline } = useNetworkStatus();
-  const [dismissed, setDismissed] = React.useState(false);
-
-  // 온라인 상태가 되면 dismissed 상태 리셋
-  React.useEffect(() => {
-    if (isOnline) {
-      setDismissed(false);
-    }
-  }, [isOnline]);
-
-  if (isOnline || dismissed) return null;
-
-  return (
-    <Fade in={!isOnline && !dismissed}>
-      <Alert 
-        severity="warning" 
-        icon={<WifiOffIcon />}
-        onClose={() => setDismissed(true)}
-        sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          zIndex: 9999,
-          borderRadius: 0
-        }}
-        action={
-          <Button 
-            color="inherit" 
-            size="small" 
-            onClick={() => {
-              console.log('🔧 Forcing online status from banner');
-              window.forceOnlineStatus?.();
-              setDismissed(true);
-            }}
-          >
-            I'm Online
-          </Button>
-        }
-      >
-        <Typography variant="body2">
-          You're currently offline. Some features may not be available.
-        </Typography>
-      </Alert>
-    </Fade>
-  );
-};
+// 오프라인 배너 제거됨
 
 // 향상된 로딩 컴포넌트
 export const SmartLoading = ({ 

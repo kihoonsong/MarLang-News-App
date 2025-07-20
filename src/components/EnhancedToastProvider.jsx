@@ -180,27 +180,7 @@ export const EnhancedToastProvider = ({ children }) => {
     // 에러 로깅
     logError(error, { errorType, ...options.context });
 
-    // 네트워크 에러의 경우 특별 처리
-    if (errorType === 'network' && !isOnline) {
-      return addToast(
-        'You are currently offline. Please check your connection.',
-        'error',
-        {
-          group: 'network',
-          priority: 'high',
-          action: (
-            <Button 
-              color="inherit" 
-              size="small"
-              onClick={() => window.location.reload()}
-            >
-              Refresh
-            </Button>
-          ),
-          ...options
-        }
-      );
-    }
+    // 오프라인 네트워크 에러 토스트 제거
 
     // 일반 에러 처리
     const toastOptions = {
@@ -232,18 +212,7 @@ export const EnhancedToastProvider = ({ children }) => {
   const warning = useCallback((message, options) => addToast(message, 'warning', options), [addToast]);
   const info = useCallback((message, options) => addToast(message, 'info', options), [addToast]);
 
-  // 네트워크 상태 변경 감지
-  useEffect(() => {
-    if (isOnline) {
-      // 온라인 복구 시 알림
-      const offlineToasts = toastsRef.current.filter(t => t.group === 'network');
-      if (offlineToasts.length > 0) {
-        setTimeout(() => {
-          success('Connection restored!', { group: 'network', duration: 3000 });
-        }, 500);
-      }
-    }
-  }, [isOnline, success]);
+  // 네트워크 상태 변경 감지 제거
 
   const contextValue = {
     addToast,
