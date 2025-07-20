@@ -35,13 +35,19 @@ function generateArticleHTML(article) {
     <meta property="og:type" content="article">
     <meta property="og:url" content="${SITE_URL}/article/${article.id}">
     <meta property="og:site_name" content="NEWStep Eng News">
-    ${article.image ? `<meta property="og:image" content="${article.image}">` : ''}
+    <meta property="og:image" content="${article.image || article.imageUrl || article.urlToImage || `${SITE_URL}/newstep-social-image.jpg`}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/jpeg">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@NEWStepNews">
+    <meta name="twitter:creator" content="@NEWStepNews">
     <meta name="twitter:title" content="${cleanTitle}">
     <meta name="twitter:description" content="${cleanSummary}">
-    ${article.image ? `<meta name="twitter:image" content="${article.image}">` : ''}
+    <meta name="twitter:image" content="${article.image || article.imageUrl || article.urlToImage || `${SITE_URL}/newstep-social-image.jpg`}">
+    <meta name="twitter:image:alt" content="${cleanTitle}">
     
     <!-- 구조화된 데이터 (JSON-LD) -->
     <script type="application/ld+json">

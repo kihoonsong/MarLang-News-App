@@ -19,6 +19,7 @@ import {
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 import AuthGuard from './components/AuthGuard';
+import SocialShareMeta from './components/SocialShareMeta';
 
 // 페이지 컴포넌트들을 동적 import로 변경 (코드 스플리팅)
 const Home = React.lazy(() => import('./pages/Home'));
@@ -35,6 +36,7 @@ const Contact = React.lazy(() => import('./pages/Contact'));
 const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const TTSTest = React.lazy(() => import('./pages/TTSTest'));
+const SocialMetaTest = React.lazy(() => import('./pages/SocialMetaTest'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -253,6 +255,7 @@ function App() {
                   <NetworkMonitor />
                   <VoiceManagerInitializer />
                   <TTSManager />
+                  <SocialShareMeta />
 
 
 
@@ -355,16 +358,26 @@ function App() {
                       }
                     />
 
-                    {/* TTS 테스트 페이지 (개발 환경에서만) */}
+                    {/* 개발 환경 전용 페이지들 */}
                     {import.meta.env.DEV && (
-                      <Route
-                        path="/tts-test"
-                        element={
-                          <PageWrapper pageName="TTS Test">
-                            <TTSTest />
-                          </PageWrapper>
-                        }
-                      />
+                      <>
+                        <Route
+                          path="/tts-test"
+                          element={
+                            <PageWrapper pageName="TTS Test">
+                              <TTSTest />
+                            </PageWrapper>
+                          }
+                        />
+                        <Route
+                          path="/social-meta-test"
+                          element={
+                            <PageWrapper pageName="Social Meta Test">
+                              <SocialMetaTest />
+                            </PageWrapper>
+                          }
+                        />
+                      </>
                     )}
 
                     {/* 카테고리 페이지 - 마지막에 배치하여 다른 라우트와 충돌 방지 */}

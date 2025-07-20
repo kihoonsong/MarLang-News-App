@@ -1,6 +1,7 @@
 // 소셜 공유를 위한 동적 메타 태그 컴포넌트
 import React, { useEffect } from 'react';
 import { useSocialImage } from '../hooks/useSocialImage';
+import { refreshSocialCache, getSocialDebugUrls } from '../utils/socialCacheUtils';
 
 const SocialShareMeta = ({ article }) => {
   const { socialImageUrl, isGenerating } = useSocialImage(article);
@@ -70,16 +71,16 @@ const SocialShareMeta = ({ article }) => {
       urlToImage: article.urlToImage
     });
 
-    // 다양한 이미지 필드 확인 (확장된 버전)
+    // 다양한 이미지 필드 확인 (우선순위 순서로 정렬)
     const possibleImageFields = [
-      'image', 'imageUrl', 'thumbnail', 'urlToImage', 'img', 'picture',
+      'image', 'imageUrl', 'urlToImage', 'thumbnail', 'img', 'picture',
       'featuredImage', 'mainImage', 'coverImage', 'photo', 'pic'
     ];
 
     let articleImage = null;
     for (const field of possibleImageFields) {
-      if (article[field]) {
-        articleImage = article[field];
+      if (article[field] && typeof article[field] === 'string' && article[field].trim()) {
+        articleImage = article[field].trim();
         console.log(`🎯 이미지 필드 '${field}'에서 발견:`, articleImage);
         break;
       }
@@ -93,18 +94,18 @@ const SocialShareMeta = ({ article }) => {
           key.toLowerCase().includes('photo') || key.toLowerCase().includes('pic') ||
           key.toLowerCase().includes('thumbnail')) {
           console.log(`🔍 이미지 관련 필드 발견: ${key} =`, article[key]);
-          if (!articleImage && article[key]) {
-            articleImage = article[key];
+          if (!articleImage && article[key] && typeof article[key] === 'string' && article[key].trim()) {
+            articleImage = article[key].trim();
           }
         }
       });
     }
 
-    // 기본 이미지 (NEWStep 브랜드 이미지)
-    let metaImageUrl = `${baseUrl}/newstep-social-image.jpg`;
+    // 기본 이미지 (NEWStep 브랜드 이미지) - 캐시 무효화 적용
+    let metaImageUrl = `${baseUrl}/newstep-social-image.jpg?v=${timestamp}`;
 
-    // 강제로 기사 이미지 우선 사용
-    console.log('🚀 기사 이미지 강제 우선 처리 시작');
+    // 기사 이미지 우선 사용
+    console.log('🚀 기사 이미지 처리 시작');
 
     console.log('🖼️ 이미지 처리 시작:', {
       articleImage,
@@ -113,7 +114,7 @@ const SocialShareMeta = ({ article }) => {
       imageLength: articleImage ? articleImage.length : 0
     });
 
-    // 기사 이미지 강제 우선 사용 (더 관대한 조건)
+    // 기사 이미지가 있으면 우선 사용
     if (articleImage) {
       console.log('🔍 기사 이미지 발견, 타입 및 내용 분석:', {
         type: typeof articleImage,
@@ -129,20 +130,26 @@ const SocialShareMeta = ({ article }) => {
       if (imageStr && imageStr !== '' && imageStr !== 'undefined' && imageStr !== 'null') {
         // HTTP/HTTPS URL인 경우 (가장 일반적)
         if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
-          // 캐시 무효화를 위한 파라미터 추가
-          const separator = imageStr.includes('?') ? '&' : '?';
-          metaImageUrl = `${imageStr}${separator}v=${timestamp}`;
-          console.log('✅ 기사 HTTP 이미지 강제 사용 (캐시 무효화):', metaImageUrl);
+          // 이미지 URL 유효성 검증
+          try {
+            new URL(imageStr);
+            // 캐시 무효화를 위한 파라미터 추가
+            const separator = imageStr.includes('?') ? '&' : '?';
+            metaImageUrl = `${imageStr}${separator}v=${timestamp}`;
+            console.log('✅ 기사 HTTP 이미지 사용 (캐시 무효화):', metaImageUrl);
+          } catch (e) {
+            console.log('⚠️ 잘못된 이미지 URL, 기본 이미지 사용:', imageStr);
+          }
         }
         // 상대 경로인 경우
         else if (imageStr.startsWith('/')) {
           metaImageUrl = `${baseUrl}${imageStr}?v=${timestamp}`;
-          console.log('✅ 기사 상대경로 이미지 강제 변환 (캐시 무효화):', metaImageUrl);
+          console.log('✅ 기사 상대경로 이미지 변환 (캐시 무효화):', metaImageUrl);
         }
         // 기타 경우 (상대 경로 without /)
         else if (!imageStr.startsWith('data:') && !imageStr.startsWith('blob:')) {
           metaImageUrl = `${baseUrl}/${imageStr}?v=${timestamp}`;
-          console.log('✅ 기사 이미지 경로 강제 추가 (캐시 무효화):', metaImageUrl);
+          console.log('✅ 기사 이미지 경로 추가 (캐시 무효화):', metaImageUrl);
         }
         else {
           console.log('⚠️ Base64/Blob 또는 지원하지 않는 이미지 형식, 기본 이미지 유지:', imageStr.substring(0, 50));
@@ -151,7 +158,7 @@ const SocialShareMeta = ({ article }) => {
         console.log('⚠️ 기사 이미지 값이 비어있음:', imageStr);
       }
     } else {
-      console.log('⚠️ 기사 이미지 필드 자체가 없음');
+      console.log('⚠️ 기사 이미지 필드 자체가 없음, 기본 이미지 사용');
     }
 
     const imageType = metaImageUrl.includes('.png') ? 'image/png' : 'image/jpeg';
@@ -184,10 +191,20 @@ const SocialShareMeta = ({ article }) => {
     console.log('🏷️ 최종 메타 이미지 URL:', metaImageUrl);
 
     // 소셜 플랫폼 캐시 디버깅 도구 링크 출력
+    const debugUrls = getSocialDebugUrls(canonicalUrl);
     console.log('🔧 소셜 플랫폼 캐시 디버깅 도구:');
-    console.log('📘 Facebook Debugger:', `https://developers.facebook.com/tools/debug/?q=${encodeURIComponent(canonicalUrl)}`);
-    console.log('🐦 Twitter Card Validator:', `https://cards-dev.twitter.com/validator`);
-    console.log('💼 LinkedIn Post Inspector:', `https://www.linkedin.com/post-inspector/inspect/${encodeURIComponent(canonicalUrl)}`);
+    console.log('📘 Facebook Debugger:', debugUrls.facebook);
+    console.log('🐦 Twitter Card Validator:', debugUrls.twitter);
+    console.log('💼 LinkedIn Post Inspector:', debugUrls.linkedin);
+
+    // Facebook 캐시 새로고침 시도 (비동기)
+    refreshSocialCache(canonicalUrl, 'facebook').then(success => {
+      if (success) {
+        console.log('✅ Facebook 캐시 새로고침 완료');
+      } else {
+        console.log('⚠️ Facebook 캐시 새로고침 실패 (수동으로 디버거 사용 필요)');
+      }
+    });
 
 
 
