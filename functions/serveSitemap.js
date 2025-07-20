@@ -51,10 +51,13 @@ exports.serveSitemap = functions.https.onRequest(async (req, res) => {
     }
     
     console.log('✅ 사이트맵 제공 성공');
+    console.log(`📊 사이트맵 통계: lastUpdated=${sitemapData.lastUpdated}, XML 길이=${sitemapXML.length}`);
     
     // XML 응답 헤더 설정
     res.set('Content-Type', 'application/xml; charset=utf-8');
-    res.set('Cache-Control', 'public, max-age=3600'); // 1시간 캐시
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); // 캐시 비활성화
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.set('Last-Modified', new Date(sitemapData.lastUpdated).toUTCString());
     
     // XML 응답
