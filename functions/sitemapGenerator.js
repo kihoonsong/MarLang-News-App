@@ -21,16 +21,22 @@ async function generateSitemapXML() {
     
     const db = admin.firestore();
     
-    // 발행된 기사들만 가져오기
+    // 발행된 기사들만 가져오기 (임시: 정렬 제거하여 인덱스 요구사항 회피)
     const articlesSnapshot = await db.collection('articles')
       .where('status', '==', 'published')
-      .orderBy('publishedAt', 'desc')
       .get();
     
-    const publishedArticles = articlesSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const publishedArticles = articlesSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .sort((a, b) => {
+        // 클라이언트 사이드에서 publishedAt으로 내림차순 정렬
+        const dateA = new Date(a.publishedAt || 0);
+        const dateB = new Date(b.publishedAt || 0);
+        return dateB - dateA;
+      });
     
     console.log(`📰 발행된 기사 ${publishedArticles.length}개 발견`);
     
@@ -152,33 +158,31 @@ async function generateSitemapXML() {
 }
 
 /**
- * 생성된 사이트맵을 Firebase Storage에 업로드
+ * 생성된 사이트맵을 Firestore에 저장 (Storage 대신 임시 해결책)
  */
 async function uploadSitemapToStorage(sitemapXML) {
   try {
-    console.log('📤 Firebase Storage에 사이트맵 업로드 중...');
+    console.log('📤 Firestore에 사이트맵 저장 중... (Storage 대신 임시 방법)');
     
-    const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file('sitemap.xml');
+    const db = admin.firestore();
     
-    // 사이트맵 XML을 Storage에 업로드
-    await file.save(sitemapXML, {
-      metadata: {
-        contentType: 'application/xml',
-        cacheControl: 'public, max-age=3600', // 1시간 캐시
-      },
-      public: true, // 공개 접근 가능하도록 설정
+    // 사이트맵을 Firestore에 저장
+    await db.collection('system').doc('sitemap').set({
+      xml: sitemapXML,
+      lastUpdated: new Date().toISOString(),
+      contentType: 'application/xml'
     });
     
-    // 공개 URL 생성
-    const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/sitemap.xml`;
+    // 사이트맵 URL (클라이언트에서 이 데이터를 읽어서 제공)
+    const sitemapUrl = `${SITE_URL}/sitemap.xml`;
     
-    console.log(`✅ 사이트맵 업로드 완료: ${publicUrl}`);
+    console.log(`✅ 사이트맵 Firestore 저장 완료: ${sitemapUrl}`);
+    console.log('💡 참고: 실제 sitemap.xml은 클라이언트에서 Firestore 데이터를 읽어서 제공됩니다.');
     
-    return publicUrl;
+    return sitemapUrl;
     
   } catch (error) {
-    console.error('🚨 사이트맵 업로드 실패:', error);
+    console.error('🚨 사이트맵 저장 실패:', error);
     throw error;
   }
 }

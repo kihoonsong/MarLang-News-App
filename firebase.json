@@ -21,8 +21,8 @@
         "destination": "/index.html"
       },
       {
-        "source": "!/sitemap.xml",
-        "destination": "/index.html"
+        "source": "/sitemap.xml",
+        "function": "serveSitemap"
       },
       {
         "source": "!/robots.txt",

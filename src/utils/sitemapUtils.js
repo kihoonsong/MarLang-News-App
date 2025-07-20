@@ -13,7 +13,7 @@ export const requestSitemapUpdate = async () => {
     const functionsUrl = isProduction
       ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
       : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
-    
+
     console.log('🔗 Functions URL:', functionsUrl);
     console.log('🌍 Environment:', isProduction ? 'Production' : 'Development');
 
@@ -30,7 +30,7 @@ export const requestSitemapUpdate = async () => {
         source: 'client_request'
       })
     });
-    
+
     console.log('📡 Response status:', response.status);
     console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
@@ -83,12 +83,14 @@ export const checkSitemapStatus = async () => {
         exists: true,
         lastModified: lastModified ? new Date(lastModified) : null,
         size: contentLength ? parseInt(contentLength) : null,
-        url: sitemapUrl
+        url: sitemapUrl,
+        status: 'active'
       };
     } else {
       return {
         exists: false,
-        url: sitemapUrl
+        url: sitemapUrl,
+        status: 'error'
       };
     }
 
@@ -96,7 +98,8 @@ export const checkSitemapStatus = async () => {
     console.error('🚨 사이트맵 상태 확인 실패:', error);
     return {
       exists: false,
-      error: error.message
+      error: error.message,
+      status: 'error'
     };
   }
 };
@@ -181,10 +184,10 @@ export const testSitemapConnection = async () => {
     const functionsUrl = isProduction
       ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
       : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
-    
+
     console.log('🧪 연결 테스트 시작...');
     console.log('🔗 URL:', functionsUrl);
-    
+
     const response = await fetch(functionsUrl, {
       method: 'GET',
       headers: {
@@ -192,9 +195,9 @@ export const testSitemapConnection = async () => {
       },
       mode: 'cors',
     });
-    
+
     console.log('📡 테스트 응답 상태:', response.status);
-    
+
     if (response.ok) {
       const result = await response.text();
       console.log('✅ 연결 성공:', result);

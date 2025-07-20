@@ -76,7 +76,7 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -89,7 +89,7 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
 
   try {
     const { code, state } = req.body;
-    
+
     if (!code || !state) {
       res.status(400).json({ error: 'Missing code or state parameter' });
       return;
@@ -98,16 +98,16 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
     // 네이버 환경 변수 (process.env에서 가져옴)
     const naverClientId = process.env.NAVER_CLIENT_ID;
     const naverClientSecret = process.env.NAVER_CLIENT_SECRET;
-    
+
     if (!naverClientId || !naverClientSecret) {
       console.error('🚨 Missing Naver OAuth credentials');
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Server configuration error',
-        message: 'OAuth credentials not configured' 
+        message: 'OAuth credentials not configured'
       });
       return;
     }
-    
+
     // 디버깅용 로그 (실제 값은 로그에 남기지 않음)
     console.log('환경변수 확인:', {
       hasClientId: !!naverClientId,
@@ -154,7 +154,7 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
 
     console.log('네이버 사용자 정보 응답:', userResponse.data);
     const naverUser = userResponse.data.response;
-    
+
     if (!naverUser) {
       console.error('네이버 사용자 정보 응답 전체:', userResponse.data);
       throw new Error(`Failed to get user info from Naver: ${JSON.stringify(userResponse.data)}`);
@@ -162,7 +162,7 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
 
     // 3. Firebase Auth에 네이버 사용자 등록/업데이트
     const uid = `naver_${naverUser.id}`;
-    
+
     try {
       // 기존 사용자 확인
       await admin.auth().getUser(uid);
@@ -185,7 +185,7 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
     // 4. 커스텀 토큰 생성
     let customToken = null;
     let tokenType = 'server_auth'; // 기본적으로 서버 인증 모드
-    
+
     try {
       // 커스텀 토큰 생성 시도
       customToken = await admin.auth().createCustomToken(uid, {
@@ -223,15 +223,15 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
     // 기존 사용자인지 확인
     const userRef = admin.firestore().collection('users').doc(uid);
     const existingUser = await userRef.get();
-    
+
     if (!existingUser.exists) {
       userDoc.createdAt = admin.firestore.FieldValue.serverTimestamp();
     }
-    
+
     await userRef.set(userDoc, { merge: true });
 
     // 6. 기존 localStorage 방식 응답
-    const responseData = { 
+    const responseData = {
       success: true,
       tokenType: 'server_auth',
       user: {
@@ -254,9 +254,9 @@ exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth),
 
   } catch (error) {
     console.error('Naver auth error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -267,7 +267,7 @@ exports.saveUserData = functions.https.onRequest(applyRateLimit(rateLimiters.dat
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -280,7 +280,7 @@ exports.saveUserData = functions.https.onRequest(applyRateLimit(rateLimiters.dat
 
   try {
     const { userId, dataType, data, userInfo } = req.body;
-    
+
     if (!userId || !dataType || !data) {
       res.status(400).json({ error: 'Missing required parameters' });
       return;
@@ -288,11 +288,11 @@ exports.saveUserData = functions.https.onRequest(applyRateLimit(rateLimiters.dat
 
     // Firestore에 데이터 저장
     const userDataRef = admin.firestore().collection('users').doc(userId).collection('data').doc(dataType);
-    
+
     const payload = {
-      [dataType === 'savedWords' ? 'words' : 
+      [dataType === 'savedWords' ? 'words' :
         dataType === 'likedArticles' ? 'articles' :
-        dataType === 'settings' ? 'settings' : 'records']: data,
+          dataType === 'settings' ? 'settings' : 'records']: data,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
@@ -309,16 +309,16 @@ exports.saveUserData = functions.https.onRequest(applyRateLimit(rateLimiters.dat
 
     console.log(`✅ 사용자 ${userId}의 ${dataType} 데이터 저장 완료`);
 
-    res.json({ 
+    res.json({
       success: true,
       message: `${dataType} data saved successfully`
     });
 
   } catch (error) {
     console.error('Save user data error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -329,7 +329,7 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -342,7 +342,7 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
 
   try {
     const userId = req.query.userId;
-    
+
     if (!userId) {
       res.status(400).json({ error: 'Missing userId parameter' });
       return;
@@ -362,7 +362,7 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
     snapshot.forEach(doc => {
       const docId = doc.id;
       const docData = doc.data();
-      
+
       if (docId === 'savedWords' && docData.words) {
         userData.savedWords = docData.words;
       } else if (docId === 'likedArticles' && docData.articles) {
@@ -380,9 +380,9 @@ exports.getUserData = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     console.error('Get user data error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -393,7 +393,7 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -406,7 +406,7 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
 
   try {
     const { userId, userInfo } = req.body;
-    
+
     if (!userId || !userInfo) {
       res.status(400).json({ error: 'Missing userId or userInfo' });
       return;
@@ -415,9 +415,9 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       console.error('🚨 JWT_SECRET environment variable is required');
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Server configuration error',
-        message: 'JWT_SECRET not configured' 
+        message: 'JWT_SECRET not configured'
       });
       return;
     }
@@ -426,7 +426,7 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
 
     // Access Token 생성
     const accessToken = jwt.sign(
-      { 
+      {
         userId: userId,
         email: userInfo.email,
         provider: userInfo.provider,
@@ -438,7 +438,7 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
 
     // Refresh Token 생성
     const refreshToken = jwt.sign(
-      { 
+      {
         userId: userId,
         type: 'refresh'
       },
@@ -463,7 +463,7 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7일
     });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'JWT tokens created successfully',
       user: {
@@ -476,9 +476,9 @@ exports.createJWTToken = functions.https.onRequest(applyRateLimit(rateLimiters.a
 
   } catch (error) {
     console.error('Create JWT token error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -489,7 +489,7 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -503,7 +503,7 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
   try {
     console.log('🔍 쿠키 확인:', req.cookies);
     const accessToken = req.cookies?.accessToken;
-    
+
     if (!accessToken) {
       console.log('❌ Access token이 쿠키에 없음');
       res.status(401).json({ error: 'No access token found' });
@@ -513,17 +513,17 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       console.error('🚨 JWT_SECRET environment variable is required');
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Server configuration error',
-        message: 'JWT_SECRET not configured' 
+        message: 'JWT_SECRET not configured'
       });
       return;
     }
-    
+
     try {
       const decoded = jwt.verify(accessToken, jwtSecret);
       console.log('✅ JWT 토큰 검증 성공:', decoded.userId);
-      
+
       if (decoded.type !== 'access') {
         res.status(401).json({ error: 'Invalid token type' });
         return;
@@ -532,7 +532,7 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
       // Firestore에서 최신 사용자 정보 가져오기
       const userRef = admin.firestore().collection('users').doc(decoded.userId);
       const userDoc = await userRef.get();
-      
+
       if (!userDoc.exists) {
         res.status(401).json({ error: 'User not found' });
         return;
@@ -562,9 +562,9 @@ exports.verifyJWTToken = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     console.error('Verify JWT token error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -575,7 +575,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -588,7 +588,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
 
   try {
     const refreshToken = req.cookies.refreshToken;
-    
+
     if (!refreshToken) {
       res.status(401).json({ error: 'No refresh token found' });
       return;
@@ -597,16 +597,16 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       console.error('🚨 JWT_SECRET environment variable is required');
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Server configuration error',
-        message: 'JWT_SECRET not configured' 
+        message: 'JWT_SECRET not configured'
       });
       return;
     }
-    
+
     try {
       const decoded = jwt.verify(refreshToken, jwtSecret);
-      
+
       if (decoded.type !== 'refresh') {
         res.status(401).json({ error: 'Invalid token type' });
         return;
@@ -615,7 +615,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
       // 사용자 정보 다시 가져오기
       const userRef = admin.firestore().collection('users').doc(decoded.userId);
       const userDoc = await userRef.get();
-      
+
       if (!userDoc.exists) {
         res.status(401).json({ error: 'User not found' });
         return;
@@ -625,7 +625,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
 
       // 새 Access Token 생성
       const newAccessToken = jwt.sign(
-        { 
+        {
           userId: decoded.userId,
           email: userInfo.email,
           provider: userInfo.provider,
@@ -645,7 +645,7 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
         path: '/'
       });
 
-      res.json({ 
+      res.json({
         success: true,
         message: 'Token refreshed successfully',
         user: {
@@ -666,9 +666,9 @@ exports.refreshJWTToken = functions.https.onRequest(async (req, res) => {
 
   } catch (error) {
     console.error('Refresh JWT token error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -679,7 +679,7 @@ exports.logoutUser = functions.https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -703,16 +703,16 @@ exports.logoutUser = functions.https.onRequest(async (req, res) => {
     res.clearCookie('accessToken', clearOptions);
     res.clearCookie('refreshToken', clearOptions);
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Logged out successfully'
     });
 
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });
@@ -723,7 +723,7 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -731,42 +731,42 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
 
   try {
     console.log('⏰ 예약 기사 자동 발행 체크 시작');
-    
+
     // 현재 UTC 시간 (Firestore에 저장된 시간과 동일한 기준)
     const nowUTC = new Date();
     const nowUTCISO = nowUTC.toISOString();
-    
+
     // 한국 시간으로 표시용
     const nowKST = new Date(nowUTC.getTime() + (9 * 60 * 60 * 1000));
-    
+
     console.log(`현재 시간 - UTC: ${nowUTCISO}, KST: ${nowKST.toLocaleString('ko-KR')}`);
-    
+
     // scheduled 상태이면서 발행 시간이 지난 기사들 조회 (UTC 기준)
     const articlesRef = admin.firestore().collection('articles');
     const query = articlesRef
       .where('status', '==', 'scheduled')
       .where('publishedAt', '<=', nowUTCISO);
-    
+
     const querySnapshot = await query.get();
-    
+
     if (querySnapshot.empty) {
       console.log('📅 발행할 예약 기사가 없습니다.');
       res.json({ success: true, publishedCount: 0, message: '발행할 예약 기사가 없습니다.' });
       return;
     }
-    
+
     let publishedCount = 0;
     const batch = admin.firestore().batch();
     const publishedArticles = [];
-    
+
     querySnapshot.forEach((doc) => {
       const articleData = doc.data();
-      
+
       // 발행 시간 확인 (UTC 기준)
       const articlePublishTime = new Date(articleData.publishedAt);
-      
+
       console.log(`기사 "${articleData.title}" - 예약시간: ${articlePublishTime.toISOString()}, 현재시간: ${nowUTCISO}`);
-      
+
       if (nowUTC >= articlePublishTime) {
         // 배치 업데이트 추가
         batch.update(doc.ref, {
@@ -774,43 +774,43 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
           actualPublishedAt: nowUTCISO, // 실제 발행된 시간 기록 (UTC)
           updatedAt: nowUTCISO
         });
-        
+
         publishedArticles.push({
           id: doc.id,
           title: articleData.title,
           scheduledTime: articlePublishTime.toISOString(),
           publishedTime: nowUTCISO
         });
-        
+
         console.log(`✅ 예약 기사 발행 예정: ${articleData.title}`);
         publishedCount++;
       }
     });
-    
+
     if (publishedCount > 0) {
       // 배치 커밋
       await batch.commit();
       console.log(`🚀 총 ${publishedCount}개의 예약 기사가 자동 발행되었습니다.`);
-      
+
       // 발행된 기사 목록 로그
       publishedArticles.forEach(article => {
         console.log(`📰 발행완료: ${article.title} (ID: ${article.id})`);
       });
     }
-    
-    res.json({ 
-      success: true, 
-      publishedCount, 
+
+    res.json({
+      success: true,
+      publishedCount,
       message: `${publishedCount}개의 예약 기사가 자동 발행되었습니다.`,
       publishedArticles: publishedArticles,
       timestamp: nowUTCISO
     });
-    
+
   } catch (error) {
     console.error('🚨 예약 기사 자동 발행 중 오류 발생:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Internal server error', 
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
       message: error.message,
       timestamp: new Date().toISOString()
     });
@@ -821,67 +821,71 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
 const { prerenderArticle } = require('./prerenderArticle');
 exports.prerenderArticle = prerenderArticle;
 
+// 사이트맵 서빙 함수
+const { serveSitemap } = require('./serveSitemap');
+exports.serveSitemap = serveSitemap;
+
 // 자동 사이트맵 업데이트 시스템
 const { updateSitemap } = require('./sitemapGenerator');
 
 // Firestore 트리거: 기사 생성/수정/삭제 시 사이트맵 자동 업데이트
 exports.onArticleWrite = onDocumentWritten('articles/{articleId}', async (event) => {
-    try {
-      const articleId = event.params.articleId;
-      const before = event.data.before ? event.data.before.data() : null;
-      const after = event.data.after ? event.data.after.data() : null;
-      
-      // 변경 유형 판단
-      let changeType = 'unknown';
-      let shouldUpdateSitemap = false;
-      
-      if (!before && after) {
-        // 새 기사 생성
-        changeType = 'created';
-        shouldUpdateSitemap = after.status === 'published';
-        console.log(`📝 새 기사 생성: ${articleId} (상태: ${after.status})`);
-      } else if (before && after) {
-        // 기사 수정
-        changeType = 'updated';
-        
-        // 발행 상태 변경 확인
-        const statusChanged = before.status !== after.status;
-        const becamePublished = after.status === 'published' && before.status !== 'published';
-        const becameUnpublished = before.status === 'published' && after.status !== 'published';
-        
-        shouldUpdateSitemap = statusChanged && (becamePublished || becameUnpublished);
-        
-        if (shouldUpdateSitemap) {
-          console.log(`📝 기사 상태 변경: ${articleId} (${before.status} → ${after.status})`);
-        }
-      } else if (before && !after) {
-        // 기사 삭제
-        changeType = 'deleted';
-        shouldUpdateSitemap = before.status === 'published';
-        console.log(`🗑️ 기사 삭제: ${articleId} (이전 상태: ${before.status})`);
-      }
-      
-      // 사이트맵 업데이트 필요 시 실행
+  try {
+    const articleId = event.params.articleId;
+    const before = event.data.before ? event.data.before.data() : null;
+    const after = event.data.after ? event.data.after.data() : null;
+
+    // 변경 유형 판단
+    let changeType = 'unknown';
+    let shouldUpdateSitemap = false;
+
+    if (!before && after) {
+      // 새 기사 생성
+      changeType = 'created';
+      shouldUpdateSitemap = after.status === 'published';
+      console.log(`📝 새 기사 생성: ${articleId} (상태: ${after.status})`);
+    } else if (before && after) {
+      // 기사 수정
+      changeType = 'updated';
+
+      // 발행 상태 변경 확인
+      const statusChanged = before.status !== after.status;
+      const becamePublished = after.status === 'published' && before.status !== 'published';
+      const becameUnpublished = before.status === 'published' && after.status !== 'published';
+
+      shouldUpdateSitemap = statusChanged && (becamePublished || becameUnpublished);
+
       if (shouldUpdateSitemap) {
-        console.log(`🔄 사이트맵 자동 업데이트 트리거 (이유: article_${changeType})`);
-        
-        // 비동기로 사이트맵 업데이트 (응답 지연 방지)
-        setImmediate(async () => {
-          try {
-            await updateSitemap(`article_${changeType}_${articleId}`);
-            console.log(`✅ 사이트맵 자동 업데이트 완료 (${changeType})`);
-          } catch (error) {
-            console.error(`🚨 사이트맵 자동 업데이트 실패 (${changeType}):`, error);
-          }
-        });
-      } else {
-        console.log(`ℹ️ 사이트맵 업데이트 불필요 (${changeType}, 발행 상태 아님)`);
+        console.log(`📝 기사 상태 변경: ${articleId} (${before.status} → ${after.status})`);
       }
-      
-    } catch (error) {
-      console.error('🚨 기사 변경 트리거 처리 실패:', error);
+    } else if (before && !after) {
+      // 기사 삭제
+      changeType = 'deleted';
+      shouldUpdateSitemap = before.status === 'published';
+      console.log(`🗑️ 기사 삭제: ${articleId} (이전 상태: ${before.status})`);
     }
-  });
+
+    // 사이트맵 업데이트 필요 시 실행
+    if (shouldUpdateSitemap) {
+      console.log(`🔄 사이트맵 자동 업데이트 트리거 (이유: article_${changeType})`);
+
+      // 비동기로 사이트맵 업데이트 (응답 지연 방지)
+      setImmediate(async () => {
+        try {
+          await updateSitemap(`article_${changeType}_${articleId}`);
+          console.log(`✅ 사이트맵 자동 업데이트 완료 (${changeType})`);
+        } catch (error) {
+          console.error(`🚨 사이트맵 자동 업데이트 실패 (${changeType}):`, error);
+        }
+      });
+    } else {
+      console.log(`ℹ️ 사이트맵 업데이트 불필요 (${changeType}, 발행 상태 아님)`);
+    }
+
+  } catch (error) {
+    console.error('🚨 기사 변경 트리거 처리 실패:', error);
+  }
+});
 
 // 수동 사이트맵 업데이트 함수 (관리자용)
 exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
@@ -890,12 +894,12 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
   res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.set('Access-Control-Max-Age', '3600');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
   }
-  
+
   // GET 요청 처리 (연결 테스트용)
   if (req.method === 'GET') {
     res.json({
@@ -906,13 +910,13 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
     });
     return;
   }
-  
+
   try {
     console.log('🔧 수동 사이트맵 업데이트 요청');
     console.log('📡 Request method:', req.method);
     console.log('📡 Request headers:', req.headers);
     console.log('📡 Request body:', req.body);
-    
+
     // 관리자 권한 확인 (선택적)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -924,10 +928,10 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
         console.warn('⚠️ 토큰 검증 실패, 익명 요청으로 처리');
       }
     }
-    
+
     // 사이트맵 업데이트 실행
     const result = await updateSitemap('manual_request');
-    
+
     res.json({
       success: true,
       message: '사이트맵이 성공적으로 업데이트되었습니다.',
@@ -935,10 +939,10 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
       stats: result.stats,
       sitemapUrl: result.sitemapUrl
     });
-    
+
   } catch (error) {
     console.error('🚨 수동 사이트맵 업데이트 실패:', error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -950,20 +954,20 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
 
 // 스케줄된 사이트맵 업데이트 (일일 1회)
 exports.updateSitemapScheduled = onSchedule('0 2 * * *', async (event) => {
-    try {
-      console.log('⏰ 스케줄된 사이트맵 업데이트 시작');
-      
-      const result = await updateSitemap('scheduled_daily');
-      
-      console.log('✅ 스케줄된 사이트맵 업데이트 완료');
-      console.log('📊 업데이트 통계:', result.stats);
-      
-      return;
-    } catch (error) {
-      console.error('🚨 스케줄된 사이트맵 업데이트 실패:', error);
-      throw error;
-    }
-  });
+  try {
+    console.log('⏰ 스케줄된 사이트맵 업데이트 시작');
+
+    const result = await updateSitemap('scheduled_daily');
+
+    console.log('✅ 스케줄된 사이트맵 업데이트 완료');
+    console.log('📊 업데이트 통계:', result.stats);
+
+    return;
+  } catch (error) {
+    console.error('🚨 스케줄된 사이트맵 업데이트 실패:', error);
+    throw error;
+  }
+});
 
 // 수동 예약 기사 발행 함수 (관리자용) - UTC 기준으로 통일
 exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, res) => {
@@ -971,7 +975,7 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -979,42 +983,42 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
 
   try {
     console.log('🔧 예약 기사 수동 발행 체크 시작 (관리자용)');
-    
+
     // 현재 UTC 시간 (자동 발행과 동일한 로직)
     const nowUTC = new Date();
     const nowUTCISO = nowUTC.toISOString();
-    
+
     // 한국 시간으로 표시용
     const nowKST = new Date(nowUTC.getTime() + (9 * 60 * 60 * 1000));
-    
+
     console.log(`현재 시간 - UTC: ${nowUTCISO}, KST: ${nowKST.toLocaleString('ko-KR')}`);
-    
+
     // scheduled 상태이면서 발행 시간이 지난 기사들 조회 (UTC 기준)
     const articlesRef = admin.firestore().collection('articles');
     const query = articlesRef
       .where('status', '==', 'scheduled')
       .where('publishedAt', '<=', nowUTCISO);
-    
+
     const querySnapshot = await query.get();
-    
+
     if (querySnapshot.empty) {
       console.log('📅 발행할 예약 기사가 없습니다.');
       res.json({ success: true, publishedCount: 0, message: '발행할 예약 기사가 없습니다.' });
       return;
     }
-    
+
     let publishedCount = 0;
     const batch = admin.firestore().batch();
     const publishedArticles = [];
-    
+
     querySnapshot.forEach((doc) => {
       const articleData = doc.data();
-      
+
       // 발행 시간 확인 (UTC 기준)
       const articlePublishTime = new Date(articleData.publishedAt);
-      
+
       console.log(`기사 "${articleData.title}" - 예약시간: ${articlePublishTime.toISOString()}, 현재시간: ${nowUTCISO}`);
-      
+
       if (nowUTC >= articlePublishTime) {
         // 배치 업데이트 추가
         batch.update(doc.ref, {
@@ -1022,44 +1026,44 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
           actualPublishedAt: nowUTCISO, // 실제 발행된 시간 기록 (UTC)
           updatedAt: nowUTCISO
         });
-        
+
         publishedArticles.push({
           id: doc.id,
           title: articleData.title,
           scheduledTime: articlePublishTime.toISOString(),
           publishedTime: nowUTCISO
         });
-        
+
         console.log(`✅ 예약 기사 수동 발행 예정: ${articleData.title}`);
         publishedCount++;
       }
     });
-    
+
     if (publishedCount > 0) {
       // 배치 커밋
       await batch.commit();
       console.log(`🚀 총 ${publishedCount}개의 예약 기사가 수동 발행되었습니다.`);
-      
+
       // 발행된 기사 목록 로그
       publishedArticles.forEach(article => {
         console.log(`📰 수동발행완료: ${article.title} (ID: ${article.id})`);
       });
     }
-    
-    res.json({ 
-      success: true, 
-      publishedCount, 
+
+    res.json({
+      success: true,
+      publishedCount,
       message: `${publishedCount}개의 예약 기사가 수동 발행되었습니다.`,
       publishedArticles: publishedArticles,
       timestamp: nowUTCISO,
       type: 'manual'
     });
-    
+
   } catch (error) {
     console.error('🚨 예약 기사 수동 발행 중 오류 발생:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Internal server error', 
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
       message: error.message,
       timestamp: new Date().toISOString()
     });
