@@ -1,4 +1,6 @@
 const functions = require("firebase-functions");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
 const axios = require("axios");
@@ -823,13 +825,11 @@ exports.prerenderArticle = prerenderArticle;
 const { updateSitemap } = require('./sitemapGenerator');
 
 // Firestore 트리거: 기사 생성/수정/삭제 시 사이트맵 자동 업데이트
-exports.onArticleWrite = functions.firestore
-  .document('articles/{articleId}')
-  .onWrite(async (change, context) => {
+exports.onArticleWrite = onDocumentWritten('articles/{articleId}', async (event) => {
     try {
-      const articleId = context.params.articleId;
-      const before = change.before.exists ? change.before.data() : null;
-      const after = change.after.exists ? change.after.data() : null;
+      const articleId = event.params.articleId;
+      const before = event.data.before ? event.data.before.data() : null;
+      const after = event.data.after ? event.data.after.data() : null;
       
       // 변경 유형 판단
       let changeType = 'unknown';
@@ -934,10 +934,7 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
 });
 
 // 스케줄된 사이트맵 업데이트 (일일 1회)
-exports.updateSitemapScheduled = functions.pubsub
-  .schedule('0 2 * * *') // 매일 오전 2시 (UTC)
-  .timeZone('Asia/Seoul') // 한국 시간 기준
-  .onRun(async (context) => {
+exports.updateSitemapScheduled = onSchedule('0 2 * * *', async (event) => {
     try {
       console.log('⏰ 스케줄된 사이트맵 업데이트 시작');
       
@@ -946,7 +943,7 @@ exports.updateSitemapScheduled = functions.pubsub
       console.log('✅ 스케줄된 사이트맵 업데이트 완료');
       console.log('📊 업데이트 통계:', result.stats);
       
-      return null;
+      return;
     } catch (error) {
       console.error('🚨 스케줄된 사이트맵 업데이트 실패:', error);
       throw error;
