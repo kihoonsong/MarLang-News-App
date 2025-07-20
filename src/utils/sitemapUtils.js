@@ -8,27 +8,40 @@ export const requestSitemapUpdate = async () => {
   try {
     console.log('🔄 사이트맵 수동 업데이트 요청...');
 
-    // Firebase Functions 엔드포인트 호출
-    const functionsUrl = import.meta.env.PROD
-      ? 'https://us-central1-marlang-app.cloudfunctions.net/updateSitemapManual'
+    // Firebase Functions 엔드포인트 호출 (새 URL 적용)
+    const isProduction = window.location.hostname === 'marlang-app.web.app';
+    const functionsUrl = isProduction
+      ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
       : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
+    
+    console.log('🔗 Functions URL:', functionsUrl);
+    console.log('🌍 Environment:', isProduction ? 'Production' : 'Development');
 
     const response = await fetch(functionsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit',
       body: JSON.stringify({
         timestamp: new Date().toISOString(),
         source: 'client_request'
       })
     });
+    
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('🚨 HTTP Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('📦 Response data:', result);
 
     console.log('✅ 사이트맵 업데이트 완료:', result);
 
@@ -159,18 +172,58 @@ export const showSitemapUpdateNotification = (result, toast) => {
   }
 };
 
+/**
+ * 간단한 연결 테스트 함수
+ */
+export const testSitemapConnection = async () => {
+  try {
+    const isProduction = window.location.hostname === 'marlang-app.web.app';
+    const functionsUrl = isProduction
+      ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
+      : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
+    
+    console.log('🧪 연결 테스트 시작...');
+    console.log('🔗 URL:', functionsUrl);
+    
+    const response = await fetch(functionsUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+    });
+    
+    console.log('📡 테스트 응답 상태:', response.status);
+    
+    if (response.ok) {
+      const result = await response.text();
+      console.log('✅ 연결 성공:', result);
+      return { success: true, status: response.status, data: result };
+    } else {
+      const error = await response.text();
+      console.log('❌ 연결 실패:', error);
+      return { success: false, status: response.status, error };
+    }
+  } catch (error) {
+    console.error('🚨 연결 테스트 실패:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // 개발 환경에서만 사용할 수 있는 디버깅 함수들
-if (import.meta.env.DEV) {
+if (typeof window !== 'undefined') {
   // 전역 함수로 등록하여 콘솔에서 직접 호출 가능
   window.sitemapDebug = {
     update: requestSitemapUpdate,
     status: checkSitemapStatus,
     debug: debugSitemapInfo,
+    test: testSitemapConnection,
     console: getSearchConsoleSubmissionUrl
   };
 
-  console.log('🛠️ 개발 모드: 사이트맵 디버깅 함수 사용 가능');
+  console.log('🛠️ 사이트맵 디버깅 함수 사용 가능');
   console.log('사용법:');
+  console.log('- window.sitemapDebug.test() // 연결 테스트');
   console.log('- window.sitemapDebug.update() // 수동 업데이트');
   console.log('- window.sitemapDebug.status() // 상태 확인');
   console.log('- window.sitemapDebug.debug() // 전체 디버깅');

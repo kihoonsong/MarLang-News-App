@@ -885,18 +885,33 @@ exports.onArticleWrite = onDocumentWritten('articles/{articleId}', async (event)
 
 // 수동 사이트맵 업데이트 함수 (관리자용)
 exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
-  // CORS 헤더 설정
+  // CORS 헤더 설정 (강화)
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.set('Access-Control-Max-Age', '3600');
   
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
   }
   
+  // GET 요청 처리 (연결 테스트용)
+  if (req.method === 'GET') {
+    res.json({
+      success: true,
+      message: 'Sitemap update function is running',
+      timestamp: new Date().toISOString(),
+      endpoint: 'updateSitemapManual'
+    });
+    return;
+  }
+  
   try {
     console.log('🔧 수동 사이트맵 업데이트 요청');
+    console.log('📡 Request method:', req.method);
+    console.log('📡 Request headers:', req.headers);
+    console.log('📡 Request body:', req.body);
     
     // 관리자 권한 확인 (선택적)
     const authHeader = req.headers.authorization;
