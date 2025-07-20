@@ -819,6 +819,140 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
 const { prerenderArticle } = require('./prerenderArticle');
 exports.prerenderArticle = prerenderArticle;
 
+// 자동 사이트맵 업데이트 시스템
+const { updateSitemap } = require('./sitemapGenerator');
+
+// Firestore 트리거: 기사 생성/수정/삭제 시 사이트맵 자동 업데이트
+exports.onArticleWrite = functions.firestore
+  .document('articles/{articleId}')
+  .onWrite(async (change, context) => {
+    try {
+      const articleId = context.params.articleId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+      
+      // 변경 유형 판단
+      let changeType = 'unknown';
+      let shouldUpdateSitemap = false;
+      
+      if (!before && after) {
+        // 새 기사 생성
+        changeType = 'created';
+        shouldUpdateSitemap = after.status === 'published';
+        console.log(`📝 새 기사 생성: ${articleId} (상태: ${after.status})`);
+      } else if (before && after) {
+        // 기사 수정
+        changeType = 'updated';
+        
+        // 발행 상태 변경 확인
+        const statusChanged = before.status !== after.status;
+        const becamePublished = after.status === 'published' && before.status !== 'published';
+        const becameUnpublished = before.status === 'published' && after.status !== 'published';
+        
+        shouldUpdateSitemap = statusChanged && (becamePublished || becameUnpublished);
+        
+        if (shouldUpdateSitemap) {
+          console.log(`📝 기사 상태 변경: ${articleId} (${before.status} → ${after.status})`);
+        }
+      } else if (before && !after) {
+        // 기사 삭제
+        changeType = 'deleted';
+        shouldUpdateSitemap = before.status === 'published';
+        console.log(`🗑️ 기사 삭제: ${articleId} (이전 상태: ${before.status})`);
+      }
+      
+      // 사이트맵 업데이트 필요 시 실행
+      if (shouldUpdateSitemap) {
+        console.log(`🔄 사이트맵 자동 업데이트 트리거 (이유: article_${changeType})`);
+        
+        // 비동기로 사이트맵 업데이트 (응답 지연 방지)
+        setImmediate(async () => {
+          try {
+            await updateSitemap(`article_${changeType}_${articleId}`);
+            console.log(`✅ 사이트맵 자동 업데이트 완료 (${changeType})`);
+          } catch (error) {
+            console.error(`🚨 사이트맵 자동 업데이트 실패 (${changeType}):`, error);
+          }
+        });
+      } else {
+        console.log(`ℹ️ 사이트맵 업데이트 불필요 (${changeType}, 발행 상태 아님)`);
+      }
+      
+    } catch (error) {
+      console.error('🚨 기사 변경 트리거 처리 실패:', error);
+    }
+  });
+
+// 수동 사이트맵 업데이트 함수 (관리자용)
+exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  
+  try {
+    console.log('🔧 수동 사이트맵 업데이트 요청');
+    
+    // 관리자 권한 확인 (선택적)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        console.log(`👤 인증된 사용자: ${decodedToken.email}`);
+      } catch (authError) {
+        console.warn('⚠️ 토큰 검증 실패, 익명 요청으로 처리');
+      }
+    }
+    
+    // 사이트맵 업데이트 실행
+    const result = await updateSitemap('manual_request');
+    
+    res.json({
+      success: true,
+      message: '사이트맵이 성공적으로 업데이트되었습니다.',
+      timestamp: new Date().toISOString(),
+      stats: result.stats,
+      sitemapUrl: result.sitemapUrl
+    });
+    
+  } catch (error) {
+    console.error('🚨 수동 사이트맵 업데이트 실패:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 스케줄된 사이트맵 업데이트 (일일 1회)
+exports.updateSitemapScheduled = functions.pubsub
+  .schedule('0 2 * * *') // 매일 오전 2시 (UTC)
+  .timeZone('Asia/Seoul') // 한국 시간 기준
+  .onRun(async (context) => {
+    try {
+      console.log('⏰ 스케줄된 사이트맵 업데이트 시작');
+      
+      const result = await updateSitemap('scheduled_daily');
+      
+      console.log('✅ 스케줄된 사이트맵 업데이트 완료');
+      console.log('📊 업데이트 통계:', result.stats);
+      
+      return null;
+    } catch (error) {
+      console.error('🚨 스케줄된 사이트맵 업데이트 실패:', error);
+      throw error;
+    }
+  });
+
 // 수동 예약 기사 발행 함수 (관리자용) - UTC 기준으로 통일
 exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정

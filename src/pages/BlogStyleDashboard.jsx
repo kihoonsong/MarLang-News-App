@@ -12,6 +12,7 @@ import DashboardStats from '../components/DashboardStats';
 import ArticleManagement from '../components/ArticleManagement';
 import CategoryManagement from '../components/CategoryManagement';
 import MemberManagement from '../components/MemberManagement';
+import SitemapManagement from '../components/SitemapManagement';
 import { DashboardContainer } from '../components/DashboardStyles';
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -225,6 +226,10 @@ const BlogStyleDashboard = () => {
           deleteUser={deleteUser}
           setSnackbar={setSnackbar}
         />;
+      case 4:
+        return <SitemapManagement 
+          setSnackbar={setSnackbar}
+        />;
       default:
         return null;
     }
@@ -280,6 +285,7 @@ const BlogStyleDashboard = () => {
                 <Tab label="📰 기사 관리" />
                 <Tab label="📂 카테고리" />
                 <Tab label="👥 회원 관리" />
+                <Tab label="🗺️ 사이트맵" />
               </Tabs>
             </Box>
             {renderTabContent()}
