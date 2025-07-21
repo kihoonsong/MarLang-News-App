@@ -868,22 +868,81 @@ exports.onArticleWrite = onDocumentWritten('articles/{articleId}', async (event)
     // 사이트맵 업데이트 필요 시 실행
     if (shouldUpdateSitemap) {
       console.log(`🔄 사이트맵 자동 업데이트 트리거 (이유: article_${changeType})`);
+      console.log(`📊 기사 정보: ID=${articleId}, 제목=${after?.title || before?.title || 'Unknown'}`);
 
       // 비동기로 사이트맵 업데이트 (응답 지연 방지)
       setImmediate(async () => {
         try {
-          await updateSitemap(`article_${changeType}_${articleId}`);
+          const result = await updateSitemap(`article_${changeType}_${articleId}`);
           console.log(`✅ 사이트맵 자동 업데이트 완료 (${changeType})`);
+          console.log(`� 업데이이트 후 통계:`, result.stats);
         } catch (error) {
           console.error(`🚨 사이트맵 자동 업데이트 실패 (${changeType}):`, error);
         }
       });
     } else {
       console.log(`ℹ️ 사이트맵 업데이트 불필요 (${changeType}, 발행 상태 아님)`);
+      console.log(`📊 기사 상태: before=${before?.status || 'null'}, after=${after?.status || 'null'}`);
     }
 
   } catch (error) {
     console.error('🚨 기사 변경 트리거 처리 실패:', error);
+  }
+});
+
+// 사이트맵 상태 확인 함수 (디버깅용)
+exports.checkSitemapStatus = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    
+    // 현재 사이트맵 데이터 확인
+    const sitemapDoc = await db.collection('system').doc('sitemap').get();
+    
+    // 발행된 기사 수 확인
+    const articlesSnapshot = await db.collection('articles')
+      .where('status', '==', 'published')
+      .get();
+    
+    const publishedCount = articlesSnapshot.size;
+    
+    let sitemapInfo = null;
+    if (sitemapDoc.exists) {
+      const data = sitemapDoc.data();
+      const articleUrlCount = (data.xml.match(/\/article\//g) || []).length;
+      
+      sitemapInfo = {
+        exists: true,
+        lastUpdated: data.lastUpdated,
+        stats: data.stats,
+        articleUrlsInSitemap: articleUrlCount,
+        xmlLength: data.xml.length
+      };
+    }
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      publishedArticlesInDB: publishedCount,
+      sitemapInfo: sitemapInfo || { exists: false },
+      needsUpdate: sitemapInfo ? sitemapInfo.articleUrlsInSitemap !== publishedCount : true
+    });
+    
+  } catch (error) {
+    console.error('🚨 사이트맵 상태 확인 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
@@ -930,14 +989,37 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
     }
 
     // 사이트맵 업데이트 실행
+    console.log('🔄 사이트맵 수동 업데이트 시작...');
     const result = await updateSitemap('manual_request');
+    console.log('✅ 사이트맵 수동 업데이트 완료:', result.stats);
+    
+    // 업데이트 후 Firestore에서 확인
+    const db = admin.firestore();
+    const sitemapDoc = await db.collection('system').doc('sitemap').get();
+    const verificationData = sitemapDoc.exists ? sitemapDoc.data() : null;
+    
+    if (verificationData) {
+      const verificationArticleCount = (verificationData.xml.match(/\/article\//g) || []).length;
+      console.log('🔍 Firestore 검증 - 기사 개수:', verificationArticleCount);
+      console.log('🔍 Firestore 검증 - 마지막 업데이트:', verificationData.lastUpdated);
+    }
 
     res.json({
       success: true,
       message: '사이트맵이 성공적으로 업데이트되었습니다.',
       timestamp: new Date().toISOString(),
       stats: result.stats,
-      sitemapUrl: result.sitemapUrl
+      sitemapUrl: result.sitemapUrl,
+      debug: {
+        articlesFound: result.stats.articles,
+        totalUrls: result.stats.totalUrls,
+        lastUpdated: result.timestamp,
+        firestoreVerification: verificationData ? {
+          articles: (verificationData.xml.match(/\/article\//g) || []).length,
+          lastUpdated: verificationData.lastUpdated,
+          forceUpdate: verificationData.forceUpdate
+        } : null
+      }
     });
 
   } catch (error) {

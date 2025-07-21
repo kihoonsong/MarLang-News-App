@@ -129,9 +129,30 @@ export const ArticlesProvider = ({ children }) => {
   }, []);
 
   const updateArticle = useCallback(async (articleId, updatedData) => {
+    if (!articleId) {
+      console.error('❌ articleId가 없습니다');
+      setError("기사 ID가 없습니다.");
+      return false;
+    }
+    
+    if (!updatedData || Object.keys(updatedData).length === 0) {
+      console.error('❌ 업데이트할 데이터가 없습니다');
+      setError("업데이트할 데이터가 없습니다.");
+      return false;
+    }
+    
     const articleDocRef = doc(db, 'articles', articleId);
     try {
-      await updateDoc(articleDocRef, { ...updatedData, updatedAt: new Date().toISOString() });
+      console.log('🔄 Firestore 업데이트 시작:', articleId);
+      console.log('📝 업데이트 데이터:', updatedData);
+      
+      const updatePayload = { 
+        ...updatedData, 
+        updatedAt: new Date().toISOString() 
+      };
+      
+      await updateDoc(articleDocRef, updatePayload);
+      console.log('✅ Firestore 업데이트 완료');
       
       const updatedArticle = { ...updatedData, id: articleId };
       setAllArticles(prev => prev.map(a => a.id === articleId ? { ...a, ...updatedData } : a));
@@ -143,8 +164,24 @@ export const ArticlesProvider = ({ children }) => {
       
       return true;
     } catch (e) {
-      console.error("기사 수정 실패:", e);
-      setError("기사 수정에 실패했습니다.");
+      console.error("🚨 기사 수정 실패:", e);
+      console.error("🚨 에러 코드:", e.code);
+      console.error("🚨 에러 메시지:", e.message);
+      console.error("🚨 articleId:", articleId);
+      console.error("🚨 updatedData:", updatedData);
+      
+      let errorMessage = "기사 수정에 실패했습니다";
+      if (e.code === 'permission-denied') {
+        errorMessage = "권한이 없습니다. 관리자 권한으로 로그인해 주세요.";
+      } else if (e.code === 'not-found') {
+        errorMessage = "수정하려는 기사를 찾을 수 없습니다.";
+      } else if (e.code === 'unavailable') {
+        errorMessage = "서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.";
+      } else if (e.message) {
+        errorMessage = `${errorMessage}: ${e.message}`;
+      }
+      
+      setError(errorMessage);
       return false;
     }
   }, []);

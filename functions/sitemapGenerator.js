@@ -166,12 +166,24 @@ async function uploadSitemapToStorage(sitemapXML) {
     
     const db = admin.firestore();
     
-    // 사이트맵을 Firestore에 저장
-    await db.collection('system').doc('sitemap').set({
+    // 사이트맵을 Firestore에 저장 (통계 정보 포함)
+    const updateData = {
       xml: sitemapXML,
       lastUpdated: new Date().toISOString(),
-      contentType: 'application/xml'
-    });
+      contentType: 'application/xml',
+      stats: {
+        totalUrls: sitemapXML.split('<url>').length - 1,
+        articles: (sitemapXML.match(/\/article\//g) || []).length,
+        lastGenerated: new Date().toISOString()
+      },
+      // 강제 업데이트를 위한 타임스탬프
+      forceUpdate: Date.now()
+    };
+    
+    await db.collection('system').doc('sitemap').set(updateData);
+    
+    console.log('📊 저장된 사이트맵 통계:', updateData.stats);
+    console.log('🔄 Firestore 업데이트 완료, 타임스탬프:', updateData.forceUpdate);
     
     // 사이트맵 URL (클라이언트에서 이 데이터를 읽어서 제공)
     const sitemapUrl = `${SITE_URL}/sitemap.xml`;
@@ -225,7 +237,11 @@ async function updateSitemap(reason = 'manual') {
     const updateLog = {
       timestamp: new Date().toISOString(),
       reason,
-      stats,
+      stats: {
+        ...stats,
+        actualArticleCount: (sitemapXML.match(/\/article\//g) || []).length,
+        totalUrlsInXML: sitemapXML.split('<url>').length - 1
+      },
       sitemapUrl,
       success: true
     };

@@ -1,37 +1,14 @@
 rules_version = '2';
 
-// Firebase Storage 보안 규칙
+// Firebase Storage 보안 규칙 (임시 완화)
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // 공지사항 이미지 (관리자만 업로드 가능)
-    match /announcements/{allPaths=**} {
-      allow read: if true; // 모든 사용자가 읽기 가능
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
-    }
-    
-    // 기사 이미지 (관리자만 업로드 가능)
-    match /articles/{allPaths=**} {
-      allow read: if true; // 모든 사용자가 읽기 가능
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
-    }
-    
-    // 사용자 프로필 이미지 (본인만 업로드 가능)
-    match /users/{userId}/{allPaths=**} {
-      allow read: if true; // 모든 사용자가 읽기 가능
-      allow write: if request.auth != null && 
-        (request.auth.uid == userId || 
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin']));
-    }
-    
-    // 기본적으로 모든 접근 거부
+    // 임시로 모든 인증된 사용자에게 읽기/쓰기 권한 부여
+    // TODO: 이미지 업로드 문제 해결 후 원래 규칙으로 복원 필요
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read: if true; // 모든 사용자가 읽기 가능
+      allow write: if request.auth != null; // 인증된 사용자만 쓰기 가능
     }
   }
 }

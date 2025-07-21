@@ -15,7 +15,7 @@ import RichTextEditor from './RichTextEditor';
 import ImageThumbnailPreview from './ImageThumbnailPreview';
 import { getKoreanDateTimeLocalValue, convertLocalToKoreanISO, formatKoreanTime } from '../utils/timeUtils';
 import { useArticles } from '../contexts/ArticlesContext';
-import { uploadImage, validateImageFile } from '../utils/imageUpload';
+import { uploadImage, validateImageFile, checkUserPermissions } from '../utils/imageUpload';
 
 // 요약 50자 트렁케이트 유틸리티 (중복 마침표 방지)
 const truncateSummary = (text, limit = 50) => {
@@ -452,6 +452,33 @@ const ArticleManagement = ({
       console.log('🔄 기사 수정 시작...');
       console.log('📝 기사 폼 데이터:', articleForm);
       
+      // 사용자 권한 확인 (이미지가 있는 경우에만)
+      if (articleForm.imageFile) {
+        console.log('🔍 사용자 권한 확인 중...');
+        const permissionCheck = await checkUserPermissions();
+        console.log('👤 권한 확인 결과:', permissionCheck);
+        
+        if (!permissionCheck.success) {
+          setSnackbar({ 
+            open: true, 
+            message: `권한 확인 실패: ${permissionCheck.error}`, 
+            severity: 'error' 
+          });
+          return;
+        }
+        
+        if (!permissionCheck.user.isAdmin) {
+          setSnackbar({ 
+            open: true, 
+            message: `이미지 업로드 권한이 없습니다. 현재 역할: ${permissionCheck.user.role || '없음'}`, 
+            severity: 'error' 
+          });
+          return;
+        }
+        
+        console.log('✅ 사용자 권한 확인 완료:', permissionCheck.user);
+      }
+      
       // 이미지 처리 (새 이미지 파일이 있는 경우)
       let imageUrl = articleForm.image;
       
@@ -467,9 +494,10 @@ const ArticleManagement = ({
           
           // Firebase Storage에 이미지 업로드 시도
           try {
+            console.log('🔄 기사 수정용 이미지 업로드 시작...');
             const uploadResult = await uploadImage(articleForm.imageFile, 'articles');
             imageUrl = uploadResult.url;
-            console.log('✅ 이미지 Firebase Storage 업로드 완료:', imageUrl);
+            console.log('✅ 기사 수정용 이미지 Firebase Storage 업로드 완료:', imageUrl);
             
             setSnackbar({ 
               open: true, 
@@ -477,28 +505,44 @@ const ArticleManagement = ({
               severity: 'success' 
             });
           } catch (storageError) {
-            console.warn('⚠️ Firebase Storage 업로드 실패, Base64로 폴백:', storageError);
+            console.error('🚨 기사 수정용 Firebase Storage 업로드 실패:', storageError);
+            console.error('🚨 Storage 에러 코드:', storageError.code);
+            console.error('🚨 Storage 에러 메시지:', storageError.message);
             
-            // Base64로 폴백
-            const reader = new FileReader();
-            const base64Promise = new Promise((resolve, reject) => {
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(articleForm.imageFile);
-            });
+            // 권한 문제인 경우 사용자에게 명확히 알림
+            if (storageError.message.includes('권한') || storageError.code === 'storage/unauthorized') {
+              throw new Error(`이미지 업로드 권한이 없습니다: ${storageError.message}`);
+            }
             
-            imageUrl = await base64Promise;
-            console.log('✅ Base64 폴백 완료');
-            
-            setSnackbar({ 
-              open: true, 
-              message: '이미지가 임시로 저장되었습니다. (Storage 업로드 실패)', 
-              severity: 'warning' 
-            });
+            // Base64로 폴백 시도
+            try {
+              console.log('🔄 기사 수정용 Base64 폴백 시작...');
+              const reader = new FileReader();
+              const base64Promise = new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (error) => {
+                  console.error('FileReader 오류:', error);
+                  reject(new Error('파일 읽기에 실패했습니다.'));
+                };
+                reader.readAsDataURL(articleForm.imageFile);
+              });
+              
+              imageUrl = await base64Promise;
+              console.log('✅ 기사 수정용 Base64 폴백 완료');
+              
+              setSnackbar({ 
+                open: true, 
+                message: `이미지가 임시로 저장되었습니다. (Storage 업로드 실패: ${storageError.message})`, 
+                severity: 'warning' 
+              });
+            } catch (base64Error) {
+              console.error('🚨 기사 수정용 Base64 폴백도 실패:', base64Error);
+              throw new Error(`이미지 처리에 완전히 실패했습니다: ${base64Error.message}`);
+            }
           }
           
         } catch (error) {
-          console.error('🚨 이미지 처리 실패:', error);
+          console.error('🚨 기사 수정용 이미지 처리 실패:', error);
           setSnackbar({ 
             open: true, 
             message: `이미지 처리 실패: ${error.message}`, 
@@ -515,7 +559,8 @@ const ArticleManagement = ({
           }
           
           // 기존 이미지 유지하고 계속 진행
-          console.log('⚠️ 기존 이미지 유지하고 기사 수정 진행');
+          imageUrl = articleForm.image; // 기존 이미지 URL 유지
+          console.log('⚠️ 기존 이미지 유지하고 기사 수정 진행:', imageUrl);
         }
       }
 
@@ -544,6 +589,7 @@ const ArticleManagement = ({
 
       console.log('📋 수정할 기사 데이터:', updatedData);
 
+      console.log('🔄 기사 업데이트 시작:', editingArticle.id);
       const success = await onUpdateArticle(editingArticle.id, updatedData);
       
       if (success) {
@@ -551,14 +597,31 @@ const ArticleManagement = ({
         setArticleDialog(false);
         resetArticleForm();
       } else {
-        setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다.', severity: 'error' });
+        console.error('❌ 기사 업데이트 실패: success가 false');
+        setSnackbar({ open: true, message: '기사 수정 중 오류가 발생했습니다. 다시 시도해 주세요.', severity: 'error' });
       }
     } catch (error) {
       console.error('🚨 기사 수정 중 예외 발생:', error);
+      console.error('🚨 에러 코드:', error.code);
+      console.error('🚨 에러 메시지:', error.message);
       console.error('🚨 에러 스택:', error.stack);
+      
+      let errorMessage = '기사 수정 중 오류가 발생했습니다';
+      
+      // Firebase 관련 오류 처리
+      if (error.code === 'permission-denied') {
+        errorMessage = '권한이 없습니다. 관리자 권한으로 로그인해 주세요.';
+      } else if (error.code === 'not-found') {
+        errorMessage = '수정하려는 기사를 찾을 수 없습니다.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = '서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.';
+      } else if (error.message) {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      }
+      
       setSnackbar({ 
         open: true, 
-        message: `기사 수정 중 오류가 발생했습니다: ${error.message}`, 
+        message: errorMessage, 
         severity: 'error' 
       });
     }
