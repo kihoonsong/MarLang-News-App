@@ -192,14 +192,29 @@ export const speakText = async (text, options = {}) => {
   });
 };
 
-// 단어 발음 함수 (단어장용)
+// 단어 발음 함수 (단어장용) - 본문과 동일한 음성 설정 사용
 export const speakWord = async (word, options = {}) => {
   const userTTSSettings = getUserTTSSettings();
+  
+  // options가 객체 형태로 전달된 경우 (새로운 방식)
+  if (typeof options === 'object' && !Array.isArray(options)) {
+    const wordSettings = {
+      rate: userTTSSettings.ttsSpeed,
+      pitch: 1.0,
+      volume: 1.0,
+      ...options
+    };
+    return await speakText(word, wordSettings);
+  }
+  
+  // 기존 호환성을 위한 처리 (lang, rate 순서로 전달된 경우)
+  const lang = typeof options === 'string' ? options : 'en-US';
+  const rate = arguments[2] || userTTSSettings.ttsSpeed;
+  
   const wordSettings = {
-    rate: userTTSSettings.ttsSpeed,
+    rate: rate,
     pitch: 1.0,
-    volume: 1.0,
-    ...options
+    volume: 1.0
   };
 
   return await speakText(word, wordSettings);

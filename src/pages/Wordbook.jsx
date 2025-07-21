@@ -16,13 +16,14 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import SimpleSEO from '../components/SimpleSEO';
 import PageContainer from '../components/PageContainer';
 // AdCard와 useAdInjector 제거 - 단어장은 기능적 화면으로 애드센스 정책상 광고 금지
-import { speakWord, isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
+import { isSpeechSynthesisSupported, stopCurrentSpeech } from '../utils/speechUtils';
+import { createUnifiedTTS } from '../utils/UnifiedTTS';
 import { designTokens, getColor } from '../utils/designTokens';
 
 const Wordbook = () => {
   const navigate = useNavigate();
   const { isAuthenticated, signInWithGoogle } = useAuth() || {};
-  const { savedWords, removeWord } = useData();
+  const { savedWords, removeWord, userSettings } = useData();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // md 이하는 모바일로 간주
@@ -159,7 +160,21 @@ const Wordbook = () => {
     }
   }, [savedWords, sortBy, isAuthenticated]);
 
-  // 단어 발음 재생
+  // UnifiedTTS 인스턴스 참조
+  const unifiedTTSRef = useRef(null);
+
+  // 컴포넌트 언마운트 시 TTS 정리
+  useEffect(() => {
+    return () => {
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+        unifiedTTSRef.current = null;
+      }
+      stopCurrentSpeech();
+    };
+  }, []);
+
+  // 단어 발음 재생 (본문과 완전히 동일한 UnifiedTTS 시스템 사용)
   const handlePlayWord = async (word, wordId) => {
     if (!isSpeechSynthesisSupported()) {
       if (import.meta.env.DEV) {
@@ -169,21 +184,68 @@ const Wordbook = () => {
     }
 
     if (isPlaying === wordId) {
+      // 현재 재생 중인 단어 중지
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current.stop();
+        unifiedTTSRef.current = null;
+      }
       stopCurrentSpeech();
       setIsPlaying(null);
       return;
     }
 
+    // 기존 재생 중지
+    if (unifiedTTSRef.current) {
+      unifiedTTSRef.current.stop();
+      unifiedTTSRef.current = null;
+    }
+    stopCurrentSpeech();
+    
     setIsPlaying(wordId);
 
     try {
-      await speakWord(word, 'en-US', 1.0);
-      setIsPlaying(null);
+      // 본문과 완전히 동일한 UnifiedTTS 시스템 사용
+      unifiedTTSRef.current = createUnifiedTTS({
+        rate: userSettings?.ttsSpeed || 0.8,
+        pitch: 1.0,
+        volume: 1.0,
+        onStart: () => {
+          if (import.meta.env.DEV) {
+            console.log('🎵 단어장 TTS 시작:', word);
+          }
+        },
+        onComplete: () => {
+          if (import.meta.env.DEV) {
+            console.log('✅ 단어장 TTS 완료:', word);
+          }
+          setIsPlaying(null);
+          unifiedTTSRef.current = null;
+        },
+        onError: (error) => {
+          if (import.meta.env.DEV) {
+            console.error('❌ 단어장 TTS 오류:', error);
+          }
+          setIsPlaying(null);
+          unifiedTTSRef.current = null;
+        }
+      });
+
+      // UnifiedTTS로 단어 재생
+      const success = await unifiedTTSRef.current.play(word);
+      
+      if (!success) {
+        setIsPlaying(null);
+        unifiedTTSRef.current = null;
+      }
+      
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Speech synthesis error:', error);
       }
       setIsPlaying(null);
+      if (unifiedTTSRef.current) {
+        unifiedTTSRef.current = null;
+      }
     }
   };
 
