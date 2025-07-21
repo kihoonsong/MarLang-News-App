@@ -17,20 +17,20 @@
     ],
     "rewrites": [
       {
-        "source": "!/ads.txt",
-        "destination": "/index.html"
-      },
-      {
         "source": "/sitemap.xml",
         "function": "serveSitemap"
       },
       {
-        "source": "!/robots.txt",
+        "source": "/article/**",
+        "function": "prerenderArticle"
+      },
+      {
+        "source": "!/ads.txt",
         "destination": "/index.html"
       },
       {
-        "source": "/article/**",
-        "function": "prerenderArticle"
+        "source": "!/robots.txt",
+        "destination": "/index.html"
       },
       {
         "source": "**",
