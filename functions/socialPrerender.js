@@ -75,7 +75,7 @@ const generateArticleMeta = async (articleId) => {
 // 홈페이지 메타데이터
 const generateHomeMeta = () => {
   const baseUrl = 'https://marlang-app.web.app';
-  const title = 'NEWStep Eng News - 영어 뉴스로 배우는 영어';
+  const title = 'NEWStep Eng News - 매일 뉴스로 배우는 영어';
   const description = '영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요.';
   const imageUrl = `${baseUrl}/newstep-social-image.png`;
   const url = baseUrl;

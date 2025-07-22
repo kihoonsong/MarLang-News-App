@@ -54,7 +54,7 @@ function createOptimizedSocialImage() {
   <text x="${width/2}" y="${height/2 + 110}" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#cccccc">tep</text>
   
   <!-- 부제목 -->
-  <text x="${width/2}" y="${height/2 + 150}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#999999">영어 뉴스로 배우는 영어 학습 플랫폼</text>
+  <text x="${width/2}" y="${height/2 + 150}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#999999">매일 뉴스로 배우는 영어 학습 플랫폼</text>
   
   <!-- URL -->
   <text x="${width/2}" y="${height - 40}" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">marlang-app.web.app</text>

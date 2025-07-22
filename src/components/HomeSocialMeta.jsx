@@ -7,7 +7,7 @@ const HomeSocialMeta = () => {
         const timestamp = Date.now();
 
         // 홈페이지 기본 정보
-        const title = "NEWStep Eng News - 영어 뉴스로 배우는 영어";
+        const title = "NEWStep Eng News - 매일 뉴스로 배우는 영어";
         const description = "영어 뉴스를 통해 영어를 배우고, AI 기반 번역과 단어장 기능으로 영어 실력을 향상시키세요. Technology, Science, Business, Culture 뉴스로 실용적인 영어 학습을 경험하세요.";
         const homeUrl = baseUrl;
         const logoImageUrl = `${baseUrl}/newstep-social-image.png`;
@@ -48,7 +48,7 @@ const HomeSocialMeta = () => {
         updateMetaTag('meta[property="og:image:type"]', 'property', 'image/png');
         updateMetaTag('meta[property="og:image:width"]', 'property', '1200');
         updateMetaTag('meta[property="og:image:height"]', 'property', '630');
-        updateMetaTag('meta[property="og:image:alt"]', 'property', 'NEWStep Eng News - 영어 뉴스로 배우는 영어');
+        updateMetaTag('meta[property="og:image:alt"]', 'property', 'NEWStep Eng News - 매일 뉴스로 배우는 영어');
         updateMetaTag('meta[property="og:locale"]', 'property', 'ko_KR');
 
         // Twitter Card 메타 태그 (홈페이지용)
@@ -58,7 +58,7 @@ const HomeSocialMeta = () => {
         updateMetaTag('meta[name="twitter:title"]', 'name', title);
         updateMetaTag('meta[name="twitter:description"]', 'name', description);
         updateMetaTag('meta[name="twitter:image"]', 'name', logoImageUrl);
-        updateMetaTag('meta[name="twitter:image:alt"]', 'name', 'NEWStep Eng News - 영어 뉴스로 배우는 영어');
+        updateMetaTag('meta[name="twitter:image:alt"]', 'name', 'NEWStep Eng News - 매일 뉴스로 배우는 영어');
 
         // 추가 메타 태그
         updateMetaTag('meta[name="image"]', 'name', logoImageUrl);
