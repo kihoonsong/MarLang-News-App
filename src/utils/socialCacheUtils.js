@@ -6,6 +6,11 @@ export const socialPlatforms = {
     cacheRefreshUrl: 'https://developers.facebook.com/tools/debug/sharing/',
     description: 'Facebook의 Open Graph 캐시를 새로고침합니다.'
   },
+  threads: {
+    name: 'Threads',
+    debugUrl: 'https://developers.facebook.com/tools/debug/',
+    description: 'Threads는 Facebook과 동일한 Open Graph 메타데이터를 사용합니다.'
+  },
   twitter: {
     name: 'Twitter',
     debugUrl: 'https://cards-dev.twitter.com/validator',
@@ -29,13 +34,13 @@ export const refreshSocialCache = async (url, platform = 'facebook') => {
     // Facebook의 경우 Graph API를 통한 캐시 새로고침 시도
     if (platform === 'facebook') {
       const refreshUrl = `https://graph.facebook.com/?id=${encodeURIComponent(url)}&scrape=true`;
-      
+
       try {
         const response = await fetch(refreshUrl, {
           method: 'POST',
           mode: 'no-cors' // CORS 제한으로 인해 no-cors 모드 사용
         });
-        
+
         console.log('Facebook 캐시 새로고침 요청 완료');
         return true;
       } catch (error) {
@@ -54,9 +59,10 @@ export const refreshSocialCache = async (url, platform = 'facebook') => {
 // 소셜 미디어 디버깅 도구 URL 생성
 export const getSocialDebugUrls = (url) => {
   const encodedUrl = encodeURIComponent(url);
-  
+
   return {
     facebook: `${socialPlatforms.facebook.debugUrl}?q=${encodedUrl}`,
+    threads: `${socialPlatforms.threads.debugUrl}?q=${encodedUrl}`,
     twitter: socialPlatforms.twitter.debugUrl,
     linkedin: `${socialPlatforms.linkedin.debugUrl}${encodedUrl}`
   };
@@ -65,7 +71,7 @@ export const getSocialDebugUrls = (url) => {
 // 메타데이터 유효성 검사
 export const validateMetadata = (article) => {
   const issues = [];
-  
+
   // 제목 검사
   if (!article.title || article.title.length < 10) {
     issues.push('제목이 너무 짧습니다 (최소 10자 권장)');
@@ -73,7 +79,7 @@ export const validateMetadata = (article) => {
   if (article.title && article.title.length > 60) {
     issues.push('제목이 너무 깁니다 (최대 60자 권장)');
   }
-  
+
   // 설명 검사
   const description = article.summary || article.description || '';
   if (!description || description.length < 50) {
@@ -82,12 +88,12 @@ export const validateMetadata = (article) => {
   if (description.length > 160) {
     issues.push('설명이 너무 깁니다 (최대 160자 권장)');
   }
-  
+
   // 이미지 검사
   if (!article.image && !article.imageUrl && !article.urlToImage) {
     issues.push('소셜 공유용 이미지가 없습니다');
   }
-  
+
   return {
     isValid: issues.length === 0,
     issues
@@ -98,7 +104,7 @@ export const validateMetadata = (article) => {
 export const calculateSocialScore = (article) => {
   let score = 0;
   const maxScore = 100;
-  
+
   // 제목 점수 (30점)
   if (article.title) {
     if (article.title.length >= 10 && article.title.length <= 60) {
@@ -107,7 +113,7 @@ export const calculateSocialScore = (article) => {
       score += 15;
     }
   }
-  
+
   // 설명 점수 (30점)
   const description = article.summary || article.description || '';
   if (description) {
@@ -117,22 +123,22 @@ export const calculateSocialScore = (article) => {
       score += 15;
     }
   }
-  
+
   // 이미지 점수 (25점)
   if (article.image || article.imageUrl || article.urlToImage) {
     score += 25;
   }
-  
+
   // 카테고리 점수 (10점)
   if (article.category) {
     score += 10;
   }
-  
+
   // 발행일 점수 (5점)
   if (article.publishedAt) {
     score += 5;
   }
-  
+
   return {
     score,
     maxScore,
@@ -145,7 +151,7 @@ export const calculateSocialScore = (article) => {
 export const getSocialOptimizationSuggestions = (article) => {
   const suggestions = [];
   const validation = validateMetadata(article);
-  
+
   if (!validation.isValid) {
     suggestions.push(...validation.issues.map(issue => ({
       type: 'warning',
@@ -153,7 +159,7 @@ export const getSocialOptimizationSuggestions = (article) => {
       priority: 'high'
     })));
   }
-  
+
   // 추가 최적화 제안
   if (article.title && !article.title.includes('|') && !article.title.includes('-')) {
     suggestions.push({
@@ -162,7 +168,7 @@ export const getSocialOptimizationSuggestions = (article) => {
       priority: 'low'
     });
   }
-  
+
   const description = article.summary || article.description || '';
   if (description && !description.includes('영어') && !description.includes('English')) {
     suggestions.push({
@@ -171,7 +177,7 @@ export const getSocialOptimizationSuggestions = (article) => {
       priority: 'medium'
     });
   }
-  
+
   return suggestions;
 };
 
@@ -179,7 +185,7 @@ export const getSocialOptimizationSuggestions = (article) => {
 export const generateSocialPreview = (article) => {
   const baseUrl = window.location.origin;
   const articleUrl = `${baseUrl}/article/${article.id}`;
-  
+
   return {
     url: articleUrl,
     title: article.title,

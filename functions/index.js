@@ -821,6 +821,10 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
 const { prerenderArticle } = require('./prerenderArticle');
 exports.prerenderArticle = prerenderArticle;
 
+// 소셜 미디어 프리렌더링 함수
+const { socialPrerender } = require('./socialPrerender');
+exports.socialPrerender = socialPrerender;
+
 // 사이트맵 서빙 함수
 const { serveSitemap } = require('./serveSitemap');
 exports.serveSitemap = serveSitemap;

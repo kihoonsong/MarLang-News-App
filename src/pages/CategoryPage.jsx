@@ -14,6 +14,7 @@ import VerticalArticleList from '../components/VerticalArticleList';
 import ArticleCard from '../components/ArticleCard';
 import AdCard from '../components/AdCard';
 import SimpleSEO from '../components/SimpleSEO';
+import CategorySocialMeta from '../components/CategorySocialMeta';
 import { ArticleListSkeleton } from '../components/LoadingComponents';
 import { useAdInjector } from '../hooks/useAdInjector';
 import { designTokens } from '../utils/designTokens';
@@ -112,6 +113,9 @@ const CategoryPage = () => {
       <SimpleSEO 
         category={currentCategory}
       />
+      
+      {/* 카테고리 소셜 메타데이터 */}
+      <CategorySocialMeta category={currentCategory} />
       
       <MobileNavigation />
       <MobileContentWrapper>

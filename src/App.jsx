@@ -19,7 +19,7 @@ import {
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 import AuthGuard from './components/AuthGuard';
-import SocialShareMeta from './components/SocialShareMeta';
+// SocialShareMeta는 각 페이지에서 개별적으로 사용
 
 // 페이지 컴포넌트들을 동적 import로 변경 (코드 스플리팅)
 const Home = React.lazy(() => import('./pages/Home'));
@@ -38,6 +38,7 @@ const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const TTSTest = React.lazy(() => import('./pages/TTSTest'));
 const SocialMetaTest = React.lazy(() => import('./pages/SocialMetaTest'));
+const SocialMetaDebug = React.lazy(() => import('./pages/SocialMetaDebug'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -256,7 +257,6 @@ function App() {
                   <NetworkMonitor />
                   <VoiceManagerInitializer />
                   <TTSManager />
-                  <SocialShareMeta />
 
 
 
@@ -383,6 +383,14 @@ function App() {
                           element={
                             <PageWrapper pageName="Social Meta Test">
                               <SocialMetaTest />
+                            </PageWrapper>
+                          }
+                        />
+                        <Route
+                          path="/social-meta-debug"
+                          element={
+                            <PageWrapper pageName="Social Meta Debug">
+                              <SocialMetaDebug />
                             </PageWrapper>
                           }
                         />

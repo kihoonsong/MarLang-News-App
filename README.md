@@ -11,6 +11,7 @@
 - **카테고리 관리**: 사용자 맞춤형 뉴스 카테고리 설정
 - **구글 애드센스 통합**: 수익화를 위한 광고 표시 기능
 - **Firebase 인증**: 안전한 사용자 인증 시스템
+- **소셜 메타데이터**: SNS 공유 최적화를 위한 동적 메타데이터 관리
 
 ## 📋 요구사항
 
@@ -135,6 +136,39 @@ NewStep-Gemini-CLI/
 ├── functions/              # Firebase Functions
 └── tests/                  # 테스트 파일
 ```
+
+## 📱 소셜 메타데이터 시스템
+
+NEWStep은 SNS 공유 최적화를 위한 동적 메타데이터 관리 시스템을 제공합니다.
+
+### 주요 특징
+
+- **페이지별 최적화**: 홈페이지, 개별 기사, 카테고리 페이지별로 다른 메타데이터 적용
+- **동적 이미지 처리**: 기사에 이미지가 있으면 해당 이미지를, 없으면 브랜드 로고 사용
+- **캐시 무효화**: 타임스탬프를 활용한 소셜 플랫폼 캐시 새로고침
+- **다중 플랫폼 지원**: Facebook, Threads, Twitter, LinkedIn 등 주요 SNS 플랫폼 지원
+
+### 메타데이터 컴포넌트
+
+- `HomeSocialMeta`: 홈페이지용 메타데이터 (브랜드 로고 사용)
+- `SocialShareMeta`: 개별 기사용 메타데이터 (기사 이미지 우선 사용)
+- `CategorySocialMeta`: 카테고리 페이지용 메타데이터
+
+### 디버깅 도구
+
+개발 환경에서 `/social-meta-debug` 페이지를 통해 메타데이터 상태를 실시간으로 확인할 수 있습니다.
+
+```bash
+# 개발 서버에서 접속
+http://localhost:5173/social-meta-debug
+```
+
+### 소셜 플랫폼 테스트
+
+- **Facebook**: [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
+- **Threads**: Facebook과 동일한 Open Graph 메타데이터 사용 (Facebook 디버거로 테스트)
+- **Twitter**: [Twitter Card Validator](https://cards-dev.twitter.com/validator)
+- **LinkedIn**: [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
 
 ## 🎨 주요 기능 상세
 

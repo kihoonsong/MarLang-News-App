@@ -98,6 +98,7 @@ export const getSocialShareUrls = (article, socialImageUrl) => {
   
   return {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    threads: `https://www.threads.net/intent/post?text=${shareText}`,
     twitter: `https://twitter.com/intent/tweet?text=${shareText}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
     whatsapp: `https://wa.me/?text=${shareText}`,

@@ -23,6 +23,7 @@ import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
 import AdCard from '../components/AdCard';
 import SimpleSEO from '../components/SimpleSEO';
+import HomeSocialMeta from '../components/HomeSocialMeta';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { useAdInjector } from '../hooks/useAdInjector';
@@ -243,6 +244,9 @@ const Home = () => {
     <>
       {/* SEO 메타데이터 */}
       <SimpleSEO />
+      
+      {/* 홈페이지 소셜 메타데이터 */}
+      <HomeSocialMeta />
       
       {/* 통합 네비게이션 */}
       <MainNavigation 

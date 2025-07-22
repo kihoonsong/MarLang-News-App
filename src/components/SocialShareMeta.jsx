@@ -63,13 +63,13 @@ const SocialShareMeta = ({ article }) => {
     updateMetaTag('meta[property="og:site_name"]', 'property', 'NEWStep Eng News');
 
     // 기사 이미지 처리 (강화된 버전)
-    console.log('🔍 전체 기사 데이터:', article);
-    console.log('🔍 이미지 관련 필드들:', {
-      image: article.image,
-      imageUrl: article.imageUrl,
-      thumbnail: article.thumbnail,
-      urlToImage: article.urlToImage
-    });
+    if (import.meta.env.DEV) {
+      console.log('🔍 기사 메타데이터 처리:', {
+        title: article.title,
+        hasImage: !!article.image,
+        imageUrl: article.image
+      });
+    }
 
     // 다양한 이미지 필드 확인 (우선순위 순서로 정렬)
     const possibleImageFields = [
@@ -81,84 +81,67 @@ const SocialShareMeta = ({ article }) => {
     for (const field of possibleImageFields) {
       if (article[field] && typeof article[field] === 'string' && article[field].trim()) {
         articleImage = article[field].trim();
-        console.log(`🎯 이미지 필드 '${field}'에서 발견:`, articleImage);
+        if (import.meta.env.DEV) {
+          console.log(`🎯 이미지 필드 '${field}'에서 발견:`, articleImage);
+        }
         break;
       }
     }
 
     // 만약 위에서 찾지 못했다면 모든 필드를 다시 체크
     if (!articleImage) {
-      console.log('🔍 모든 필드 재검색...');
       Object.keys(article).forEach(key => {
         if (key.toLowerCase().includes('image') || key.toLowerCase().includes('img') ||
           key.toLowerCase().includes('photo') || key.toLowerCase().includes('pic') ||
           key.toLowerCase().includes('thumbnail')) {
-          console.log(`🔍 이미지 관련 필드 발견: ${key} =`, article[key]);
           if (!articleImage && article[key] && typeof article[key] === 'string' && article[key].trim()) {
             articleImage = article[key].trim();
+            if (import.meta.env.DEV) {
+              console.log(`🔍 추가 검색에서 이미지 발견: ${key} =`, articleImage);
+            }
           }
         }
       });
     }
 
-    // 기본 이미지 (NEWStep 브랜드 이미지) - 캐시 무효화 적용
-    let metaImageUrl = `${baseUrl}/newstep-social-image.jpg?v=${timestamp}`;
-
-    // 기사 이미지 우선 사용
-    console.log('🚀 기사 이미지 처리 시작');
-
-    console.log('🖼️ 이미지 처리 시작:', {
-      articleImage,
-      hasImage: !!articleImage,
-      imageType: typeof articleImage,
-      imageLength: articleImage ? articleImage.length : 0
-    });
+    // 기본 이미지 (NEWStep 브랜드 이미지) - 절대 URL 사용
+    let metaImageUrl = `${baseUrl}/newstep-social-image.png`;
 
     // 기사 이미지가 있으면 우선 사용
     if (articleImage) {
-      console.log('🔍 기사 이미지 발견, 타입 및 내용 분석:', {
-        type: typeof articleImage,
-        value: articleImage,
-        isString: typeof articleImage === 'string',
-        length: articleImage ? String(articleImage).length : 0,
-        startsWithHttp: String(articleImage).startsWith('http'),
-        trimmed: String(articleImage).trim()
-      });
-
       const imageStr = String(articleImage).trim();
 
       if (imageStr && imageStr !== '' && imageStr !== 'undefined' && imageStr !== 'null') {
         // HTTP/HTTPS URL인 경우 (가장 일반적)
         if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
-          // 이미지 URL 유효성 검증
           try {
             new URL(imageStr);
-            // 캐시 무효화를 위한 파라미터 추가
-            const separator = imageStr.includes('?') ? '&' : '?';
-            metaImageUrl = `${imageStr}${separator}v=${timestamp}`;
-            console.log('✅ 기사 HTTP 이미지 사용 (캐시 무효화):', metaImageUrl);
+            // 외부 이미지는 캐시 파라미터 없이 사용
+            metaImageUrl = imageStr;
+            if (import.meta.env.DEV) {
+              console.log('✅ 기사 HTTP 이미지 사용:', metaImageUrl);
+            }
           } catch (e) {
-            console.log('⚠️ 잘못된 이미지 URL, 기본 이미지 사용:', imageStr);
+            if (import.meta.env.DEV) {
+              console.log('⚠️ 잘못된 이미지 URL, 기본 이미지 사용:', imageStr);
+            }
           }
         }
         // 상대 경로인 경우
         else if (imageStr.startsWith('/')) {
-          metaImageUrl = `${baseUrl}${imageStr}?v=${timestamp}`;
-          console.log('✅ 기사 상대경로 이미지 변환 (캐시 무효화):', metaImageUrl);
+          metaImageUrl = `${baseUrl}${imageStr}`;
+          if (import.meta.env.DEV) {
+            console.log('✅ 기사 상대경로 이미지 변환:', metaImageUrl);
+          }
         }
         // 기타 경우 (상대 경로 without /)
         else if (!imageStr.startsWith('data:') && !imageStr.startsWith('blob:')) {
-          metaImageUrl = `${baseUrl}/${imageStr}?v=${timestamp}`;
-          console.log('✅ 기사 이미지 경로 추가 (캐시 무효화):', metaImageUrl);
+          metaImageUrl = `${baseUrl}/${imageStr}`;
+          if (import.meta.env.DEV) {
+            console.log('✅ 기사 이미지 경로 추가:', metaImageUrl);
+          }
         }
-        else {
-          console.log('⚠️ Base64/Blob 또는 지원하지 않는 이미지 형식, 기본 이미지 유지:', imageStr.substring(0, 50));
-        }
-      } else {
-        console.log('⚠️ 기사 이미지 값이 비어있음:', imageStr);
       }
-    } else {
-      console.log('⚠️ 기사 이미지 필드 자체가 없음, 기본 이미지 사용');
     }
 
     const imageType = metaImageUrl.includes('.png') ? 'image/png' : 'image/jpeg';
@@ -188,23 +171,30 @@ const SocialShareMeta = ({ article }) => {
     updateMetaTag('meta[property="og:locale"]', 'property', 'ko_KR');
     updateMetaTag('meta[name="author"]', 'name', 'NEWStep News Team');
 
-    console.log('🏷️ 최종 메타 이미지 URL:', metaImageUrl);
+    if (import.meta.env.DEV) {
+      console.log('🏷️ 최종 메타 이미지 URL:', metaImageUrl);
+    }
 
-    // 소셜 플랫폼 캐시 디버깅 도구 링크 출력
-    const debugUrls = getSocialDebugUrls(canonicalUrl);
-    console.log('🔧 소셜 플랫폼 캐시 디버깅 도구:');
-    console.log('📘 Facebook Debugger:', debugUrls.facebook);
-    console.log('🐦 Twitter Card Validator:', debugUrls.twitter);
-    console.log('💼 LinkedIn Post Inspector:', debugUrls.linkedin);
+    // 소셜 플랫폼 캐시 디버깅 도구 링크 출력 (개발 환경에서만)
+    if (import.meta.env.DEV) {
+      const debugUrls = getSocialDebugUrls(canonicalUrl);
+      console.log('🔧 소셜 플랫폼 캐시 디버깅 도구:');
+      console.log('📘 Facebook Debugger:', debugUrls.facebook);
+      console.log('🧵 Threads Debugger:', debugUrls.threads);
+      console.log('🐦 Twitter Card Validator:', debugUrls.twitter);
+      console.log('💼 LinkedIn Post Inspector:', debugUrls.linkedin);
+    }
 
-    // Facebook 캐시 새로고침 시도 (비동기)
-    refreshSocialCache(canonicalUrl, 'facebook').then(success => {
-      if (success) {
-        console.log('✅ Facebook 캐시 새로고침 완료');
-      } else {
-        console.log('⚠️ Facebook 캐시 새로고침 실패 (수동으로 디버거 사용 필요)');
-      }
-    });
+    // Facebook 캐시 새로고침 시도 (비동기, 개발 환경에서만)
+    if (import.meta.env.DEV) {
+      refreshSocialCache(canonicalUrl, 'facebook').then(success => {
+        if (success) {
+          console.log('✅ Facebook 캐시 새로고침 완료');
+        } else {
+          console.log('⚠️ Facebook 캐시 새로고침 실패 (수동으로 디버거 사용 필요)');
+        }
+      });
+    }
 
 
 
