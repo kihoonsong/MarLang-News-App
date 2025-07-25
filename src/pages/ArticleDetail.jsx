@@ -160,6 +160,7 @@ const ArticleDetail = () => {
   
   // Remove unused navigation state
   const [articleData, setArticleData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [highlightedWords, setHighlightedWords] = useState(new Set());
   const [isLiked, setIsLiked] = useState(false);
@@ -265,114 +266,353 @@ const ArticleDetail = () => {
     isTransitioning: false
   });
 
-  // 기사 데이터 로드
-  useEffect(() => {
-    // 프리렌더된 데이터가 있으면 우선 사용
-    const prerenderedData = window.__PRERENDERED_ARTICLE__;
-    if (prerenderedData && prerenderedData.id === id) {
-      if (import.meta.env.DEV) {
-        console.log('🚀 프리렌더된 기사 데이터 사용:', prerenderedData);
+  // 안전한 프리렌더 데이터 검증 함수
+  const validatePrerenderedData = (data) => {
+    if (!data || typeof data !== 'object') {
+      return { isValid: false, reason: 'No data or invalid type' };
+    }
+    
+    // 필수 필드 검증
+    const requiredFields = ['id', 'title'];
+    for (const field of requiredFields) {
+      if (!data[field] || typeof data[field] !== 'string') {
+        return { isValid: false, reason: `Missing or invalid ${field}` };
       }
-      
+    }
+    
+    // ID 일치 검증
+    if (data.id !== id) {
+      return { isValid: false, reason: 'ID mismatch' };
+    }
+    
+    // 데이터 무결성 검증
+    if (data.title.length > 500 || (data.summary && data.summary.length > 1000)) {
+      return { isValid: false, reason: 'Data length validation failed' };
+    }
+    
+    return { isValid: true };
+  };
+
+  // 이미지 URL 검증 함수
+  const validateImageUrl = (url) => {
+    if (!url || typeof url !== 'string') {
+      if (import.meta.env.DEV) {
+        console.log('🖼️ 이미지 URL 검증 실패: 유효하지 않은 타입', { url, type: typeof url });
+      }
+      return null;
+    }
+    
+    const trimmedUrl = url.trim();
+    if (trimmedUrl === '') {
+      if (import.meta.env.DEV) {
+        console.log('🖼️ 이미지 URL 검증 실패: 빈 문자열');
+      }
+      return null;
+    }
+    
+    if (!trimmedUrl.startsWith('http')) {
+      if (import.meta.env.DEV) {
+        console.log('🖼️ 이미지 URL 검증 실패: HTTP(S)로 시작하지 않음', trimmedUrl);
+      }
+      return null;
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('✅ 이미지 URL 검증 성공:', trimmedUrl);
+    }
+    return trimmedUrl;
+  };
+
+  // 안전한 데이터 변환 함수
+  const transformPrerenderedData = (prerenderedData) => {
+    try {
       const transformedArticle = {
         id: prerenderedData.id,
         title: prerenderedData.title,
         summary: prerenderedData.summary || 'No summary available',
-        category: prerenderedData.category,
+        category: prerenderedData.category || 'General',
         publishedAt: prerenderedData.publishedAt,
-        date: new Date(prerenderedData.publishedAt).toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
-        }),
-        image: prerenderedData.image,
+        date: (() => {
+          try {
+            return new Date(prerenderedData.publishedAt).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric' 
+            });
+          } catch (dateError) {
+            console.warn('날짜 변환 실패:', dateError);
+            return 'Unknown date';
+          }
+        })(),
+        image: validateImageUrl(prerenderedData.image),
         liked: false,
         levels: (() => {
-          // 안전한 content 처리
-          if (prerenderedData.hasStructuredContent && typeof prerenderedData.content === 'object') {
-            return generateLevelsFromContent({ content: prerenderedData.content });
-          } else if (typeof prerenderedData.content === 'string') {
-            return generateLevelsFromContent({ content: prerenderedData.content });
-          } else {
-            // 폴백: 기본 레벨 생성
-            return generateLevelsFromContent({ 
-              content: prerenderedData.summary || 'Content not available' 
-            });
+          try {
+            // 안전한 content 처리
+            if (prerenderedData.hasStructuredContent && typeof prerenderedData.content === 'object') {
+              return generateLevelsFromContent({ content: prerenderedData.content });
+            } else if (typeof prerenderedData.content === 'string') {
+              return generateLevelsFromContent({ content: prerenderedData.content });
+            } else {
+              // 폴백: 기본 레벨 생성
+              return generateLevelsFromContent({ 
+                content: prerenderedData.summary || 'Content not available' 
+              });
+            }
+          } catch (levelError) {
+            console.warn('레벨 생성 실패:', levelError);
+            // 최종 폴백
+            return {
+              1: { title: 'Level 1 - Beginner', content: prerenderedData.summary || 'Content not available' },
+              2: { title: 'Level 2 - Intermediate', content: prerenderedData.summary || 'Content not available' },
+              3: { title: 'Level 3 - Advanced', content: prerenderedData.summary || 'Content not available' }
+            };
           }
-        })()
+        })(),
+        // 메타데이터 추가 (디버깅 및 모니터링용)
+        _metadata: {
+          source: 'prerender',
+          loadedAt: new Date().toISOString(),
+          version: '1.0'
+        }
       };
       
-      setArticleData(transformedArticle);
+      return transformedArticle;
+    } catch (error) {
+      console.error('데이터 변환 실패:', error);
+      throw error;
+    }
+  };
+
+  // 기사 데이터 로드 (향상된 버전)
+  useEffect(() => {
+    let dataLoaded = false;
+    
+    // 프리렌더된 데이터 우선 처리
+    const prerenderedData = window.__PRERENDERED_ARTICLE__;
+    
+    if (prerenderedData) {
+      const validation = validatePrerenderedData(prerenderedData);
       
-      // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
-      if (user?.uid) {
-        addViewRecord(transformedArticle);
-        updateActivityTime && updateActivityTime();
+      if (validation.isValid) {
+        try {
+          if (import.meta.env.DEV) {
+            console.log('🚀 프리렌더된 기사 데이터 사용:', prerenderedData);
+            console.log('🖼️ 프리렌더 이미지 정보:', {
+              originalImage: prerenderedData.image,
+              imageLength: prerenderedData.image ? prerenderedData.image.length : 0,
+              imageType: typeof prerenderedData.image,
+              isValidUrl: !!validateImageUrl(prerenderedData.image)
+            });
+          }
+          
+          const transformedArticle = transformPrerenderedData(prerenderedData);
+          
+          if (import.meta.env.DEV) {
+            console.log('🔧 변환된 기사 데이터:', {
+              id: transformedArticle.id,
+              title: transformedArticle.title,
+              image: transformedArticle.image,
+              imageExists: !!transformedArticle.image
+            });
+          }
+          setArticleData(transformedArticle);
+          setIsLoading(false);
+          dataLoaded = true;
+          
+          // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+          if (user?.uid) {
+            try {
+              addViewRecord(transformedArticle);
+              updateActivityTime && updateActivityTime();
+            } catch (recordError) {
+              console.warn('조회 기록 추가 실패:', recordError);
+              // 비치명적 오류이므로 계속 진행
+            }
+          }
+          
+          // 기사 조회수 증가 (로그인된 사용자만)
+          if (incrementArticleViews && user?.uid) {
+            try {
+              incrementArticleViews(transformedArticle.id);
+            } catch (viewError) {
+              console.warn('조회수 증가 실패:', viewError);
+              // 비치명적 오류이므로 계속 진행
+            }
+          }
+          
+          // 프리렌더 데이터 정리 (메모리 절약)
+          setTimeout(() => {
+            try {
+              delete window.__PRERENDERED_ARTICLE__;
+            } catch (cleanupError) {
+              console.warn('프리렌더 데이터 정리 실패:', cleanupError);
+            }
+          }, 1000);
+          
+          return;
+        } catch (transformError) {
+          console.error('프리렌더 데이터 변환 실패:', transformError);
+          // 폴백으로 기존 방식 사용
+        }
+      } else {
+        if (import.meta.env.DEV) {
+          console.warn('프리렌더 데이터 검증 실패:', validation.reason);
+        }
+        // 폴백으로 기존 방식 사용
       }
-      
-      // 기사 조회수 증가 (로그인된 사용자만)
-      if (incrementArticleViews && user?.uid) {
-        incrementArticleViews(transformedArticle.id);
-      }
-      
-      return;
     }
     
-    // 프리렌더된 데이터가 없으면 기존 방식 사용
-    if (!articlesLoading && id) {
-      const foundArticle = getArticleById(id);
-      if (foundArticle) {
-        if (import.meta.env.DEV) {
-          console.log('🔍 원본 기사 데이터 확인:', foundArticle);
-          console.log('🔍 이미지 관련 필드 확인:', {
-            image: foundArticle.image,
-            imageUrl: foundArticle.imageUrl,
-            thumbnail: foundArticle.thumbnail,
-            hasImage: !!foundArticle.image,
-            hasImageUrl: !!foundArticle.imageUrl,
-            hasThumbnail: !!foundArticle.thumbnail,
-            allKeys: Object.keys(foundArticle)
-          });
-        }
+    // 프리렌더된 데이터가 없거나 실패한 경우 기존 API 방식 사용 (폴백)
+    if (!dataLoaded && !articlesLoading && id) {
+      try {
+        const foundArticle = getArticleById(id);
         
-        // 기사 데이터를 ArticleDetail 형태로 변환
-        const transformedArticle = {
-          id: foundArticle.id,
-          title: foundArticle.title,
-          summary: foundArticle.summary || foundArticle.description || foundArticle.content || 'No summary available',
-          category: foundArticle.category,
-          publishedAt: foundArticle.publishedAt,
-          date: new Date(foundArticle.publishedAt).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
-          }),
-          image: foundArticle.image,
+        if (foundArticle) {
+          if (import.meta.env.DEV) {
+            console.log('🔍 API에서 기사 데이터 로드:', foundArticle.id);
+            console.log('🔍 이미지 관련 필드 확인:', {
+              image: foundArticle.image,
+              imageUrl: foundArticle.imageUrl,
+              thumbnail: foundArticle.thumbnail,
+              hasImage: !!foundArticle.image,
+              hasImageUrl: !!foundArticle.imageUrl,
+              hasThumbnail: !!foundArticle.thumbnail,
+              allKeys: Object.keys(foundArticle)
+            });
+          }
+          
+          // 안전한 기사 데이터 변환
+          const transformedArticle = {
+            id: foundArticle.id,
+            title: foundArticle.title || 'Untitled',
+            summary: foundArticle.summary || foundArticle.description || foundArticle.content || 'No summary available',
+            category: foundArticle.category || 'General',
+            publishedAt: foundArticle.publishedAt,
+            date: (() => {
+              try {
+                return new Date(foundArticle.publishedAt).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                });
+              } catch (dateError) {
+                console.warn('API 데이터 날짜 변환 실패:', dateError);
+                return 'Unknown date';
+              }
+            })(),
+            image: validateImageUrl(foundArticle.image),
+            liked: false,
+            levels: (() => {
+              try {
+                return generateLevelsFromContent(foundArticle);
+              } catch (levelError) {
+                console.warn('API 데이터 레벨 생성 실패:', levelError);
+                // 최종 폴백
+                const fallbackContent = foundArticle.summary || foundArticle.description || 'Content not available';
+                return {
+                  1: { title: 'Level 1 - Beginner', content: fallbackContent },
+                  2: { title: 'Level 2 - Intermediate', content: fallbackContent },
+                  3: { title: 'Level 3 - Advanced', content: fallbackContent }
+                };
+              }
+            })(),
+            // 메타데이터 추가
+            _metadata: {
+              source: 'api',
+              loadedAt: new Date().toISOString(),
+              version: '1.0'
+            }
+          };
+          
+          if (import.meta.env.DEV) {
+            console.log('🔧 API에서 변환된 기사 데이터:', transformedArticle);
+            console.log('🔧 변환된 이미지 필드:', {
+              originalImage: foundArticle.image,
+              transformedImage: transformedArticle.image,
+              imageType: typeof transformedArticle.image,
+              imageLength: transformedArticle.image ? transformedArticle.image.length : 0
+            });
+          }
+          
+          setArticleData(transformedArticle);
+          setIsLoading(false);
+          dataLoaded = true;
+          
+          // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+          if (user?.uid) {
+            try {
+              addViewRecord(foundArticle);
+              updateActivityTime && updateActivityTime();
+            } catch (recordError) {
+              console.warn('API 데이터 조회 기록 추가 실패:', recordError);
+            }
+          }
+          
+          // 기사 조회수 증가 (로그인된 사용자만)
+          if (incrementArticleViews && user?.uid) {
+            try {
+              incrementArticleViews(foundArticle.id);
+            } catch (viewError) {
+              console.warn('API 데이터 조회수 증가 실패:', viewError);
+            }
+          }
+        } else {
+          // 기사를 찾을 수 없는 경우
+          if (import.meta.env.DEV) {
+            console.warn(`기사를 찾을 수 없음: ${id}`);
+          }
+          
+          // 404 상태를 나타내는 특별한 상태 설정
+          setArticleData({
+            id: id,
+            title: '기사를 찾을 수 없습니다',
+            summary: '요청하신 기사를 찾을 수 없습니다.',
+            category: 'Error',
+            publishedAt: new Date().toISOString(),
+            date: 'Unknown',
+            image: null,
+            liked: false,
+            levels: {
+              1: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
+              2: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
+              3: { title: 'Error', content: '기사를 찾을 수 없습니다.' }
+            },
+            _metadata: {
+              source: 'error',
+              loadedAt: new Date().toISOString(),
+              version: '1.0',
+              error: 'article_not_found'
+            }
+          });
+          setIsLoading(false);
+        }
+      } catch (apiError) {
+        console.error('API 데이터 로딩 실패:', apiError);
+        
+        // API 실패 시 최종 폴백
+        setArticleData({
+          id: id || 'unknown',
+          title: '데이터 로딩 실패',
+          summary: '기사 데이터를 불러오는 중 오류가 발생했습니다.',
+          category: 'Error',
+          publishedAt: new Date().toISOString(),
+          date: 'Unknown',
+          image: null,
           liked: false,
-          levels: generateLevelsFromContent(foundArticle)
-        };
-        
-        if (import.meta.env.DEV) {
-          console.log('🔧 변환된 기사 데이터:', transformedArticle);
-          console.log('🔧 변환된 이미지 필드:', {
-            originalImage: foundArticle.image,
-            transformedImage: transformedArticle.image,
-            imageType: typeof transformedArticle.image,
-            imageLength: transformedArticle.image ? transformedArticle.image.length : 0
-          });
-        }
-        setArticleData(transformedArticle);
-        
-        // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
-        if (user?.uid) {
-          addViewRecord(foundArticle);
-          updateActivityTime && updateActivityTime();
-        }
-        
-        // 기사 조회수 증가 (로그인된 사용자만)
-        if (incrementArticleViews && user?.uid) {
-          incrementArticleViews(foundArticle.id);
-        }
+          levels: {
+            1: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
+            2: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
+            3: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' }
+          },
+          _metadata: {
+            source: 'error',
+            loadedAt: new Date().toISOString(),
+            version: '1.0',
+            error: 'api_loading_failed'
+          }
+        });
+        setIsLoading(false);
       }
     }
   }, [articlesLoading, id, user?.uid]);
@@ -512,13 +752,20 @@ const ArticleDetail = () => {
     }
   };
 
-  // 단순화된 TTS 시작 함수
+  // 향상된 TTS 시작 함수 (직접 URL 접근 호환)
   const startTTS = async () => {
+    // 기사 데이터 검증 (프리렌더/API 모두 호환)
     if (!articleData) {
       if (import.meta.env.DEV) {
         console.error('❌ 기사 데이터 없음');
       }
+      toast?.error('기사 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
+    }
+
+    // 데이터 소스 확인 (디버깅용)
+    if (import.meta.env.DEV) {
+      console.log('🎵 TTS 시작 - 데이터 소스:', articleData._metadata?.source || 'unknown');
     }
 
     setIsTTSLoading(true); // 로딩 시작
@@ -527,11 +774,13 @@ const ArticleDetail = () => {
     // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
     const _isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+    // 콘텐츠 검증 (프리렌더/API 데이터 모두 호환)
     const currentContent = articleData?.levels?.[selectedLevel]?.content || '';
     if (import.meta.env.DEV) {
       console.log('🔍 현재 레벨:', selectedLevel);
       console.log('🔍 기사 데이터:', articleData?.levels);
       console.log('🔍 현재 콘텐츠:', currentContent.substring(0, 100), '...');
+      console.log('🔍 데이터 메타정보:', articleData._metadata);
     }
     
     if (currentContent.trim().length === 0) {
@@ -540,6 +789,17 @@ const ArticleDetail = () => {
         console.warn('⚠️ 전체 콘텐츠:', currentContent);
       }
       setIsTTSLoading(false);
+      toast?.warning('선택한 레벨의 콘텐츠가 없습니다. 다른 레벨을 선택해주세요.');
+      return;
+    }
+
+    // TTS 기능 지원 확인
+    if (!window.speechSynthesis) {
+      if (import.meta.env.DEV) {
+        console.error('❌ TTS 기능 미지원 브라우저');
+      }
+      setIsTTSLoading(false);
+      toast?.error('이 브라우저는 음성 읽기 기능을 지원하지 않습니다.');
       return;
     }
 
@@ -1184,14 +1444,31 @@ const ArticleDetail = () => {
   };
 
   const handleLike = () => {
+    // 기사 데이터 검증 (프리렌더/API 모두 호환)
     if (!articleData) {
+      toast?.warning('기사 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    
+    // 데이터 무결성 확인
+    if (!articleData.id) {
+      console.error('기사 ID가 없습니다:', articleData);
+      toast?.error('기사 정보가 올바르지 않습니다.');
       return;
     }
     
     // 로그인 상태 확인
     if (!isAuthenticated) {
-      toast.warning('좋아요 기능을 사용하려면 로그인이 필요합니다.');
+      toast?.warning('좋아요 기능을 사용하려면 로그인이 필요합니다.');
       return;
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('💖 좋아요 토글 시작:', {
+        articleId: articleData.id,
+        currentStatus: isLiked,
+        dataSource: articleData._metadata?.source || 'unknown'
+      });
     }
     
     try {
@@ -1203,26 +1480,50 @@ const ArticleDetail = () => {
       setIsLiked(newLikeStatus);
       
       // 활동 시간 업데이트
-      updateActivityTime && updateActivityTime();
+      try {
+        updateActivityTime && updateActivityTime();
+      } catch (activityError) {
+        console.warn('활동 시간 업데이트 실패:', activityError);
+        // 비치명적 오류이므로 계속 진행
+      }
       
       // 토스트 메시지 표시 - 현재 상태 기반으로 메시지 결정
       if (newLikeStatus && !currentLikeStatus) {
         // 좋아요 추가된 경우
-        toast.success('기사를 좋아요에 추가했습니다!');
+        toast?.success('기사를 좋아요에 추가했습니다!');
       } else if (!newLikeStatus && currentLikeStatus) {
         // 좋아요 제거된 경우
-        toast.info('기사를 좋아요에서 제거했습니다.');
+        toast?.info('기사를 좋아요에서 제거했습니다.');
       }
       
       // 좋아요 상태 변경을 다른 컴포넌트에 알림
-      window.dispatchEvent(new CustomEvent('likeUpdated', {
-        detail: { articleId: articleData.id, isLiked: newLikeStatus }
-      }));
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error toggling like:', error);
+      try {
+        window.dispatchEvent(new CustomEvent('likeUpdated', {
+          detail: { articleId: articleData.id, isLiked: newLikeStatus }
+        }));
+      } catch (eventError) {
+        console.warn('좋아요 이벤트 발송 실패:', eventError);
+        // 비치명적 오류이므로 계속 진행
       }
-      toast.error('좋아요 처리 중 오류가 발생했습니다.');
+      
+      if (import.meta.env.DEV) {
+        console.log('💖 좋아요 토글 완료:', {
+          articleId: articleData.id,
+          newStatus: newLikeStatus,
+          success: true
+        });
+      }
+      
+    } catch (error) {
+      console.error('좋아요 처리 실패:', error);
+      toast?.error('좋아요 처리 중 오류가 발생했습니다.');
+      
+      // 오류 발생 시 상태 복원 시도
+      try {
+        setIsLiked(isArticleLiked(articleData.id));
+      } catch (restoreError) {
+        console.warn('좋아요 상태 복원 실패:', restoreError);
+      }
     }
   };
 
@@ -1232,6 +1533,21 @@ const ArticleDetail = () => {
     // 이벤트 전파 중지 및 기본 동작 방지
     event.stopPropagation();
     event.preventDefault();
+    
+    // 기사 데이터 검증 (프리렌더/API 모두 호환)
+    if (!articleData) {
+      toast?.warning('기사 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('📚 단어 클릭:', {
+        word: word,
+        isHighlighted: isHighlighted,
+        articleId: articleData.id,
+        dataSource: articleData._metadata?.source || 'unknown'
+      });
+    }
     
     if (isHighlighted) {
       handleRemoveWord(event, word);
@@ -1254,21 +1570,41 @@ const ArticleDetail = () => {
           setWordPopup(prev => ({ ...prev, isLoading: false, error: wordData.error }));
         } else {
           setWordPopup(prev => ({ ...prev, isLoading: false, ...wordData }));
+          
+          // 자동 저장 (안전한 처리)
           if (userSettings?.autoSaveWords !== false) {
-            await autoSaveWord(cleanWord, wordData);
+            try {
+              await autoSaveWord(cleanWord, wordData);
+            } catch (saveError) {
+              console.warn('단어 자동 저장 실패:', saveError);
+              // 비치명적 오류이므로 계속 진행
+            }
           }
+          
+          // 자동 재생 (안전한 처리)
           if (userSettings?.autoPlay && wordData.audio) {
-            new Audio(wordData.audio).play().catch(e => {
+            try {
+              const audio = new Audio(wordData.audio);
+              await audio.play();
+            } catch (audioError) {
               if (import.meta.env.DEV) {
-                console.error("Audio play failed", e);
+                console.warn("Audio play failed:", audioError);
               }
-            });
+              // 오디오 재생 실패는 비치명적이므로 계속 진행
+            }
           }
         }
       } catch (error) {
-        console.warn('Operation failed:', error);
-        setWordPopup(prev => ({ ...prev, isLoading: false, error: 'Failed to fetch definition' }));
+        console.warn('단어 정보 가져오기 실패:', error);
+        setWordPopup(prev => ({ 
+          ...prev, 
+          isLoading: false, 
+          error: '단어 정보를 가져오는데 실패했습니다.' 
+        }));
       }
+    } else {
+      // 너무 짧은 단어
+      toast?.info('3글자 이상의 단어를 선택해주세요.');
     }
   }, [selectedLanguage, userSettings, articleData]);
 
@@ -1386,7 +1722,7 @@ const ArticleDetail = () => {
     }
   };
 
-  // 자동 단어 저장 함수
+  // 향상된 자동 단어 저장 함수 (직접 URL 접근 호환)
   const autoSaveWord = async (cleanWord, wordData) => {
     // 안전한 로그인 상태 확인
     if (!user?.uid && !isAuthenticated && !window.enableGuestMode) {
@@ -1396,12 +1732,28 @@ const ArticleDetail = () => {
       return; // 자동 저장은 조용히 실패
     }
 
-    // 기사 데이터 유효성 검사
+    // 기사 데이터 유효성 검사 (프리렌더/API 모두 호환)
     if (!articleData?.id) {
       if (import.meta.env.DEV) {
         console.log('⚠️ 자동 저장 실패: 기사 데이터 없음');
       }
       return;
+    }
+
+    // 단어 데이터 유효성 검사
+    if (!cleanWord || !wordData) {
+      if (import.meta.env.DEV) {
+        console.log('⚠️ 자동 저장 실패: 단어 데이터 없음');
+      }
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log('📚 자동 단어 저장 시도:', {
+        word: cleanWord,
+        articleId: articleData.id,
+        dataSource: articleData._metadata?.source || 'unknown'
+      });
     }
 
     // 이미 저장된 단어인지 확인
@@ -1802,21 +2154,28 @@ const ArticleDetail = () => {
       <MobileContentWrapper>
 
       {/* 기사 상세 내용 */}
-      <PageContainer>
+      <PageContainer style={{ 
+        opacity: isLoading ? 0.95 : 1,
+        transition: 'opacity 0.5s ease-in-out'
+      }}>
         <PremiumContentGuard>
           {/* 기사가 있을 때만 광고 표시 */}
           <ArticleDetailAdComponent hasContent={!!articleData} />
           
           {/* 썸네일 이미지 */}
-          <ThumbnailImage 
-            src={articleData.image} 
-            alt={articleData.title}
-            crossOrigin="anonymous"
-            onError={(e) => {
-              e.target.onerror = null; 
-              e.target.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';
-            }} 
-          />
+          {articleData && articleData.image && (
+            <ThumbnailImage 
+              src={articleData.image} 
+              alt={articleData.title || 'Article Image'}
+              onError={(e) => {
+                console.error('이미지 로딩 실패:', e.target.src);
+                e.target.style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('✅ 이미지 로딩 성공:', articleData.image);
+              }}
+            />
+          )}
           
           {/* 메타 정보 */}
           <MetaInfo>
