@@ -308,9 +308,20 @@ function generateArticleHTML(article) {
     
     <!-- React 앱 로드 스크립트 -->
     <script>
+        // 전역 변수로 기사 데이터 제공
+        window.__PRERENDERED_ARTICLE__ = {
+            id: '${article.id}',
+            title: '${cleanTitle}',
+            summary: '${article.summary || ''}',
+            category: '${article.category}',
+            publishedAt: '${article.publishedAt}',
+            image: '${article.image || ''}',
+            content: ${JSON.stringify(article.content || '')},
+            isPrerendered: true
+        };
+        
         // 페이지 로드 완료 후 React 앱 초기화
         window.addEventListener('DOMContentLoaded', function() {
-            // React 앱이 마운트되면 정적 콘텐츠는 그대로 유지
             console.log('✅ SEO 최적화된 기사 페이지 로드 완료');
             
             // Google Analytics 이벤트 (있다면)
@@ -321,11 +332,44 @@ function generateArticleHTML(article) {
                     content_group1: '${article.category}'
                 });
             }
+            
+            // React 앱 로드 확인 및 전환
+            let attempts = 0;
+            const maxAttempts = 20; // 2초
+            
+            const checkReactApp = () => {
+                attempts++;
+                const reactRoot = document.querySelector('#root > div');
+                
+                if (reactRoot && reactRoot.children.length > 0) {
+                    console.log('✅ React 앱 로드 완료 - 정적 콘텐츠 숨김');
+                    // 정적 콘텐츠 숨기기
+                    const staticContent = document.querySelector('article[itemscope]');
+                    const staticNav = document.querySelector('nav.navigation');
+                    
+                    if (staticContent) {
+                        staticContent.style.display = 'none';
+                    }
+                    if (staticNav) {
+                        staticNav.style.display = 'none';
+                    }
+                    return;
+                }
+                
+                if (attempts < maxAttempts) {
+                    setTimeout(checkReactApp, 100);
+                } else {
+                    console.warn('⚠️ React 앱 로드 실패 - 정적 콘텐츠 유지');
+                }
+            };
+            
+            // 500ms 후 React 앱 확인 시작
+            setTimeout(checkReactApp, 500);
         });
     </script>
     
-    <!-- React 앱 스크립트 (비동기 로드) -->
-    <script type="module" src="/src/main.jsx" async></script>
+    <!-- React 앱 스크립트 -->
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>`;
 }

@@ -267,6 +267,48 @@ const ArticleDetail = () => {
 
   // 기사 데이터 로드
   useEffect(() => {
+    // 프리렌더된 데이터가 있으면 우선 사용
+    const prerenderedData = window.__PRERENDERED_ARTICLE__;
+    if (prerenderedData && prerenderedData.id === id) {
+      if (import.meta.env.DEV) {
+        console.log('🚀 프리렌더된 기사 데이터 사용:', prerenderedData);
+      }
+      
+      const transformedArticle = {
+        id: prerenderedData.id,
+        title: prerenderedData.title,
+        summary: prerenderedData.summary || 'No summary available',
+        category: prerenderedData.category,
+        publishedAt: prerenderedData.publishedAt,
+        date: new Date(prerenderedData.publishedAt).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        image: prerenderedData.image,
+        liked: false,
+        levels: typeof prerenderedData.content === 'string' 
+          ? generateLevelsFromContent({ content: prerenderedData.content })
+          : generateLevelsFromContent(prerenderedData)
+      };
+      
+      setArticleData(transformedArticle);
+      
+      // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+      if (user?.uid) {
+        addViewRecord(transformedArticle);
+        updateActivityTime && updateActivityTime();
+      }
+      
+      // 기사 조회수 증가 (로그인된 사용자만)
+      if (incrementArticleViews && user?.uid) {
+        incrementArticleViews(transformedArticle.id);
+      }
+      
+      return;
+    }
+    
+    // 프리렌더된 데이터가 없으면 기존 방식 사용
     if (!articlesLoading && id) {
       const foundArticle = getArticleById(id);
       if (foundArticle) {
