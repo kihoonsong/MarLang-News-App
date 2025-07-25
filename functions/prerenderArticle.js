@@ -9,11 +9,11 @@ const SITE_URL = 'https://marlang-app.web.app';
 
 // HTML 템플릿 생성 함수
 function generateArticleHTML(article) {
-  const cleanSummary = (article.summary || '').replace(/"/g, '&quot;').substring(0, 160);
-  const cleanTitle = (article.title || '').replace(/"/g, '&quot;');
-  const publishDate = new Date(article.publishedAt).toLocaleDateString('ko-KR');
-  
-  return `<!DOCTYPE html>
+    const cleanSummary = (article.summary || '').replace(/"/g, '&quot;').substring(0, 160);
+    const cleanTitle = (article.title || '').replace(/"/g, '&quot;');
+    const publishDate = new Date(article.publishedAt).toLocaleDateString('ko-KR');
+
+    return `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -376,7 +376,7 @@ function generateArticleHTML(article) {
 
 // 기본 HTML (기사를 찾을 수 없을 때)
 function generateNotFoundHTML(articleId) {
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -396,61 +396,61 @@ function generateNotFoundHTML(articleId) {
 
 // Cloud Function
 exports.prerenderArticle = onRequest({
-  region: 'us-central1',
-  memory: '256MiB',
-  timeoutSeconds: 10,
+    region: 'us-central1',
+    memory: '256MiB',
+    timeoutSeconds: 10,
 }, async (req, res) => {
-  try {
-    // URL에서 기사 ID 추출
-    const path = req.path;
-    const articleId = path.split('/').pop();
-    
-    console.log(`🔍 기사 프리렌더링 요청: ${articleId}`);
-    
-    if (!articleId || articleId === 'article') {
-      res.status(404).send(generateNotFoundHTML('unknown'));
-      return;
-    }
-    
-    // Firestore에서 기사 데이터 가져오기
-    const articleDoc = await db.collection('articles').doc(articleId).get();
-    
-    if (!articleDoc.exists) {
-      console.log(`❌ 기사 없음: ${articleId}`);
-      res.status(404).send(generateNotFoundHTML(articleId));
-      return;
-    }
-    
-    const articleData = articleDoc.data();
-    
-    // 발행되지 않은 기사는 404 처리
-    if (articleData.status !== 'published') {
-      console.log(`🚫 미발행 기사: ${articleId} (status: ${articleData.status})`);
-      res.status(404).send(generateNotFoundHTML(articleId));
-      return;
-    }
-    
-    // 조회수 증가 (비동기)
-    db.collection('articles').doc(articleId).update({
-      views: (articleData.views || 0) + 1,
-      updatedAt: new Date().toISOString()
-    }).catch(error => {
-      console.error('조회수 업데이트 실패:', error);
-    });
-    
-    // HTML 생성 및 반환
-    const html = generateArticleHTML({ id: articleId, ...articleData });
-    
-    // 캐시 헤더 설정
-    res.set('Cache-Control', 'public, max-age=300, s-maxage=600'); // 5분 캐시
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    
-    console.log(`✅ 기사 프리렌더링 완료: ${articleId}`);
-    res.send(html);
-    
-  } catch (error) {
-    console.error('🚨 프리렌더링 오류:', error);
-    res.status(500).send(`
+    try {
+        // URL에서 기사 ID 추출
+        const path = req.path;
+        const articleId = path.split('/').pop();
+
+        console.log(`🔍 기사 프리렌더링 요청: ${articleId}`);
+
+        if (!articleId || articleId === 'article') {
+            res.status(404).send(generateNotFoundHTML('unknown'));
+            return;
+        }
+
+        // Firestore에서 기사 데이터 가져오기
+        const articleDoc = await db.collection('articles').doc(articleId).get();
+
+        if (!articleDoc.exists) {
+            console.log(`❌ 기사 없음: ${articleId}`);
+            res.status(404).send(generateNotFoundHTML(articleId));
+            return;
+        }
+
+        const articleData = articleDoc.data();
+
+        // 발행되지 않은 기사는 404 처리
+        if (articleData.status !== 'published') {
+            console.log(`🚫 미발행 기사: ${articleId} (status: ${articleData.status})`);
+            res.status(404).send(generateNotFoundHTML(articleId));
+            return;
+        }
+
+        // 조회수 증가 (비동기)
+        db.collection('articles').doc(articleId).update({
+            views: (articleData.views || 0) + 1,
+            updatedAt: new Date().toISOString()
+        }).catch(error => {
+            console.error('조회수 업데이트 실패:', error);
+        });
+
+        // HTML 생성 및 반환
+        const html = generateArticleHTML({ id: articleId, ...articleData });
+
+        // 캐시 헤더 설정
+        res.set('Cache-Control', 'public, max-age=300, s-maxage=600'); // 5분 캐시
+        res.set('Content-Type', 'text/html; charset=utf-8');
+
+        console.log(`✅ 기사 프리렌더링 완료: ${articleId}`);
+        res.send(html);
+
+    } catch (error) {
+        console.error('🚨 프리렌더링 오류:', error);
+        res.status(500).send(`
       <html>
         <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
           <h1>⚠️ 일시적인 오류가 발생했습니다</h1>
@@ -461,5 +461,5 @@ exports.prerenderArticle = onRequest({
         </body>
       </html>
     `);
-  }
+    }
 });

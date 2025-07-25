@@ -287,9 +287,19 @@ const ArticleDetail = () => {
         }),
         image: prerenderedData.image,
         liked: false,
-        levels: typeof prerenderedData.content === 'string' 
-          ? generateLevelsFromContent({ content: prerenderedData.content })
-          : generateLevelsFromContent(prerenderedData)
+        levels: (() => {
+          // 안전한 content 처리
+          if (prerenderedData.hasStructuredContent && typeof prerenderedData.content === 'object') {
+            return generateLevelsFromContent({ content: prerenderedData.content });
+          } else if (typeof prerenderedData.content === 'string') {
+            return generateLevelsFromContent({ content: prerenderedData.content });
+          } else {
+            // 폴백: 기본 레벨 생성
+            return generateLevelsFromContent({ 
+              content: prerenderedData.summary || 'Content not available' 
+            });
+          }
+        })()
       };
       
       setArticleData(transformedArticle);
@@ -1378,13 +1388,27 @@ const ArticleDetail = () => {
 
   // 자동 단어 저장 함수
   const autoSaveWord = async (cleanWord, wordData) => {
-    // 로그인 상태 확인 (임시로 완화)
-    if (!isAuthenticated && !window.enableGuestMode) {
+    // 안전한 로그인 상태 확인
+    if (!user?.uid && !isAuthenticated && !window.enableGuestMode) {
+      if (import.meta.env.DEV) {
+        console.log('🔒 자동 저장 건너뜀: 로그인 필요');
+      }
       return; // 자동 저장은 조용히 실패
+    }
+
+    // 기사 데이터 유효성 검사
+    if (!articleData?.id) {
+      if (import.meta.env.DEV) {
+        console.log('⚠️ 자동 저장 실패: 기사 데이터 없음');
+      }
+      return;
     }
 
     // 이미 저장된 단어인지 확인
     if (isWordSaved && isWordSaved(cleanWord, articleData.id)) {
+      if (import.meta.env.DEV) {
+        console.log('📝 자동 저장 건너뜀: 이미 저장된 단어', cleanWord);
+      }
       return; // 이미 저장된 경우 저장하지 않음
     }
 
@@ -1787,6 +1811,7 @@ const ArticleDetail = () => {
           <ThumbnailImage 
             src={articleData.image} 
             alt={articleData.title}
+            crossOrigin="anonymous"
             onError={(e) => {
               e.target.onerror = null; 
               e.target.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80';

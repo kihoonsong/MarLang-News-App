@@ -116,10 +116,22 @@ const SocialShareMeta = ({ article }) => {
         if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
           try {
             new URL(imageStr);
-            // 외부 이미지는 캐시 파라미터 없이 사용
-            metaImageUrl = imageStr;
-            if (import.meta.env.DEV) {
-              console.log('✅ 기사 HTTP 이미지 사용:', metaImageUrl);
+            
+            // Firebase Storage URL 처리 (CORS 문제 방지)
+            if (imageStr.includes('firebasestorage.googleapis.com')) {
+              // Firebase Storage 이미지는 소셜 메타에서 기본 이미지 사용
+              // 실제 페이지에서는 정상 표시되지만 소셜 미리보기에서는 안정성을 위해 기본 이미지 사용
+              if (import.meta.env.DEV) {
+                console.log('🔄 Firebase Storage 이미지 감지 - 소셜 메타에서는 기본 이미지 사용');
+                console.log('💡 실제 페이지에서는 Firebase Storage 이미지가 정상 표시됩니다');
+              }
+              // metaImageUrl을 변경하지 않음 (기본 이미지 유지)
+            } else {
+              // 외부 이미지는 그대로 사용
+              metaImageUrl = imageStr;
+              if (import.meta.env.DEV) {
+                console.log('✅ 기사 HTTP 이미지 사용:', metaImageUrl);
+              }
             }
           } catch (e) {
             if (import.meta.env.DEV) {
