@@ -25,14 +25,6 @@
         "function": "prerenderArticle"
       },
       {
-        "source": "!/ads.txt",
-        "destination": "/index.html"
-      },
-      {
-        "source": "!/robots.txt",
-        "destination": "/index.html"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -83,6 +75,19 @@
           {
             "key": "Access-Control-Allow-Origin",
             "value": "*"
+          }
+        ]
+      },
+      {
+        "source": "/ads.txt",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/plain"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
           }
         ]
       },
