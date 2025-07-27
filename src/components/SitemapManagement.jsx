@@ -31,7 +31,8 @@ import {
   requestSitemapUpdate, 
   checkSitemapStatus, 
   getSearchConsoleSubmissionUrl,
-  debugSitemapInfo 
+  debugSitemapInfo,
+  testSitemapConnection
 } from '../utils/sitemapUtils';
 
 const SitemapManagement = ({ setSnackbar }) => {
@@ -72,7 +73,11 @@ const SitemapManagement = ({ setSnackbar }) => {
     try {
       setLoading(true);
       
+      console.log('🔄 사이트맵 수동 업데이트 시작...');
+      
       const result = await requestSitemapUpdate();
+      
+      console.log('📦 업데이트 결과:', result);
       
       if (result.success) {
         setSnackbar({
@@ -90,22 +95,43 @@ const SitemapManagement = ({ setSnackbar }) => {
         };
         setUpdateHistory(prev => [newUpdate, ...prev.slice(0, 4)]); // 최근 5개만 유지
         
-        // 상태 새로고침
-        await checkCurrentSitemapStatus();
+        // 상태 새로고침 (약간의 지연 후)
+        setTimeout(async () => {
+          await checkCurrentSitemapStatus();
+        }, 2000);
       } else {
+        console.error('❌ 사이트맵 업데이트 실패:', result);
         setSnackbar({
           open: true,
-          message: `사이트맵 업데이트에 실패했습니다: ${result.message}`,
+          message: `사이트맵 업데이트에 실패했습니다: ${result.message || result.error}`,
           severity: 'error'
         });
+        
+        // 실패 기록 추가
+        const failedUpdate = {
+          timestamp: new Date(),
+          type: 'manual',
+          success: false,
+          error: result.message || result.error
+        };
+        setUpdateHistory(prev => [failedUpdate, ...prev.slice(0, 4)]);
       }
     } catch (error) {
-      console.error('사이트맵 업데이트 실패:', error);
+      console.error('🚨 사이트맵 업데이트 중 예외 발생:', error);
       setSnackbar({
         open: true,
-        message: '사이트맵 업데이트 중 오류가 발생했습니다.',
+        message: `사이트맵 업데이트 중 오류가 발생했습니다: ${error.message}`,
         severity: 'error'
       });
+      
+      // 예외 기록 추가
+      const errorUpdate = {
+        timestamp: new Date(),
+        type: 'manual',
+        success: false,
+        error: error.message
+      };
+      setUpdateHistory(prev => [errorUpdate, ...prev.slice(0, 4)]);
     } finally {
       setLoading(false);
     }
@@ -133,6 +159,41 @@ const SitemapManagement = ({ setSnackbar }) => {
       });
     } catch (error) {
       console.error('디버깅 실패:', error);
+    }
+  };
+
+  // 연결 테스트
+  const handleConnectionTest = async () => {
+    try {
+      setLoading(true);
+      console.log('🧪 Functions 연결 테스트 시작...');
+      
+      const result = await testSitemapConnection();
+      
+      if (result.success) {
+        setSnackbar({
+          open: true,
+          message: `연결 테스트 성공! (상태: ${result.status})`,
+          severity: 'success'
+        });
+        console.log('✅ 연결 테스트 성공:', result);
+      } else {
+        setSnackbar({
+          open: true,
+          message: `연결 테스트 실패: ${result.error}`,
+          severity: 'error'
+        });
+        console.error('❌ 연결 테스트 실패:', result);
+      }
+    } catch (error) {
+      console.error('🚨 연결 테스트 중 오류:', error);
+      setSnackbar({
+        open: true,
+        message: `연결 테스트 중 오류: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +288,17 @@ const SitemapManagement = ({ setSnackbar }) => {
                   fullWidth
                 >
                   사이트맵 파일 보기
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  startIcon={<InfoIcon />}
+                  onClick={handleConnectionTest}
+                  disabled={loading}
+                  fullWidth
+                  color="info"
+                >
+                  연결 테스트
                 </Button>
               </Box>
             </CardContent>

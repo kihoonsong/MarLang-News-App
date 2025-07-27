@@ -830,7 +830,7 @@ const { serveSitemap } = require('./serveSitemap');
 exports.serveSitemap = serveSitemap;
 
 // 자동 사이트맵 업데이트 시스템
-const { updateSitemap } = require('./sitemapGenerator');
+const { updateSitemap, analyzeAllArticles } = require('./sitemapGenerator');
 
 // Firestore 트리거: 기사 생성/수정/삭제 시 사이트맵 자동 업데이트
 exports.onArticleWrite = onDocumentWritten('articles/{articleId}', async (event) => {
@@ -953,9 +953,23 @@ exports.checkSitemapStatus = functions.https.onRequest(async (req, res) => {
 // 수동 사이트맵 업데이트 함수 (관리자용)
 exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
   // CORS 헤더 설정 (강화)
-  res.set('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://marlang-app.web.app',
+    'https://marlang-app.firebaseapp.com',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+  
+  if (allowedOrigins.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  } else {
+    res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  }
+  
   res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, User-Agent');
+  res.set('Access-Control-Allow-Credentials', 'false');
   res.set('Access-Control-Max-Age', '3600');
 
   if (req.method === 'OPTIONS') {
@@ -965,11 +979,27 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
 
   // GET 요청 처리 (연결 테스트용)
   if (req.method === 'GET') {
+    console.log('🧪 연결 테스트 요청 수신');
+    console.log('📡 Origin:', origin);
+    console.log('📡 User-Agent:', req.headers['user-agent']);
+    
     res.json({
       success: true,
       message: 'Sitemap update function is running',
       timestamp: new Date().toISOString(),
-      endpoint: 'updateSitemapManual'
+      endpoint: 'updateSitemapManual',
+      origin: origin,
+      method: 'GET'
+    });
+    return;
+  }
+
+  // POST 요청만 허용
+  if (req.method !== 'POST') {
+    res.status(405).json({
+      success: false,
+      error: 'Method Not Allowed',
+      message: `${req.method} method is not allowed. Use POST.`
     });
     return;
   }
@@ -977,8 +1007,17 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
   try {
     console.log('🔧 수동 사이트맵 업데이트 요청');
     console.log('📡 Request method:', req.method);
-    console.log('📡 Request headers:', req.headers);
+    console.log('📡 Request origin:', origin);
+    console.log('📡 Request timestamp:', new Date().toISOString());
     console.log('📡 Request body:', req.body);
+
+    // 요청 유효성 검사
+    const requestData = req.body || {};
+    console.log('📦 Request data:', {
+      timestamp: requestData.timestamp,
+      source: requestData.source,
+      hasUserAgent: !!requestData.userAgent
+    });
 
     // 관리자 권한 확인 (선택적)
     const authHeader = req.headers.authorization;
@@ -988,8 +1027,10 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
         const decodedToken = await admin.auth().verifyIdToken(token);
         console.log(`👤 인증된 사용자: ${decodedToken.email}`);
       } catch (authError) {
-        console.warn('⚠️ 토큰 검증 실패, 익명 요청으로 처리');
+        console.warn('⚠️ 토큰 검증 실패, 익명 요청으로 처리:', authError.message);
       }
+    } else {
+      console.log('ℹ️ 익명 요청으로 처리 (인증 헤더 없음)');
     }
 
     // 사이트맵 업데이트 실행
@@ -1034,6 +1075,116 @@ exports.updateSitemapManual = functions.https.onRequest(async (req, res) => {
       error: 'Internal server error',
       message: error.message,
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 기사 분석 함수 (디버깅용)
+exports.analyzeArticles = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    console.log('🔍 기사 분석 시작...');
+    
+    const analysis = await analyzeAllArticles();
+    
+    if (analysis) {
+      console.log('✅ 기사 분석 완료');
+      res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        analysis: analysis
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Analysis failed'
+      });
+    }
+    
+  } catch (error) {
+    console.error('🚨 기사 분석 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Firestore 사이트맵 데이터 직접 확인 함수 (디버깅용)
+exports.checkFirestoreSitemap = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    console.log('🔍 Firestore 사이트맵 데이터 확인 시작...');
+    
+    const db = admin.firestore();
+    const sitemapDoc = await db.collection('system').doc('sitemap').get();
+    
+    if (!sitemapDoc.exists) {
+      res.json({
+        success: false,
+        error: 'Sitemap document not found in Firestore'
+      });
+      return;
+    }
+    
+    const sitemapData = sitemapDoc.data();
+    const xml = sitemapData.xml || '';
+    
+    // XML에서 기사 개수 계산
+    const articleMatches = xml.match(/\/article\//g) || [];
+    const articleCount = articleMatches.length;
+    
+    // XML 길이 및 기본 정보
+    const xmlLength = xml.length;
+    const lastUpdated = sitemapData.lastUpdated;
+    const forceUpdate = sitemapData.forceUpdate;
+    
+    // XML 샘플 (처음 1000자)
+    const xmlSample = xml.substring(0, 1000);
+    
+    console.log(`📊 Firestore 사이트맵 분석:`);
+    console.log(`  - XML 길이: ${xmlLength}`);
+    console.log(`  - 기사 개수: ${articleCount}`);
+    console.log(`  - 마지막 업데이트: ${lastUpdated}`);
+    console.log(`  - 강제 업데이트: ${forceUpdate}`);
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      firestore: {
+        exists: true,
+        xmlLength: xmlLength,
+        articleCount: articleCount,
+        lastUpdated: lastUpdated,
+        forceUpdate: forceUpdate,
+        stats: sitemapData.stats,
+        xmlSample: xmlSample
+      }
+    });
+    
+  } catch (error) {
+    console.error('🚨 Firestore 사이트맵 확인 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

@@ -8,15 +8,36 @@ export const requestSitemapUpdate = async () => {
   try {
     console.log('🔄 사이트맵 수동 업데이트 요청...');
 
-    // Firebase Functions 엔드포인트 호출 (새 URL 적용)
+    // Firebase Functions 엔드포인트 호출 (표준 Functions URL 사용)
     const isProduction = window.location.hostname === 'marlang-app.web.app';
     const functionsUrl = isProduction
-      ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
+      ? 'https://us-central1-marlang-app.cloudfunctions.net/updateSitemapManual'
       : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
 
     console.log('🔗 Functions URL:', functionsUrl);
     console.log('🌍 Environment:', isProduction ? 'Production' : 'Development');
+    console.log('🕐 Request timestamp:', new Date().toISOString());
 
+    // 먼저 연결 테스트
+    console.log('🧪 연결 테스트 중...');
+    const testResponse = await fetch(functionsUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    console.log('🧪 연결 테스트 결과:', testResponse.status, testResponse.statusText);
+
+    if (testResponse.ok) {
+      const testData = await testResponse.text();
+      console.log('🧪 연결 테스트 응답:', testData);
+    }
+
+    // 실제 업데이트 요청
+    console.log('📤 실제 업데이트 요청 전송...');
     const response = await fetch(functionsUrl, {
       method: 'POST',
       headers: {
@@ -27,38 +48,106 @@ export const requestSitemapUpdate = async () => {
       credentials: 'omit',
       body: JSON.stringify({
         timestamp: new Date().toISOString(),
-        source: 'client_request'
+        source: 'client_request',
+        userAgent: navigator.userAgent,
+        referrer: window.location.href
       })
     });
 
-    console.log('📡 Response status:', response.status);
+    console.log('📡 Response status:', response.status, response.statusText);
     console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        errorText = await response.text();
+      } catch (textError) {
+        errorText = `Failed to read error response: ${textError.message}`;
+      }
+      
       console.error('🚨 HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      
+      // 상세한 에러 정보 제공
+      const errorDetails = {
+        status: response.status,
+        statusText: response.statusText,
+        url: functionsUrl,
+        method: 'POST',
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText
+      };
+      
+      console.error('🚨 Error details:', errorDetails);
+      
+      throw new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`);
     }
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      const textResponse = await response.text();
+      console.error('🚨 JSON 파싱 실패, 텍스트 응답:', textResponse);
+      throw new Error(`Invalid JSON response: ${textResponse}`);
+    }
+
     console.log('📦 Response data:', result);
 
-    console.log('✅ 사이트맵 업데이트 완료:', result);
-
-    return {
-      success: true,
-      message: '사이트맵이 성공적으로 업데이트되었습니다.',
-      stats: result.stats,
-      timestamp: result.timestamp
-    };
+    if (result.success) {
+      console.log('✅ 사이트맵 업데이트 완료:', result.stats);
+      
+      // 업데이트 후 검증
+      setTimeout(async () => {
+        try {
+          const verificationResult = await checkSitemapStatus();
+          console.log('🔍 업데이트 후 검증:', verificationResult);
+        } catch (verifyError) {
+          console.warn('⚠️ 업데이트 후 검증 실패:', verifyError);
+        }
+      }, 3000);
+      
+      return {
+        success: true,
+        message: '사이트맵이 성공적으로 업데이트되었습니다.',
+        stats: result.stats,
+        timestamp: result.timestamp,
+        debug: result.debug
+      };
+    } else {
+      console.error('❌ 서버에서 실패 응답:', result);
+      return {
+        success: false,
+        message: result.message || '서버에서 실패 응답을 받았습니다.',
+        error: result.error
+      };
+    }
 
   } catch (error) {
     console.error('🚨 사이트맵 업데이트 실패:', error);
+    console.error('🚨 Error stack:', error.stack);
+
+    // 네트워크 에러인지 확인
+    const isNetworkError = error.name === 'TypeError' && error.message.includes('fetch');
+    const isCorsError = error.message.includes('CORS') || error.message.includes('cors');
+    
+    let userFriendlyMessage = '사이트맵 업데이트에 실패했습니다.';
+    
+    if (isNetworkError) {
+      userFriendlyMessage += ' (네트워크 연결 문제)';
+    } else if (isCorsError) {
+      userFriendlyMessage += ' (CORS 정책 문제)';
+    } else if (error.message.includes('HTTP 500')) {
+      userFriendlyMessage += ' (서버 내부 오류)';
+    } else if (error.message.includes('HTTP 404')) {
+      userFriendlyMessage += ' (함수를 찾을 수 없음)';
+    }
 
     return {
       success: false,
-      message: '사이트맵 업데이트에 실패했습니다.',
-      error: error.message
+      message: userFriendlyMessage,
+      error: error.message,
+      errorType: isNetworkError ? 'network' : isCorsError ? 'cors' : 'server',
+      timestamp: new Date().toISOString()
     };
   }
 };
@@ -182,7 +271,7 @@ export const testSitemapConnection = async () => {
   try {
     const isProduction = window.location.hostname === 'marlang-app.web.app';
     const functionsUrl = isProduction
-      ? 'https://updatesitemapmanual-tdblwekz3q-uc.a.run.app'
+      ? 'https://us-central1-marlang-app.cloudfunctions.net/updateSitemapManual'
       : 'http://localhost:5001/marlang-app/us-central1/updateSitemapManual';
 
     console.log('🧪 연결 테스트 시작...');

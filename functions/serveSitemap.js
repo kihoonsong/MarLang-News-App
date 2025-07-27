@@ -59,21 +59,26 @@ exports.serveSitemap = functions.https.onRequest(async (req, res) => {
     console.log(`🔄 강제 업데이트 타임스탬프: ${sitemapData.forceUpdate || 'N/A'}`);
 
     // XML 응답 헤더 설정 (강화된 캐시 방지)
+    const now = new Date();
     res.set('Content-Type', 'application/xml; charset=utf-8');
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    res.set('Last-Modified', new Date(sitemapData.lastUpdated).toUTCString());
-    res.set('ETag', `"${sitemapData.forceUpdate || Date.now()}"`); // 강제 업데이트 타임스탬프 사용
+    res.set('Last-Modified', now.toUTCString()); // 현재 시간으로 설정
+    res.set('ETag', `"${Date.now()}-${sitemapData.forceUpdate}"`); // 현재 타임스탬프 포함
+    res.set('Content-Length', Buffer.byteLength(sitemapXML, 'utf8').toString());
+    res.set('Vary', 'Accept-Encoding, User-Agent'); // 캐시 무효화 강화
 
     // 추가 디버깅 정보 (헤더에 포함)
     res.set('X-Sitemap-Updated', sitemapData.lastUpdated);
     res.set('X-Sitemap-Articles', articleCount.toString());
     res.set('X-Sitemap-Force-Update', (sitemapData.forceUpdate || 0).toString());
     res.set('X-Sitemap-Stats', JSON.stringify(sitemapData.stats || {}));
+    res.set('X-Sitemap-Original-Length', sitemapXML.length.toString());
+    res.set('X-Sitemap-Byte-Length', Buffer.byteLength(sitemapXML, 'utf8').toString());
 
-    // XML 응답
-    res.status(200).send(sitemapXML);
+    // XML 응답 (Buffer로 명시적 변환)
+    res.status(200).end(Buffer.from(sitemapXML, 'utf8'));
 
   } catch (error) {
     console.error('🚨 사이트맵 서빙 실패:', error);
