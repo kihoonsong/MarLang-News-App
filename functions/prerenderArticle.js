@@ -781,7 +781,31 @@ exports.prerenderArticle = onRequest({
     try {
         // URL에서 기사 ID 추출
         const path = req.path;
-        const articleId = path.split('/').pop();
+        const pathParts = path.split('/').filter(part => part);
+        
+        console.log(`🔍 프리렌더링 요청 경로: ${path}, 파트: ${JSON.stringify(pathParts)}`);
+
+        // 메인 페이지나 기사가 아닌 경로는 404 처리
+        if (pathParts.length === 0 || pathParts[0] !== 'article' || pathParts.length !== 2) {
+            console.log(`❌ 잘못된 경로, 404 처리: ${path}`);
+            res.status(404).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Page Not Found</title>
+                    <meta http-equiv="refresh" content="0;url=/">
+                </head>
+                <body>
+                    <script>window.location.href = '/';</script>
+                    <p>Redirecting to home page...</p>
+                </body>
+                </html>
+            `);
+            return;
+        }
+
+        const articleId = pathParts[1];
 
         console.log(`🔍 기사 프리렌더링 요청: ${articleId}`);
 

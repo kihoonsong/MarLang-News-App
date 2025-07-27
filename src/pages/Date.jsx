@@ -331,26 +331,34 @@ const DatePage = () => {
 
               {currentArticles.length > 0 ? (
                 isMobile ? (
-                  <HorizontalArticleScroll 
-                    articles={currentArticles}
-                    navigate={navigate}
-                    showAds={true}
-                    cardWidth="85vw"
-                    autoPlay={true}
-                    delay={3000}
-                    pauseAfterTouch={3000}
-                  />
+                  <HorizontalScrollContainer>
+                    <ArticleRow>
+                      {(currentArticles || []).map(article => {
+                        if (!article || !article.id) return null;
+                        return (
+                          <ArticleCardWrapper key={article.id}>
+                            <ArticleCard 
+                              {...article}
+                              publishedAt={article.publishedAt}
+                              navigate={navigate}
+                            />
+                          </ArticleCardWrapper>
+                        );
+                      }).filter(Boolean)}
+                    </ArticleRow>
+                  </HorizontalScrollContainer>
                 ) : (
                   <ArticleGrid>
                     {(currentArticles || []).map(article => {
                       if (!article || !article.id) return null;
                       return (
-                        <ArticleCardWrapper key={article.id}>
+                        <ArticleGridWrapper key={article.id}>
                           <ArticleCard 
                             {...article}
                             publishedAt={article.publishedAt}
+                            navigate={navigate}
                           />
-                        </ArticleCardWrapper>
+                        </ArticleGridWrapper>
                       );
                     }).filter(Boolean)}
                   </ArticleGrid>
@@ -540,15 +548,19 @@ const ArticlesSection = styled.div`
   border-radius: 16px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.08);
   padding: 1.5rem;
+  padding-bottom: 0; /* 하단 패딩 제거하여 스크롤 컨테이너가 끝까지 갈 수 있도록 */
   
   ${props => props.$isMobile && `
     flex: 1;
     min-height: 0;
     margin-bottom: 1rem;
+    padding-left: 0; /* 모바일에서 좌측 패딩 제거 */
+    padding-right: 0; /* 모바일에서 우측 패딩 제거 */
   `}
   
   @media (min-width: 768px) {
     padding: 2rem;
+    padding-bottom: 0; /* 데스크톱에서도 하단 패딩 제거 */
   }
 `;
 
@@ -557,11 +569,13 @@ const ArticlesHeader = styled.div`
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+  padding: 0 1.5rem; /* 모바일에서 헤더에 패딩 추가 */
   
   @media (min-width: 768px) {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+    padding: 0; /* 데스크톱에서는 패딩 제거 (부모에서 처리) */
   }
 `;
 
@@ -571,14 +585,72 @@ const FilterContainer = styled.div`
   gap: 0.5rem;
 `;
 
+const HorizontalScrollContainer = styled.div`
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  /* 모바일에서 스크롤 스냅 적용 */
+  @media (max-width: 768px) {
+    scroll-snap-type: x mandatory;
+    padding-left: 2vw; /* 여백 조정 */
+  }
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+`;
+
+const ArticleRow = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  min-width: max-content;
+  padding: 0.5rem 0;
+  
+  /* 모바일에서 간격 조정 */
+  @media (max-width: 768px) {
+    gap: 0.375rem; /* 기존 0.75rem의 절반 */
+  }
+`;
+
+const ArticleCardWrapper = styled.div`
+  flex: 0 0 320px;
+  width: 320px;
+  
+  /* 모바일에서 카드 폭 조정하여 다음 카드 1/10 정도 보이도록 */
+  @media (max-width: 768px) {
+    flex: 0 0 85vw;
+    width: 85vw;
+    scroll-snap-align: start; /* 스크롤 스냅 추가 */
+  }
+`;
+
 const ArticleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 `;
 
-const ArticleCardWrapper = styled.div`
-  /* 이 Wrapper는 이제 그리드 아이템 역할을 하므로 별도 스타일이 필요 없습니다. */
+const ArticleGridWrapper = styled.div`
+  /* 데스크톱 그리드용 래퍼 */
 `;
 
 const NewsCard = styled(Card)`
