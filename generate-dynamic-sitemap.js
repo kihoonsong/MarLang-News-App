@@ -105,7 +105,24 @@ async function generateSitemap() {
     // 카테고리 페이지 추가 (URL 정규화)
     categories.forEach(category => {
       // 이모지와 특수문자 제거하고 정규화된 URL 생성
-      const cleanId = category.id.replace(/[^\w-]/g, '').toLowerCase();
+      let cleanId = category.id
+        .replace(/[^\w\s-]/g, '') // 이모지와 특수문자 제거
+        .replace(/\s+/g, '-')     // 공백을 하이픈으로
+        .replace(/_+/g, '')       // 언더스코어 제거
+        .toLowerCase()
+        .trim();
+      
+      // 기본 카테고리 매핑 (안전장치)
+      const categoryMapping = {
+        'businiess': 'business',
+        'politics': 'politics', 
+        'tech': 'technology',
+        'culture': 'culture',
+        'world': 'world'
+      };
+      
+      cleanId = categoryMapping[cleanId] || cleanId;
+      
       sitemap += `  <!-- ${category.name} 카테고리 -->
   <url>
     <loc>${SITE_URL}/category/${cleanId}</loc>

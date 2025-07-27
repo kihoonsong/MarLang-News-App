@@ -3,134 +3,205 @@
   <!-- 메인 페이지 -->
   <url>
     <loc>https://marlang-app.web.app/</loc>
-    <lastmod>2025-07-22</lastmod>
+    <lastmod>2025-07-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   
+  <!-- Businiess 📈 카테고리 -->
   <url>
-    <loc>https://marlang-app.web.app/businiess_📈</loc>
-    <lastmod>2025-07-22</lastmod>
+    <loc>https://marlang-app.web.app/category/business</loc>
+    <lastmod>2025-07-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/politics_🗣️</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/tech_📱</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/culture_🎉</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/world_🌐</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- 기능 페이지들 -->
-  <url>
-    <loc>https://marlang-app.web.app/search</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/wordbook</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
   </url>
   
-  <!-- 정책 페이지들 -->
+  <!-- Politics 🗣️ 카테고리 -->
   <url>
-    <loc>https://marlang-app.web.app/privacy</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://marlang-app.web.app/contact</loc>
-    <lastmod>2025-07-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://marlang-app.web.app/category/politics</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   
-  <!-- 개별 기사들 -->
+  <!-- Tech 📱 카테고리 -->
+  <url>
+    <loc>https://marlang-app.web.app/category/technology</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Culture 🎉 카테고리 -->
+  <url>
+    <loc>https://marlang-app.web.app/category/culture</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- World 🌐 카테고리 -->
+  <url>
+    <loc>https://marlang-app.web.app/category/world</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- 개별 기사들 (96개) -->
+  <url>
+    <loc>https://marlang-app.web.app/article/MIJAF1j6HDImVfpGWZOo</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/fk1BA5d9fCFPJYh0mg9W</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/Qo7t2V8JR99Uh1mTmMUg</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/Nf0OPbPOzXNL0ClEVoLd</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/YkUuASZfYhHmSe2nflDF</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/nO6K6Sm7KhMrvbVh4jYN</loc>
+    <lastmod>2025-07-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/rb53w0pCxZ5wivQKAKO9</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/SN7vLUIRE32eUvMm2lUw</loc>
+    <lastmod>2025-07-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/YhGqrB09MjUKJKrr1XSq</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/aFg9snvZihKuA9GjO1zi</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/WjXlbO1f5Ik8cP8MYQbo</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/wuaFHNKFbCMyf6g4xabQ</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/VkWkFOstiH2PLWSklq79</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/LB8rqS1IhKVB2XaYMNrH</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/article/walgnOik5aa3RGVFW7K3</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
   <url>
     <loc>https://marlang-app.web.app/article/oGpTDV7nnwF43Gu5CDJi</loc>
-    <lastmod>2025-07-22</lastmod>
+    <lastmod>2025-07-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/Y83X0sRFPUKopXoLDqbb</loc>
-    <lastmod>2025-07-21</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/AXzfMba4LGC9q1ySGE8w</loc>
-    <lastmod>2025-07-21</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/d63lvhQWjyrmi2cvdiML</loc>
-    <lastmod>2025-07-22</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/3I714BYoMZ4rGWy54Kh8</loc>
-    <lastmod>2025-07-22</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/vdIs79InwmuSsdKnP3gM</loc>
-    <lastmod>2025-07-21</lastmod>
+    <lastmod>2025-07-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/gXCDZO4CxHerSAMQ4Cf9</loc>
-    <lastmod>2025-07-21</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/b2e4mf2FcF3y0AluOyAF</loc>
-    <lastmod>2025-07-22</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/tNsyiZyKgj0V8SPqmc9Z</loc>
-    <lastmod>2025-07-21</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/iolS5jNTgBv1Qu1GQ5A9</loc>
-    <lastmod>2025-07-20</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/iULcya0GxDwAKakkmxKn</loc>
-    <lastmod>2025-07-20</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -394,7 +465,7 @@
   </url>
   <url>
     <loc>https://marlang-app.web.app/article/k5SDDwBjD8Fg4EvKOhbF</loc>
-    <lastmod>2025-07-10</lastmod>
+    <lastmod>2025-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -553,5 +624,45 @@
     <lastmod>2025-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+
+  <!-- 기능 페이지들 -->
+  <url>
+    <loc>https://marlang-app.web.app/search</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/wordbook</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/about</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- 정책 페이지들 -->
+  <url>
+    <loc>https://marlang-app.web.app/privacy</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/terms</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://marlang-app.web.app/contact</loc>
+    <lastmod>2025-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>

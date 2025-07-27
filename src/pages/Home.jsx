@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { 
-  AppBar, Toolbar, Typography, InputBase, Tabs, Tab, Box, 
+import {
+  AppBar, Toolbar, Typography, InputBase, Tabs, Tab, Box,
   IconButton, Avatar, Menu, MenuItem, ListItemIcon, ListItemText,
   useMediaQuery, useTheme, Alert, Button, Chip
 } from '@mui/material';
@@ -51,14 +51,14 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
           )}
         </CategoryTitle>
       </CategoryHeader>
-      
+
       <HorizontalScrollContainer id={`scroll-${category.id}`}>
         <ArticleRow>
           {articles.length > 0 ? itemsWithAds.map(item => {
             if (item.type === 'ad') {
               return (
                 <ArticleCardWrapper key={item.id}>
-                  <AdCard 
+                  <AdCard
                     adSlot={item.adSlot || 'articleBanner'}
                     minHeight="360px"
                     showLabel={true}
@@ -90,16 +90,16 @@ const Home = () => {
 
   // 오류 상태 추가
   const [homeError, setHomeError] = useState(null);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsData, setAllNewsData] = useState({});
-  
+
   // 공지사항 상태
   const [notices, setNotices] = useState(() => {
     const saved = localStorage.getItem('marlang_notices');
     return saved ? JSON.parse(saved).filter(notice => notice.active) : [];
   });
-  
+
   // 기본 카테고리 정의
   const defaultCategories = [
     { id: 'recent', name: 'Recent', type: 'recent' },
@@ -113,24 +113,24 @@ const Home = () => {
 
   // 동적 카테고리 관리 - ArticlesContext에서 가져오기
   const [localCategories, setLocalCategories] = useState(defaultCategories);
-  
+
   // Use shared articles context with null check
   const articlesContext = useArticles();
-  
+
   // Context가 null인 경우 기본값 설정
-  const { 
-    loading = true, 
-    error = null, 
+  const {
+    loading = true,
+    error = null,
     categories: contextCategories = [],
-    getRecentArticles = () => [], 
-    getPopularArticles = () => [], 
-    getArticlesByCategory = () => [], 
-    refreshArticles = () => {}
+    getRecentArticles = () => [],
+    getPopularArticles = () => [],
+    getArticlesByCategory = () => [],
+    refreshArticles = () => { }
   } = articlesContext || {};
 
   // 카테고리 동기화
-  const categories = Array.isArray(contextCategories) && contextCategories.length > 0 
-    ? contextCategories 
+  const categories = Array.isArray(contextCategories) && contextCategories.length > 0
+    ? contextCategories
     : localCategories;
 
   // 카테고리 변경 감지 및 동기화
@@ -155,7 +155,7 @@ const Home = () => {
 
     const handleArticleUpdate = (event) => {
       const { type, article } = event.detail;
-      
+
       if (type === 'add') {
         toast.success(`새 기사가 추가되었습니다: ${article.title}`);
         refreshArticles();
@@ -171,7 +171,7 @@ const Home = () => {
     window.addEventListener('categoriesUpdated', handleCategoryUpdate);
     window.addEventListener('articleUpdated', handleArticleUpdate);
     window.addEventListener('noticesUpdated', handleNoticesUpdate);
-    
+
     return () => {
       window.removeEventListener('categoriesUpdated', handleCategoryUpdate);
       window.removeEventListener('articleUpdated', handleArticleUpdate);
@@ -184,7 +184,7 @@ const Home = () => {
     const loadCategoryData = async () => {
       try {
         setHomeError(null);
-        
+
         if (!loading && Array.isArray(categories)) {
           const categoryData = {};
 
@@ -192,7 +192,7 @@ const Home = () => {
           if (getRecentArticles && typeof getRecentArticles === 'function') {
             categoryData.recent = getRecentArticles(10) || [];
           }
-          
+
           if (getPopularArticles && typeof getPopularArticles === 'function') {
             categoryData.popular = getPopularArticles(10) || [];
           }
@@ -219,7 +219,7 @@ const Home = () => {
   const handleCategoryClick = (category) => {
     const element = document.getElementById(`category-${category.id}`);
     if (element) {
-      element.scrollIntoView({ 
+      element.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       });
@@ -239,24 +239,24 @@ const Home = () => {
     refreshArticles();
     toast.info('Refreshing articles...');
   };
-  
+
   return (
     <>
       {/* SEO 메타데이터 */}
       <SimpleSEO />
-      
+
       {/* 홈페이지 소셜 메타데이터 */}
       <HomeSocialMeta />
-      
+
       {/* 통합 네비게이션 */}
-      <MainNavigation 
+      <MainNavigation
         showCategoryTabs={true}
       >
         {/* 카테고리 탭 */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-          <Tabs 
-            value={false} 
-            variant="scrollable" 
+          <Tabs
+            value={false}
+            variant="scrollable"
             scrollButtons="auto"
             sx={{
               '& .MuiTab-root': {
@@ -266,11 +266,11 @@ const Home = () => {
             }}
           >
             {Array.isArray(categories) && categories.map((category) => (
-              <Tab 
-                key={category?.id || 'unknown'} 
+              <Tab
+                key={category?.id || 'unknown'}
                 label={category?.name || 'Unknown'}
                 onClick={() => handleCategoryClick(category)}
-                sx={{ 
+                sx={{
                   fontWeight: 'medium',
                   cursor: 'pointer',
                   '&:hover': {
@@ -282,14 +282,14 @@ const Home = () => {
           </Tabs>
         </Box>
       </MainNavigation>
-      
+
       <MobileContentWrapper>
         {/* 에러 상태 처리 */}
         {(error || homeError) && (
           <Box sx={{ p: 2 }}>
             <ErrorBoundary fallback={NewsListErrorFallback}>
-              <Alert 
-                severity="warning" 
+              <Alert
+                severity="warning"
                 action={
                   <Button color="inherit" size="small" onClick={retryNews} startIcon={<RefreshIcon />}>
                     Retry
@@ -302,7 +302,7 @@ const Home = () => {
             </ErrorBoundary>
           </Box>
         )}
-        
+
         {/* 로딩 상태 */}
         {loading ? (
           <ArticleListSkeleton count={6} />
@@ -315,14 +315,14 @@ const Home = () => {
                 {Array.isArray(notices) && notices.map((notice, index) => {
                   if (!notice) return null;
                   return (
-                    <Alert 
+                    <Alert
                       key={notice.id || index}
-                      severity={notice.type || 'info'} 
+                      severity={notice.type || 'info'}
                       sx={{ mb: 1 }}
                       onClose={() => {
                         const updatedNotices = notices.filter((_, i) => i !== index);
                         setNotices(updatedNotices);
-                        
+
                         // 로컬스토리지 업데이트
                         try {
                           const allNotices = JSON.parse(localStorage.getItem('marlang_notices') || '[]');
@@ -394,8 +394,8 @@ const CategoryTitle = styled.h2`
 const AllLabel = styled.span`
   font-size: 0.6rem;
   font-weight: bold;
-  background-color: ${props => props.theme.palette.mode === 'dark' 
-    ? 'rgba(255, 255, 255, 0.08)' 
+  background-color: ${props => props.theme.palette.mode === 'dark'
+    ? 'rgba(255, 255, 255, 0.08)'
     : 'rgba(0, 0, 0, 0.08)'};
   color: ${props => props.theme.palette.text.secondary};
   padding: 2px 4px;
@@ -408,7 +408,7 @@ const AllLabel = styled.span`
   pointer-events: none;
 `;
 
-  
+
 const NoticeSection = styled.div`
   margin-bottom: ${designTokens.spacing.md};
 `;

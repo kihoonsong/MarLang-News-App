@@ -29,8 +29,27 @@
       gtag('js', new Date());
       gtag('config', 'G-YBHK8QXMZR', {
         page_title: document.title,
-        page_location: window.location.href
+        page_location: window.location.href,
+        // 봇 트래픽 필터링 강화
+        send_page_view: true,
+        // 중복 이벤트 방지
+        transport_type: 'beacon',
+        // 정확한 사용자 추적
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false
       });
+      
+      // 봇 감지 및 필터링
+      gtag('config', 'G-YBHK8QXMZR', {
+        custom_map: {'custom_parameter_1': 'user_type'}
+      });
+      
+      // 실제 사용자 상호작용만 추적
+      if (!navigator.webdriver && !window.phantom && !window._phantom) {
+        gtag('event', 'real_user', {
+          'custom_parameter_1': 'human'
+        });
+      }
     </script>
     
     <!-- Google AdSense script -->

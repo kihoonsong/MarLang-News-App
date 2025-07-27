@@ -65,9 +65,9 @@ async function generateSitemapXML() {
     
     // 카테고리 페이지 추가
     categories.forEach(category => {
-      sitemap += `  <!-- ${category.name} 📈 카테고리 -->
+      sitemap += `  <!-- ${category.name} 카테고리 -->
   <url>
-    <loc>${SITE_URL}/${category.id}</loc>
+    <loc>${SITE_URL}/category/${category.id}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
