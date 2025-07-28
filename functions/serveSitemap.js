@@ -12,6 +12,8 @@ const admin = require('firebase-admin');
 exports.serveSitemap = functions.https.onRequest(async (req, res) => {
   try {
     console.log('📄 사이트맵 요청 수신');
+    console.log('🔗 Request URL:', req.url);
+    console.log('📊 Query params:', req.query);
 
     // CORS 헤더 설정
     res.set('Access-Control-Allow-Origin', '*');
@@ -60,14 +62,21 @@ exports.serveSitemap = functions.https.onRequest(async (req, res) => {
 
     // XML 응답 헤더 설정 (강화된 캐시 방지)
     const now = new Date();
+    const forceUpdate = sitemapData.forceUpdate || Date.now();
+    
     res.set('Content-Type', 'application/xml; charset=utf-8');
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     res.set('Last-Modified', now.toUTCString()); // 현재 시간으로 설정
-    res.set('ETag', `"${Date.now()}-${sitemapData.forceUpdate}"`); // 현재 타임스탬프 포함
+    res.set('ETag', `"${Date.now()}-${forceUpdate}"`); // 현재 타임스탬프 포함
     res.set('Content-Length', Buffer.byteLength(sitemapXML, 'utf8').toString());
-    res.set('Vary', 'Accept-Encoding, User-Agent'); // 캐시 무효화 강화
+    res.set('Vary', 'Accept-Encoding, User-Agent, Cache-Control'); // 캐시 무효화 강화
+    
+    // CDN 캐시 우회를 위한 추가 헤더
+    res.set('X-Accel-Expires', '0'); // Nginx 캐시 무효화
+    res.set('Surrogate-Control', 'no-store'); // CDN 캐시 무효화
+    res.set('X-Cache-Control', 'no-cache'); // 추가 캐시 제어
 
     // 추가 디버깅 정보 (헤더에 포함)
     res.set('X-Sitemap-Updated', sitemapData.lastUpdated);

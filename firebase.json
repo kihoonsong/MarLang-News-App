@@ -83,11 +83,19 @@
         "headers": [
           {
             "key": "Content-Type",
-            "value": "text/plain"
+            "value": "text/plain; charset=utf-8"
           },
           {
             "key": "Cache-Control",
-            "value": "public, max-age=3600"
+            "value": "public, max-age=86400"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex"
           }
         ]
       },

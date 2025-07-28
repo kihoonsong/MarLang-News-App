@@ -80,9 +80,12 @@ const SitemapManagement = ({ setSnackbar }) => {
       console.log('📦 업데이트 결과:', result);
       
       if (result.success) {
+        const timestamp = Date.now();
+        const directUrl = `https://marlang-app.web.app/sitemap.xml?t=${timestamp}&nocache=1`;
+        
         setSnackbar({
           open: true,
-          message: `사이트맵이 성공적으로 업데이트되었습니다. (${result.stats?.totalUrls || 0}개 URL)`,
+          message: `✅ 사이트맵 업데이트 완료! (${result.stats?.totalUrls || 0}개 URL) CDN 반영까지 15-30분 소요`,
           severity: 'success'
         });
         
@@ -95,9 +98,21 @@ const SitemapManagement = ({ setSnackbar }) => {
         };
         setUpdateHistory(prev => [newUpdate, ...prev.slice(0, 4)]); // 최근 5개만 유지
         
-        // 상태 새로고침 (약간의 지연 후)
+        // 상태 새로고침 (캐시 우회로 즉시 확인)
         setTimeout(async () => {
+          console.log('🔄 업데이트 후 상태 확인 (캐시 우회)');
+          const bypassStatus = await checkSitemapStatus(true); // 캐시 우회
+          console.log('📊 캐시 우회 상태:', bypassStatus);
+          
+          // 일반 상태도 확인
           await checkCurrentSitemapStatus();
+          
+          // 사용자에게 즉시 확인 링크 제공
+          setSnackbar({
+            open: true,
+            message: `✅ 업데이트 완료! 즉시 확인하려면 새 탭에서 사이트맵을 열어보세요.`,
+            severity: 'success'
+          });
         }, 2000);
       } else {
         console.error('❌ 사이트맵 업데이트 실패:', result);
@@ -143,9 +158,11 @@ const SitemapManagement = ({ setSnackbar }) => {
     window.open(url, '_blank');
   };
 
-  // 사이트맵 파일 열기
+  // 사이트맵 파일 열기 (캐시 우회)
   const openSitemapFile = () => {
-    window.open('https://marlang-app.web.app/sitemap.xml', '_blank');
+    const timestamp = Date.now();
+    const sitemapUrl = `https://marlang-app.web.app/sitemap.xml?t=${timestamp}&nocache=1`;
+    window.open(sitemapUrl, '_blank');
   };
 
   // 디버깅 정보 출력
@@ -287,7 +304,7 @@ const SitemapManagement = ({ setSnackbar }) => {
                   onClick={openSitemapFile}
                   fullWidth
                 >
-                  사이트맵 파일 보기
+                  사이트맵 파일 보기 (캐시 우회)
                 </Button>
                 
                 <Button
@@ -299,6 +316,16 @@ const SitemapManagement = ({ setSnackbar }) => {
                   color="info"
                 >
                   연결 테스트
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  startIcon={<LaunchIcon />}
+                  onClick={() => window.open('https://us-central1-marlang-app.cloudfunctions.net/serveSitemap', '_blank')}
+                  fullWidth
+                  color="secondary"
+                >
+                  Functions 직접 확인 (항상 최신)
                 </Button>
               </Box>
             </CardContent>
@@ -315,6 +342,12 @@ const SitemapManagement = ({ setSnackbar }) => {
               
               <Alert severity="info" sx={{ mb: 2 }}>
                 사이트맵은 다음 상황에서 자동으로 업데이트됩니다:
+              </Alert>
+              
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                💡 <strong>즉시 확인 방법:</strong> 업데이트 후 "Functions 직접 확인" 버튼을 클릭하거나, 
+                "사이트맵 파일 보기" 버튼으로 캐시 우회 URL을 확인하세요. 
+                일반 URL은 CDN 캐싱으로 인해 15-30분 후 반영됩니다.
               </Alert>
               
               <List dense>
@@ -448,10 +481,19 @@ const SitemapManagement = ({ setSnackbar }) => {
                   <ListItem disablePadding>
                     <Button 
                       size="small" 
+                      onClick={() => checkSitemapStatus(true)}
+                      startIcon={<RefreshIcon />}
+                    >
+                      캐시 우회 상태 확인
+                    </Button>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <Button 
+                      size="small" 
                       onClick={checkCurrentSitemapStatus}
                       startIcon={<RefreshIcon />}
                     >
-                      상태 새로고침
+                      일반 상태 새로고침
                     </Button>
                   </ListItem>
                 </List>

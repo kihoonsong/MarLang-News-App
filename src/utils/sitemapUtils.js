@@ -155,31 +155,53 @@ export const requestSitemapUpdate = async () => {
 /**
  * 사이트맵 상태를 확인하는 함수
  */
-export const checkSitemapStatus = async () => {
+export const checkSitemapStatus = async (bypassCache = false) => {
   try {
-    // 현재 사이트맵 URL 확인
-    const sitemapUrl = 'https://marlang-app.web.app/sitemap.xml';
+    // 캐시 우회 옵션
+    const timestamp = Date.now();
+    const baseUrl = 'https://marlang-app.web.app/sitemap.xml';
+    const sitemapUrl = bypassCache ? `${baseUrl}?t=${timestamp}&nocache=1` : baseUrl;
+
+    console.log('🔍 사이트맵 상태 확인:', sitemapUrl);
+
+    const headers = {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
 
     const response = await fetch(sitemapUrl, {
       method: 'HEAD', // 헤더만 가져오기
+      headers: bypassCache ? headers : {}
     });
 
     if (response.ok) {
       const lastModified = response.headers.get('last-modified');
       const contentLength = response.headers.get('content-length');
+      const etag = response.headers.get('etag');
+
+      console.log('📊 사이트맵 헤더 정보:', {
+        lastModified,
+        contentLength,
+        etag,
+        bypassCache
+      });
 
       return {
         exists: true,
         lastModified: lastModified ? new Date(lastModified) : null,
         size: contentLength ? parseInt(contentLength) : null,
+        etag: etag,
         url: sitemapUrl,
-        status: 'active'
+        status: 'active',
+        bypassCache
       };
     } else {
       return {
         exists: false,
         url: sitemapUrl,
-        status: 'error'
+        status: 'error',
+        bypassCache
       };
     }
 
@@ -188,7 +210,8 @@ export const checkSitemapStatus = async () => {
     return {
       exists: false,
       error: error.message,
-      status: 'error'
+      status: 'error',
+      bypassCache
     };
   }
 };
