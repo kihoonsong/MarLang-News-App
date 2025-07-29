@@ -182,7 +182,8 @@ const createImageWithCanvas = async (article) => {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // 기사 이미지가 있는 경우 전체 화면에 표시 (썸네일용)
-    if (article.image) {
+    if (article.image && !article.image.includes('firebasestorage.googleapis.com')) {
+      // Firebase Storage 이미지는 CORS 문제로 인해 스킵하고 텍스트 버전 사용
       const img = new Image();
       img.crossOrigin = 'anonymous';
       

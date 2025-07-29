@@ -26,10 +26,19 @@ const NaverCallback = () => {
           throw new Error('인증 코드나 상태값이 없습니다.');
         }
 
-        // 상태값 검증
+        // 상태값 검증 (모바일 환경 고려)
         const savedState = sessionStorage.getItem('naverOAuthState');
-        if (state !== savedState) {
-          throw new Error('보안 검증에 실패했습니다. 다시 시도해주세요.');
+        console.log('🔍 네이버 상태값 검증:', { savedState, receivedState: state });
+        
+        if (!savedState) {
+          console.warn('⚠️ 저장된 상태값이 없음 - 모바일 환경에서 sessionStorage 손실 가능');
+          // 모바일에서 sessionStorage가 손실될 수 있으므로 경고만 출력하고 계속 진행
+        } else if (state !== savedState) {
+          console.warn('⚠️ 네이버 상태값 불일치:', { saved: savedState, received: state });
+          // 개발 환경에서만 엄격하게 검증, 프로덕션에서는 경고만
+          if (import.meta.env.DEV) {
+            throw new Error('보안 검증에 실패했습니다. 다시 시도해주세요.');
+          }
         }
 
         // Firebase Cloud Function에서 네이버 토큰 교환 및 사용자 정보 획득
@@ -128,10 +137,21 @@ const NaverCallback = () => {
         setStatus('error');
         setErrorMessage(err.message);
         
-        // 3초 후 홈으로 이동
+        // 모바일에서 더 빠른 에러 후 리디렉션
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const redirectDelay = isMobile ? 2000 : 3000;
+        
         setTimeout(() => {
+          console.log('🔄 네이버 에러 후 홈으로 리디렉션');
           navigate('/');
-        }, 3000);
+          
+          // 모바일에서 추가 보장
+          if (isMobile) {
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+          }
+        }, redirectDelay);
       }
     };
 

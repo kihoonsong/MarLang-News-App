@@ -17,7 +17,7 @@ import { useData } from '../contexts/DataContext';
 import PageContainer from '../components/PageContainer';
 import ArticleCard from '../components/ArticleCard';
 import SimpleSEO from '../components/SimpleSEO';
-import { SearchResultAdComponent } from '../components/AdComponents';
+// import { ContentWithAds } from '../components/ads'; // 광고 제거됨
 
 // 샘플 기사 데이터 (검색용)
 const sampleArticles = [
@@ -356,34 +356,26 @@ const Search = () => {
                 </Typography>
                 
                 {filteredResults.length > 0 ? (
-                  <>
-                    {/* 검색 결과가 있을 때만 광고 표시 */}
-                    <SearchResultAdComponent hasContent={true} />
-                    <ArticleGrid>
-                      {filteredResults.map(article => (
-                        <ArticleCardWrapper key={article.id}>
-                          <ArticleCard 
-                            {...article}
-                            publishedAt={article.date}
-                            onClick={() => handleArticleClick(article.id)}
-                          />
-                        </ArticleCardWrapper>
-                      ))}
-                    </ArticleGrid>
-                  </>
+                  <Grid container spacing={3}>
+                    {filteredResults.map(article => (
+                      <Grid item xs={12} sm={6} md={4} key={article.id}>
+                        <ArticleCard 
+                          {...article}
+                          publishedAt={article.date}
+                          onClick={() => handleArticleClick(article.id)}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
                 ) : (
-                  <>
-                    {/* 검색 결과가 없을 때는 광고 표시 안함 */}
-                    <SearchResultAdComponent hasContent={false} />
-                    <NoResults>
-                      <Typography variant="h6" color="text.secondary">
-                        No articles found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Try different keywords or remove some filters
-                      </Typography>
-                    </NoResults>
-                  </>
+                  <NoResults>
+                    <Typography variant="h6" color="text.secondary">
+                      No articles found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Try different keywords or remove some filters
+                    </Typography>
+                  </NoResults>
                 )}
               </ResultsSection>
             ) : (
@@ -394,9 +386,6 @@ const Search = () => {
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                   Search for articles by topic, category, or keywords
                 </Typography>
-                
-                {/* 추천 기사가 있을 때만 광고 표시 */}
-                <SearchResultAdComponent hasContent={sampleArticles.length > 0} />
                 
                 <Grid container spacing={3}>
                   {sampleArticles.slice(0, 6).map(article => (

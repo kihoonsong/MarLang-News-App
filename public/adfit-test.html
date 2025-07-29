@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카카오 애드핏 테스트</title>
+</head>
+<body>
+    <h1>카카오 애드핏 광고 테스트</h1>
+    
+    <h2>300x250 카드형 광고</h2>
+    <ins class="kakao_ad_area" style="display:none;" 
+         data-ad-unit="DAN-kXEIw2QcPNjJJ79V" 
+         data-ad-width="300" 
+         data-ad-height="250"></ins>
+    
+    <h2>728x90 데스크톱 배너</h2>
+    <ins class="kakao_ad_area" style="display:none;" 
+         data-ad-unit="DAN-JVIJRJhlqIMMpiLm" 
+         data-ad-width="728" 
+         data-ad-height="90"></ins>
+    
+    <h2>320x50 모바일 배너</h2>
+    <ins class="kakao_ad_area" style="display:none;" 
+         data-ad-unit="DAN-RNzVkjnBfLSGDxqM" 
+         data-ad-width="320" 
+         data-ad-height="50"></ins>
+
+    <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
+    
+    <script>
+        // 디버깅용 스크립트
+        setTimeout(() => {
+            console.log('=== 카카오 애드핏 디버깅 ===');
+            console.log('스크립트 로드됨:', !!window.kakaoAd);
+            
+            const adAreas = document.querySelectorAll('.kakao_ad_area');
+            console.log('광고 영역 개수:', adAreas.length);
+            
+            adAreas.forEach((area, index) => {
+                console.log(`광고 ${index + 1}:`, {
+                    unit: area.getAttribute('data-ad-unit'),
+                    width: area.getAttribute('data-ad-width'),
+                    height: area.getAttribute('data-ad-height'),
+                    display: area.style.display,
+                    visible: area.offsetWidth > 0 && area.offsetHeight > 0
+                });
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

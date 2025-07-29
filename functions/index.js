@@ -69,6 +69,157 @@ exports.synthesizeSpeech = functions.https.onCall(async (data, context) => {
   }
 });
 
+// 라인 소셜 로그인 인증 함수
+exports.lineAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth), async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', 'https://marlang-app.web.app');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { code, redirectUri } = req.body;
+
+    if (!code || !redirectUri) {
+      res.status(400).json({ error: 'Missing code or redirectUri parameter' });
+      return;
+    }
+
+    // 라인 환경 변수
+    const lineClientId = process.env.LINE_CLIENT_ID;
+    const lineClientSecret = process.env.LINE_CLIENT_SECRET;
+
+    if (!lineClientId || !lineClientSecret) {
+      console.error('🚨 Missing Line OAuth credentials');
+      res.status(500).json({
+        error: 'Server configuration error',
+        message: 'OAuth credentials not configured'
+      });
+      return;
+    }
+
+    console.log('라인 OAuth 요청 시작:', { hasCode: !!code, redirectUri });
+
+    // 1. 라인 액세스 토큰 요청
+    const tokenResponse = await axios.post('https://api.line.me/oauth2/v2.1/token', 
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri,
+        client_id: lineClientId,
+        client_secret: lineClientSecret
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    console.log('라인 토큰 응답:', tokenResponse.data);
+    const { access_token, refresh_token, id_token } = tokenResponse.data;
+
+    if (!access_token) {
+      throw new Error(`Failed to get access token from Line: ${JSON.stringify(tokenResponse.data)}`);
+    }
+
+    // 2. 라인 사용자 정보 요청
+    const userResponse = await axios.get('https://api.line.me/v2/profile', {
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    });
+
+    console.log('라인 사용자 정보 응답:', userResponse.data);
+    const lineUser = userResponse.data;
+
+    if (!lineUser || !lineUser.userId) {
+      throw new Error(`Failed to get user info from Line: ${JSON.stringify(userResponse.data)}`);
+    }
+
+    // 3. Firebase Auth에 라인 사용자 등록/업데이트
+    const uid = `line_${lineUser.userId}`;
+
+    try {
+      // 기존 사용자 확인
+      await admin.auth().getUser(uid);
+      console.log('기존 Firebase 사용자 발견:', uid);
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        // 새 사용자 생성
+        console.log('새 Firebase 사용자 생성:', uid);
+        await admin.auth().createUser({
+          uid: uid,
+          email: `${uid}@line.local`, // 라인은 이메일을 제공하지 않을 수 있음
+          displayName: lineUser.displayName || 'Line User',
+          photoURL: lineUser.pictureUrl || null
+        });
+      } else {
+        throw error;
+      }
+    }
+
+    // 4. Firestore에 사용자 정보 저장/업데이트
+    const userDoc = {
+      uid: uid,
+      email: `${uid}@line.local`,
+      name: lineUser.displayName || 'Line User',
+      picture: lineUser.pictureUrl || null,
+      provider: 'line',
+      role: 'user',
+      lineUserId: lineUser.userId,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // 기존 사용자인지 확인
+    const userRef = admin.firestore().collection('users').doc(uid);
+    const existingUser = await userRef.get();
+
+    if (!existingUser.exists) {
+      userDoc.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await userRef.set(userDoc, { merge: true });
+
+    // 5. 응답 데이터 구성
+    const responseData = {
+      success: true,
+      user: {
+        userId: lineUser.userId,
+        displayName: lineUser.displayName,
+        pictureUrl: lineUser.pictureUrl,
+        email: `${uid}@line.local`
+      },
+      accessToken: access_token,
+      refreshToken: refresh_token
+    };
+
+    console.log('📤 라인 인증 응답:', {
+      success: responseData.success,
+      userId: responseData.user.userId
+    });
+
+    res.json(responseData);
+
+  } catch (error) {
+    console.error('Line auth error:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 // 네이버 소셜 로그인 인증 함수 (업데이트됨)
 exports.naverAuth = functions.https.onRequest(applyRateLimit(rateLimiters.auth), async (req, res) => {
   // CORS 헤더 설정

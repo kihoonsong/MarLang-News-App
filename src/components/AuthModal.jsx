@@ -17,10 +17,21 @@ const NaverIcon = () => (
   </svg>
 );
 
+// 라인 아이콘 컴포넌트
+const LineIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18.8 8.5c0-4.4-4.4-8-9.8-8S-0.8 4.1-0.8 8.5c0 3.9 3.5 7.2 8.2 7.9.3.1.8.2 1 .5.1.2.1.6.1.8 0 0 .1.6.1.7.1.4.3.5.6.3.4-.2 2.1-1.2 2.9-1.7 1.5-1 2.7-2.2 3.7-3.8.7-1.1 1-2.3 1-3.7z" fill="#00B900"/>
+    <path d="M15.1 10.9H13c-.1 0-.2-.1-.2-.2V7.4c0-.1.1-.2.2-.2h2.1c.1 0 .2.1.2.2v.6c0 .1-.1.2-.2.2h-1.3v.5h1.3c.1 0 .2.1.2.2v.6c0 .1-.1.2-.2.2h-1.3v.5h1.3c.1 0 .2.1.2.2v.5c0 .1-.1.2-.2.2z" fill="white"/>
+    <path d="M11.8 10.9h-.6c-.1 0-.2-.1-.2-.2V8.4h-.9c-.1 0-.2-.1-.2-.2v-.6c0-.1.1-.2.2-.2h2.8c.1 0 .2.1.2.2v.6c0 .1-.1.2-.2.2h-.9v2.3c0 .1-.1.2-.2.2z" fill="white"/>
+    <path d="M8.9 10.9h-.6c-.1 0-.2-.1-.2-.2V7.4c0-.1.1-.2.2-.2h.6c.1 0 .2.1.2.2v3.3c0 .1-.1.2-.2.2z" fill="white"/>
+    <path d="M7.5 10.9H5.4c-.1 0-.2-.1-.2-.2V7.4c0-.1.1-.2.2-.2h.6c.1 0 .2.1.2.2v2.7h1.3c.1 0 .2.1.2.2v.6c0 .1-.1.2-.2.2z" fill="white"/>
+  </svg>
+);
+
 const AuthModal = ({ open, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signInWithGoogle, signInWithNaver, isAuthenticated } = useAuth();
+  const { signInWithGoogle, signInWithNaver, signInWithLine, isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated && open) {
@@ -38,6 +49,12 @@ const AuthModal = ({ open, onClose }) => {
     setLoading(true);
     setError('');
     await signInWithNaver();
+  };
+
+  const handleLineLogin = async () => {
+    setLoading(true);
+    setError('');
+    await signInWithLine();
   };
 
   return (
@@ -66,6 +83,12 @@ const AuthModal = ({ open, onClose }) => {
           <NaverButton fullWidth variant="outlined" startIcon={<NaverIcon />} onClick={handleNaverLogin} disabled={loading}>
             {loading ? <CircularProgress size={24} /> : '네이버 계정으로 시작하기'}
           </NaverButton>
+
+          <Box sx={{ mt: 2 }}>
+            <LineButton fullWidth variant="outlined" startIcon={<LineIcon />} onClick={handleLineLogin} disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'LINE 계정으로 시작하기'}
+            </LineButton>
+          </Box>
 
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 3 }}>
             로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.
@@ -102,6 +125,21 @@ const NaverButton = styled(Button)`
     background-color: #03C75A !important;
     color: white !important;
     border-color: #03C75A !important;
+  }
+`;
+
+const LineButton = styled(Button)`
+  padding: 12px 24px !important;
+  border: 1px solid #00B900 !important;
+  color: #00B900 !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  border-radius: 8px !important;
+  
+  &:hover {
+    background-color: #00B900 !important;
+    color: white !important;
+    border-color: #00B900 !important;
   }
 `;
 

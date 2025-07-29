@@ -32,7 +32,8 @@ import SocialShareMeta from '../components/SocialShareMeta';
 import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
-import { ArticleDetailAdComponent, InlineAdComponent } from '../components/AdComponents';
+import { ArticleBottomBanner } from '../components/ads';
+import { useAdFit } from '../contexts/AdFitContext';
 import DOMPurify from 'dompurify';
 
 // HTML 엔티티 디코딩 함수
@@ -141,6 +142,7 @@ const ArticleDetail = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth() || {};
   const { loading: articlesLoading, incrementArticleViews, incrementArticleLikes, getArticleById } = useArticles();
+  const { resetAds } = useAdFit();
   const { 
     savedWords, 
     addWord, 
@@ -213,8 +215,11 @@ const ArticleDetail = () => {
     }
   }, [userSettings?.ttsSpeed, userSettings?.ttsPause, userSettings?.translationLanguage]);
 
-  // 페이지 이동 시 TTS 자동 정지 (개선된 버전)
+  // 페이지 이동 시 TTS 자동 정지 및 광고 초기화 (개선된 버전)
   useEffect(() => {
+    // 페이지 진입 시 광고 초기화
+    resetAds();
+    
     return () => {
       // 컴포넌트 언마운트 시 TTS 완전 정지
       if (import.meta.env.DEV) {
@@ -2104,7 +2109,6 @@ const ArticleDetail = () => {
         <MobileContentWrapper>
           <PageContainer>
             {/* 로딩 중일 때는 광고 표시 안함 */}
-            <ArticleDetailAdComponent hasContent={false} />
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
               <Typography>Loading article...</Typography>
             </Box>
@@ -2121,7 +2125,6 @@ const ArticleDetail = () => {
         <MobileContentWrapper>
           <PageContainer>
             {/* 기사가 없을 때는 광고 표시 안함 */}
-            <ArticleDetailAdComponent hasContent={false} />
             <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
               <Typography variant="h6" color="error">Article not found</Typography>
               <Typography variant="body2" sx={{ mt: 1 }}>The article you're looking for doesn't exist.</Typography>
@@ -2159,8 +2162,7 @@ const ArticleDetail = () => {
         transition: 'opacity 0.5s ease-in-out'
       }}>
         <PremiumContentGuard>
-          {/* 기사가 있을 때만 광고 표시 */}
-          <ArticleDetailAdComponent hasContent={!!articleData} />
+          {/* 기사 상단 - 광고는 하단에만 표시 */}
           
           {/* 썸네일 이미지 */}
           {articleData && articleData.image && (
@@ -2237,8 +2239,7 @@ const ArticleDetail = () => {
 
 
 
-          {/* 콘텐츠 중간 광고 */}
-          <InlineAdComponent hasContent={!!articleData} />
+          {/* 콘텐츠 중간 광고 제거됨 */}
 
           {/* 스와이프 카드 시스템 */}
           <SwipeCardContainer $isTablet={isTablet} {...(!isTablet ? swipeHandlers : {})}>
@@ -2357,6 +2358,9 @@ const ArticleDetail = () => {
             
 
           </SwipeCardContainer>
+
+          {/* 기사 하단 배너 광고 (네비게이션 바 위) */}
+          {articleData && <ArticleBottomBanner articleId={articleData.id} />}
         </PremiumContentGuard>
       </PageContainer>
 

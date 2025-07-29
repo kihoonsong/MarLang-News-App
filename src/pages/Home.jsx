@@ -21,7 +21,7 @@ import AuthModal from '../components/AuthModal';
 import PageContainer from '../components/PageContainer';
 import SearchDropdown from '../components/SearchDropdown';
 import ArticleCard from '../components/ArticleCard';
-import AdCard from '../components/AdCard';
+import { AdCard, ContentWithAds } from '../components/ads';
 import SimpleSEO from '../components/SimpleSEO';
 import HomeSocialMeta from '../components/HomeSocialMeta';
 import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/designTokens';
@@ -29,10 +29,12 @@ import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { useAdInjector } from '../hooks/useAdInjector';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
 
-const CategoryDisplay = ({ category, articles, navigate }) => {
-  // 기사가 있을 때만 광고 표시
-  const hasContent = articles && articles.length > 0;
-  const { itemsWithAds } = useAdInjector(hasContent ? articles : []);
+const CategoryDisplay = ({ category, articles, navigate, showAds = false }) => {
+  console.log('🏠 CategoryDisplay:', {
+    categoryId: category.id,
+    articlesCount: articles.length,
+    showAds
+  });
 
   return (
     <CategorySection id={`category-${category.id}`}>
@@ -54,20 +56,28 @@ const CategoryDisplay = ({ category, articles, navigate }) => {
 
       <HorizontalScrollContainer id={`scroll-${category.id}`}>
         <ArticleRow>
-          {articles.length > 0 ? itemsWithAds.map(item => {
-            if (item.type === 'ad') {
-              return (
-                <ArticleCardWrapper key={item.id}>
-                  <AdCard
-                    adSlot={item.adSlot || 'articleBanner'}
-                    minHeight="360px"
-                    showLabel={true}
-                  />
+          {articles.length > 0 ? (
+            showAds ? (
+              <ContentWithAds
+                articles={articles}
+                adInterval={3}
+                maxAds={1}
+                layout="horizontal"
+                renderArticle={(article, index) => (
+                  <ArticleCardWrapper key={article.id}>
+                    <ArticleCard {...article} navigate={navigate} />
+                  </ArticleCardWrapper>
+                )}
+              />
+            ) : (
+              // 광고 없이 기사만 표시
+              articles.map((article, index) => (
+                <ArticleCardWrapper key={article.id}>
+                  <ArticleCard {...article} navigate={navigate} />
                 </ArticleCardWrapper>
-              );
-            }
-            return <ArticleCardWrapper key={item.id}><ArticleCard {...item} navigate={navigate} /></ArticleCardWrapper>;
-          }) : (
+              ))
+            )
+          ) : (
             <EmptyCategory>
               <Typography variant="body2" color="text.secondary">
                 No {category.name.toLowerCase()} articles available
@@ -345,10 +355,20 @@ const Home = () => {
               </NoticeSection>
             )}
 
-            {Array.isArray(categories) && categories.map((category) => {
+            {Array.isArray(categories) && categories.map((category, categoryIndex) => {
               if (!category || !category.id || !category.name) return null;
               const articles = allNewsData[category.id] || [];
-              return <CategoryDisplay key={category.id} category={category} articles={articles} navigate={navigate} />;
+              // 첫 번째 카테고리(Recent)에서만 광고 표시
+              const showAds = categoryIndex === 0 && category.id === 'recent';
+              return (
+                <CategoryDisplay 
+                  key={category.id} 
+                  category={category} 
+                  articles={articles} 
+                  navigate={navigate}
+                  showAds={showAds}
+                />
+              );
             })}
           </ContentContainer>
         )}
@@ -422,10 +442,11 @@ const HorizontalScrollContainer = styled.div`
     cursor: grabbing;
   }
   
-  /* 모바일에서 스크롤 스냅 적용 */
+  /* 모바일에서 스크롤 스냅 적용 - 부드럽게 */
   @media (max-width: 768px) {
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: x proximity; /* mandatory에서 proximity로 변경 */
     padding-left: 2vw; /* 여백 조정 */
+    scroll-behavior: smooth; /* 부드러운 스크롤 */
   }
   
   &::-webkit-scrollbar {
@@ -462,11 +483,13 @@ const ArticleRow = styled.div`
 const ArticleCardWrapper = styled.div`
   flex: 0 0 320px;
   width: 320px;
+  scroll-snap-align: start; /* 스크롤 스냅 정렬 */
   
   /* 모바일에서 카드 폭 조정하여 다음 카드 1/10 정도 보이도록 */
   @media (max-width: 768px) {
     flex: 0 0 85vw;
     width: 85vw;
+    scroll-snap-align: center; /* 모바일에서는 중앙 정렬 */
   }
 `;
 

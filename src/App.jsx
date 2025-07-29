@@ -5,6 +5,7 @@ import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
 import { CustomThemeProvider } from './contexts/ThemeContext';
+import { AdFitProvider } from './components/ads';
 
 // 향상된 에러 처리 시스템 import
 import ErrorBoundary from './components/ErrorBoundary';
@@ -35,6 +36,7 @@ const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const NaverCallback = React.lazy(() => import('./pages/NaverCallback'));
+const LineCallback = React.lazy(() => import('./pages/LineCallback'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const TTSTest = React.lazy(() => import('./pages/TTSTest'));
 const SocialMetaTest = React.lazy(() => import('./pages/SocialMetaTest'));
@@ -251,6 +253,7 @@ function App() {
           <AuthProvider>
             <DataProvider>
               <ArticlesProvider>
+                <AdFitProvider>
                 <BrowserRouter>
                   {/* 전역 시스템 컴포넌트들 */}
                   <GlobalErrorHandler />
@@ -357,12 +360,20 @@ function App() {
                       }
                     />
 
-                    {/* 네이버 로그인 콜백 */}
+                    {/* 소셜 로그인 콜백 */}
                     <Route
                       path="/auth/naver/callback"
                       element={
                         <PageWrapper pageName="Naver Login">
                           <NaverCallback />
+                        </PageWrapper>
+                      }
+                    />
+                    <Route
+                      path="/auth/line/callback"
+                      element={
+                        <PageWrapper pageName="Line Login">
+                          <LineCallback />
                         </PageWrapper>
                       }
                     />
@@ -418,6 +429,7 @@ function App() {
                     />
                   </Routes>
                 </BrowserRouter>
+                </AdFitProvider>
               </ArticlesProvider>
             </DataProvider>
           </AuthProvider>

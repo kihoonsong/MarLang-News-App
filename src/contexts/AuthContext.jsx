@@ -18,8 +18,9 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = () => {
       console.log('🔍 AuthContext 초기 인증 확인 시작');
       
-      // 네이버 인증 사용자 확인
+      // 소셜 인증 사용자 확인 (네이버, 라인)
       const naverAuthUser = localStorage.getItem('naverAuthUser');
+      const lineAuthUser = localStorage.getItem('lineAuthUser');
       
       if (naverAuthUser) {
         try {
@@ -49,12 +50,40 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
+      if (lineAuthUser) {
+        try {
+          const lineUserData = JSON.parse(lineAuthUser);
+          console.log('🔍 라인 서버 인증 사용자 발견:', lineUserData.email);
+          console.log('🔍 라인 사용자 데이터:', lineUserData);
+          
+          const userObj = {
+            id: lineUserData.uid,
+            uid: lineUserData.uid,
+            email: lineUserData.email,
+            name: lineUserData.name,
+            picture: lineUserData.picture,
+            provider: lineUserData.provider,
+            role: 'user',
+            isServerAuth: true
+          };
+          
+          console.log('✅ 라인 사용자 상태 설정:', userObj);
+          setUser(userObj);
+          setNaverAuthInitialized(true);
+          setIsLoading(false);
+          return true;
+        } catch (err) {
+          console.error('라인 인증 사용자 처리 오류:', err);
+          localStorage.removeItem('lineAuthUser');
+        }
+      }
+      
       // 더 이상 사용하지 않는 게스트 관련 로컬 저장소 데이터 정리
       localStorage.removeItem('guestNaverUser');
       localStorage.removeItem('tempNaverUser');
       localStorage.removeItem('pendingNaverUser');
       
-      console.log('🔍 네이버 인증 사용자 없음, 로딩 완료');
+      console.log('🔍 소셜 인증 사용자 없음, 로딩 완료');
       setNaverAuthInitialized(true);
       setIsLoading(false);
       return false;
@@ -70,30 +99,43 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('🔍 Firebase 인증 상태 변경:', firebaseUser?.email || '로그아웃 상태');
       
-      // 네이버 서버 인증이 이미 설정된 경우 Firebase 인증 무시
+      // 소셜 서버 인증이 이미 설정된 경우 Firebase 인증 무시
       const naverAuthUser = localStorage.getItem('naverAuthUser');
-      if (naverAuthUser) {
-        console.log('🔍 네이버 인증이 이미 설정됨, Firebase 인증 변경 무시');
+      const lineAuthUser = localStorage.getItem('lineAuthUser');
+      if (naverAuthUser || lineAuthUser) {
+        console.log('🔍 소셜 인증이 이미 설정됨, Firebase 인증 변경 무시');
         console.log('🔍 현재 user 상태:', user?.email || 'null');
         
-        // 네이버 사용자가 설정되지 않았다면 다시 설정
+        // 소셜 사용자가 설정되지 않았다면 다시 설정
         if (!user || !user.isServerAuth) {
           try {
-            const naverUserData = JSON.parse(naverAuthUser);
-            const userObj = {
-              id: naverUserData.uid,
-              uid: naverUserData.uid,
-              email: naverUserData.email,
-              name: naverUserData.name,
-              picture: naverUserData.picture,
-              provider: naverUserData.provider,
-              role: 'user',
-              isServerAuth: true
-            };
-            console.log('🔄 네이버 사용자 상태 재설정:', userObj);
-            setUser(userObj);
+            let socialUserData = null;
+            let provider = '';
+            
+            if (naverAuthUser) {
+              socialUserData = JSON.parse(naverAuthUser);
+              provider = 'naver';
+            } else if (lineAuthUser) {
+              socialUserData = JSON.parse(lineAuthUser);
+              provider = 'line';
+            }
+            
+            if (socialUserData) {
+              const userObj = {
+                id: socialUserData.uid,
+                uid: socialUserData.uid,
+                email: socialUserData.email,
+                name: socialUserData.name,
+                picture: socialUserData.picture,
+                provider: socialUserData.provider,
+                role: 'user',
+                isServerAuth: true
+              };
+              console.log(`🔄 ${provider} 사용자 상태 재설정:`, userObj);
+              setUser(userObj);
+            }
           } catch (err) {
-            console.error('네이버 사용자 재설정 오류:', err);
+            console.error('소셜 사용자 재설정 오류:', err);
           }
         }
         
@@ -106,9 +148,10 @@ export const AuthProvider = ({ children }) => {
         await handleUser(firebaseUser);
       } else {
         console.log('❌ Firebase 로그아웃 처리');
-        // 네이버 사용자가 없는 경우에만 setUser(null) 호출
+        // 소셜 사용자가 없는 경우에만 setUser(null) 호출
         const naverAuthUserCheck = localStorage.getItem('naverAuthUser');
-        if (!naverAuthUserCheck) {
+        const lineAuthUserCheck = localStorage.getItem('lineAuthUser');
+        if (!naverAuthUserCheck && !lineAuthUserCheck) {
           setUser(null);
         }
       }
@@ -242,6 +285,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signInWithLine = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 라인 로그인 리디렉션 방식
+      const lineClientId = import.meta.env.VITE_LINE_CLIENT_ID;
+      const redirectUri = encodeURIComponent(`${window.location.origin}/auth/line/callback`);
+      const state = Math.random().toString(36).substring(2, 15);
+      
+      // 상태값과 원래 페이지 정보 저장
+      sessionStorage.setItem('lineOAuthState', state);
+      sessionStorage.setItem('preLineLoginPath', window.location.pathname);
+      
+      const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${lineClientId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`;
+      
+      // 현재 페이지에서 직접 리디렉션
+      window.location.href = lineAuthUrl;
+      
+    } catch (err) {
+      console.error('🚨 라인 로그인 초기화 오류:', err);
+      setError(`라인 로그인 오류: ${err.message}`);
+      setIsLoading(false);
+    }
+  };
+
   const signInWithEmail = async (email, password) => {
     setIsLoading(true);
     setError(null);
@@ -278,10 +346,14 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     setIsLoading(true);
     try {
-      // 네이버 서버 인증 사용자 로그아웃
+      // 소셜 서버 인증 사용자 로그아웃
       if (user && user.isServerAuth) {
-        console.log('✅ 네이버 서버 인증 사용자 로그아웃');
-        localStorage.removeItem('naverAuthUser');
+        console.log(`✅ ${user.provider} 서버 인증 사용자 로그아웃`);
+        if (user.provider === 'naver') {
+          localStorage.removeItem('naverAuthUser');
+        } else if (user.provider === 'line') {
+          localStorage.removeItem('lineAuthUser');
+        }
       }
       
       // Firebase 로그아웃
@@ -317,6 +389,7 @@ export const AuthProvider = ({ children }) => {
     error,
     signInWithGoogle,
     signInWithNaver,
+    signInWithLine,
     signInWithEmail,
     signUpWithEmail,
     signOut,
