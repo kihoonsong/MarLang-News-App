@@ -25,7 +25,7 @@ const ArticleCard = ({
   onClick
 }) => {
   const navigate = useNavigate();
-  const { categories } = useArticles();
+  const { categories = [] } = useArticles() || {};
   
   // 카테고리 객체 찾기
   const categoryObj = categories.find(cat => cat.name === category) || { name: category };
