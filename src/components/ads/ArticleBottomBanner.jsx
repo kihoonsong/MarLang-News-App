@@ -74,7 +74,7 @@ const ArticleBottomBanner = ({
           unitId={unitId}
           containerId={containerId}
           size={bannerSize}
-          lazy={false}
+          lazy={true}
           onLoad={handleAdLoad}
           onError={handleAdError}
           fallback={<BannerAdSkeleton size={bannerSize} />}

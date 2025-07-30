@@ -226,11 +226,13 @@ const ArticleDetail = () => {
         console.log('📤 ArticleDetail 언마운트 - 통합 TTS 정지');
       }
       
-      // 즉시 상태 초기화
-      setIsTTSPlaying(false);
-      setIsTTSLoading(false);
-      setCurrentSentence(-1);
-      setTotalSentences(0);
+      // 배치 상태 초기화
+      React.unstable_batchedUpdates(() => {
+        setIsTTSPlaying(false);
+        setIsTTSLoading(false);
+        setCurrentSentence(-1);
+        setTotalSentences(0);
+      });
       
       // iOS 감지 후 적절한 중지 방법 사용
       const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -620,7 +622,7 @@ const ArticleDetail = () => {
         setIsLoading(false);
       }
     }
-  }, [id, articlesLoading, user?.uid, getArticleById, addViewRecord, updateActivityTime, incrementArticleViews]); // 의존성 배열 완전 최적화
+  }, [id, articlesLoading, user?.uid]); // 의존성 배열 최적화 - 함수 제거
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
@@ -1613,7 +1615,7 @@ const ArticleDetail = () => {
     }
   }, [selectedLanguage, userSettings, articleData]);
 
-  const _handleWordClick = async (event, word) => {
+  const _handleWordClick = useCallback(async (event, word) => {
     // 이벤트 전파 중지 및 기본 동작 방지
     event.stopPropagation();
     event.preventDefault();
@@ -1725,7 +1727,7 @@ const ArticleDetail = () => {
         }));
       }
     }
-  };
+  }, [selectedLanguage, toast, articleData?.id]);
 
   // 향상된 자동 단어 저장 함수 (직접 URL 접근 호환)
   const autoSaveWord = async (cleanWord, wordData) => {
@@ -1977,7 +1979,7 @@ const ArticleDetail = () => {
     window.dispatchEvent(new CustomEvent('wordUpdated', {
       detail: { type: 'remove', articleId: articleData.id, word: cleanWord }
     }));
-  }, [highlightedWords, savedWords, articleData, removeWord, updateActivityTime]);
+  }, [highlightedWords, savedWords, articleData?.id]); // 함수 의존성 제거
 
   // 단어 팝업에서 언어 변경 처리
   const handlePopupLanguageChange = async (newLanguage) => {
@@ -3245,4 +3247,4 @@ const SwipeCard = styled.div`
 
 
 
-export default ArticleDetail;
+export default React.memo(ArticleDetail);

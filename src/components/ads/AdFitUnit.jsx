@@ -99,7 +99,7 @@ const AdFitUnit = ({
         // AdFitContext를 통한 스크립트 로드
         await displayAd(unitId);
         
-        // 1.5초 후 로딩 상태 해제 (모바일 최적화)
+        // 모바일 최적화: 500ms로 단축
         setTimeout(() => {
           setIsLoading(false);
           setIsDisplayed(true);
@@ -107,7 +107,7 @@ const AdFitUnit = ({
           if (import.meta.env.DEV) {
             console.log(`✅ AdFitUnit displayed: ${unitId}`);
           }
-        }, 1500);
+        }, 500);
         
       } catch (error) {
         console.error(`Failed to load ad: ${unitId}`, error);
