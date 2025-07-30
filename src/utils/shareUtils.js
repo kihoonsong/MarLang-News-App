@@ -6,12 +6,13 @@ export const isNativeShareSupported = () => {
   return navigator.share && navigator.canShare;
 };
 
-// Web Share API를 사용한 공유
+// Web Share API를 사용한 공유 (실제 기사 URL 사용)
 export const shareWithNativeAPI = async (article, socialImageUrl) => {
   if (!isNativeShareSupported()) {
     return false;
   }
 
+  // 실제 기사 URL 사용
   const articleUrl = `${window.location.origin}/article/${article.id}`;
   const shareText = `${article.title}\n\n${articleUrl}`;
 
@@ -87,26 +88,32 @@ export const copyToClipboard = async (text) => {
   }
 };
 
-// 소셜 미디어별 공유 URL 생성
+// 소셜 미디어별 공유 URL 생성 (서버 사이드 렌더링된 메타데이터 사용)
 export const getSocialShareUrls = (article, socialImageUrl) => {
   const baseUrl = window.location.origin;
+  // 소셜 크롤러용 URL (서버 사이드 렌더링된 메타데이터 포함)
+  const socialUrl = `${baseUrl}/social/article/${article.id}`;
+  // 실제 기사 URL (사용자 접근용)
   const articleUrl = `${baseUrl}/article/${article.id}`;
+  
   const title = encodeURIComponent(article.title);
   const description = encodeURIComponent(article.summary || article.description || '');
-  const encodedUrl = encodeURIComponent(articleUrl);
+  const encodedSocialUrl = encodeURIComponent(socialUrl);
+  const encodedArticleUrl = encodeURIComponent(articleUrl);
   const shareText = encodeURIComponent(`${article.title}\n\n${articleUrl}`);
   
   return {
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-    threads: `https://www.threads.net/intent/post?text=${shareText}`,
+    // 소셜 크롤러가 메타데이터를 읽을 수 있도록 소셜 URL 사용
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedSocialUrl}`,
+    threads: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${article.title}\n\n${socialUrl}`)}`,
     twitter: `https://twitter.com/intent/tweet?text=${shareText}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedSocialUrl}`,
     whatsapp: `https://wa.me/?text=${shareText}`,
-    telegram: `https://t.me/share/url?url=${encodedUrl}&text=${title}`,
-    reddit: `https://reddit.com/submit?url=${encodedUrl}&title=${title}`,
+    telegram: `https://t.me/share/url?url=${encodedSocialUrl}&text=${title}`,
+    reddit: `https://reddit.com/submit?url=${encodedSocialUrl}&title=${title}`,
     pinterest: socialImageUrl 
-      ? `https://pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodeURIComponent(socialImageUrl)}&description=${title}`
-      : `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${title}`,
+      ? `https://pinterest.com/pin/create/button/?url=${encodedSocialUrl}&media=${encodeURIComponent(socialImageUrl)}&description=${title}`
+      : `https://pinterest.com/pin/create/button/?url=${encodedSocialUrl}&description=${title}`,
     email: `mailto:?subject=${title}&body=${description}%0A%0A${articleUrl}`
   };
 };
@@ -143,24 +150,68 @@ export const openSocialShare = (platform, article, socialImageUrl) => {
   return true;
 };
 
+// 소셜 공유 메트릭 수집 함수 (간소화)
+const trackSocialShare = async (articleId, platform) => {
+  try {
+    // 개발 환경에서만 로그 출력
+    if (import.meta.env.DEV) {
+      console.log(`📊 소셜 공유 메트릭: ${articleId} → ${platform}`);
+    }
+    
+    // 메트릭 수집은 선택적으로 비활성화 (안정성 우선)
+    // TODO: Firebase Functions 호출 안정화 후 재활성화
+    /*
+    const { getFunctions, httpsCallable } = await import('firebase/functions');
+    const functions = getFunctions();
+    const trackShare = httpsCallable(functions, 'trackSocialShare');
+    
+    await trackShare({
+      articleId,
+      platform,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    });
+    */
+  } catch (error) {
+    // 메트릭 수집 실패는 조용히 처리 (사용자 경험에 영향 없음)
+    if (import.meta.env.DEV) {
+      console.warn('소셜 공유 메트릭 기록 실패:', error);
+    }
+  }
+};
+
 // 통합 공유 함수
 export const shareArticle = async (article, socialImageUrl, platform = 'native') => {
   try {
+    let success = false;
+    
     // 네이티브 공유 시도
     if (platform === 'native' && isNativeShareSupported()) {
-      const success = await shareWithNativeAPI(article, socialImageUrl);
-      if (success) return true;
+      success = await shareWithNativeAPI(article, socialImageUrl);
+      if (success) {
+        // 네이티브 공유 성공 시 메트릭 수집
+        await trackSocialShare(article.id, 'native');
+        return true;
+      }
     }
 
-    // URL 복사 (제목과 함께)
+    // URL 복사 (제목과 함께) - 실제 기사 URL 사용
     if (platform === 'copy') {
       const articleUrl = `${window.location.origin}/article/${article.id}`;
       const copyText = `${article.title}\n\n${articleUrl}`;
-      return await copyToClipboard(copyText);
+      success = await copyToClipboard(copyText);
+      if (success) {
+        await trackSocialShare(article.id, 'copy');
+      }
+      return success;
     }
 
     // 소셜 미디어 공유
-    return openSocialShare(platform, article, socialImageUrl);
+    success = openSocialShare(platform, article, socialImageUrl);
+    if (success) {
+      await trackSocialShare(article.id, platform);
+    }
+    return success;
     
   } catch (error) {
     console.error('공유 실패:', error);
