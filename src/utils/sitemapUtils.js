@@ -271,16 +271,12 @@ export const showSitemapUpdateNotification = (result, toast) => {
   if (!toast) return;
 
   if (result.success) {
-    toast.show({
-      message: `✅ 사이트맵 업데이트 완료 (${result.stats?.totalUrls || 0}개 URL)`,
-      type: 'success',
+    toast.success(`✅ 사이트맵 업데이트 완료 (${result.stats?.totalUrls || 0}개 URL)`, {
       duration: 3000,
       position: 'top'
     });
   } else {
-    toast.show({
-      message: `❌ 사이트맵 업데이트 실패: ${result.message}`,
-      type: 'error',
+    toast.error(`❌ 사이트맵 업데이트 실패: ${result.message}`, {
       duration: 5000,
       position: 'top'
     });

@@ -285,9 +285,9 @@ function generateArticleHTML(article) {
     </script>
     
     <!-- React 앱 스크립트 -->
-    <script type="module" crossorigin src="/assets/js/index-Bb0Hm0T9.js"></script>
+    <script type="module" crossorigin src="/assets/js/index-Xm8ZL4OF.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
-    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-CgHrKOaS.js">
+    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-C3OgsXoO.js">
 </body>
 </html>`;
 }
@@ -307,9 +307,9 @@ function generateNotFoundHTML(articleId) {
     <p>요청하신 기사(ID: ${articleId})를 찾을 수 없습니다.</p>
     <a href="${SITE_URL}" style="color: #1976d2;">홈으로 돌아가기</a>
     <div id="root"></div>
-    <script type="module" crossorigin src="/assets/js/index-Bb0Hm0T9.js"></script>
+    <script type="module" crossorigin src="/assets/js/index-Xm8ZL4OF.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
-    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-CgHrKOaS.js">
+    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-C3OgsXoO.js">
 </body>
 </html>`;
 }
@@ -483,9 +483,9 @@ const prerenderArticle = onRequest(
                 timestamp: '${new Date().toISOString()}'
               };
             </script>
-            <script type="module" crossorigin src="/assets/js/index-Bb0Hm0T9.js"></script>
+            <script type="module" crossorigin src="/assets/js/index-Xm8ZL4OF.js"></script>
             <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
-            <link rel="modulepreload" crossorigin href="/assets/js/mui-core-CgHrKOaS.js">
+            <link rel="modulepreload" crossorigin href="/assets/js/mui-core-C3OgsXoO.js">
           </body>
           </html>
         `;
@@ -537,9 +537,9 @@ const prerenderArticle = onRequest(
               timestamp: '${new Date().toISOString()}'
             };
           </script>
-          <script type="module" crossorigin src="/assets/js/index-Bb0Hm0T9.js"></script>
+          <script type="module" crossorigin src="/assets/js/index-Xm8ZL4OF.js"></script>
           <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
-          <link rel="modulepreload" crossorigin href="/assets/js/mui-core-CgHrKOaS.js">
+          <link rel="modulepreload" crossorigin href="/assets/js/mui-core-C3OgsXoO.js">
         </body>
         </html>
       `;

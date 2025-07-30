@@ -219,37 +219,74 @@ export const ArticlesProvider = ({ children }) => {
   }, [fetchCategories, fetchArticles]);
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
-    const filtered = allArticles.filter(article => {
-      // published 상태인 기사만 표시 (scheduled 기사는 제외)
-      const isPublished = article.status === 'published';
-      
-      // 추가 안전장치: scheduled 상태면 무조건 제외
-      if (article.status === 'scheduled') {
-        console.log('🚫 예약 기사 제외:', article.title, article.status);
-        return false;
+    try {
+      if (!Array.isArray(allArticles) || !categoryName) {
+        return [];
       }
       
-      return article.category === categoryName && isPublished;
-    });
-    return limit ? filtered.slice(0, limit) : filtered;
-  }, [allArticles]);
-
-  const getRecentArticles = useCallback((limit = 10) => {
-    return [...allArticles]
-      .filter(article => {
+      const filtered = allArticles.filter(article => {
+        if (!article || typeof article !== 'object') {
+          return false;
+        }
+        
         // published 상태인 기사만 표시 (scheduled 기사는 제외)
         const isPublished = article.status === 'published';
         
         // 추가 안전장치: scheduled 상태면 무조건 제외
         if (article.status === 'scheduled') {
-          console.log('🚫 예약 기사 제외 (Recent):', article.title, article.status);
+          if (import.meta.env.DEV) {
+            console.log('🚫 예약 기사 제외:', article.title, article.status);
+          }
           return false;
         }
         
-        return isPublished;
-      })
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .slice(0, limit);
+        return article.category === categoryName && isPublished;
+      });
+      
+      return limit && typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
+    } catch (error) {
+      console.error('getArticlesByCategory 오류:', error);
+      return [];
+    }
+  }, [allArticles]);
+
+  const getRecentArticles = useCallback((limit = 10) => {
+    try {
+      if (!Array.isArray(allArticles)) {
+        return [];
+      }
+      
+      return [...allArticles]
+        .filter(article => {
+          if (!article || typeof article !== 'object') {
+            return false;
+          }
+          
+          // published 상태인 기사만 표시 (scheduled 기사는 제외)
+          const isPublished = article.status === 'published';
+          
+          // 추가 안전장치: scheduled 상태면 무조건 제외
+          if (article.status === 'scheduled') {
+            if (import.meta.env.DEV) {
+              console.log('🚫 예약 기사 제외 (Recent):', article.title, article.status);
+            }
+            return false;
+          }
+          
+          return isPublished;
+        })
+        .sort((a, b) => {
+          try {
+            return new Date(b.publishedAt) - new Date(a.publishedAt);
+          } catch (sortError) {
+            return 0;
+          }
+        })
+        .slice(0, typeof limit === 'number' ? limit : 10);
+    } catch (error) {
+      console.error('getRecentArticles 오류:', error);
+      return [];
+    }
   }, [allArticles]);
 
   const getPopularArticles = useCallback((limit = 10) => {

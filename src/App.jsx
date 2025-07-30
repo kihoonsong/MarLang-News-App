@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ArticlesProvider } from './contexts/ArticlesContext';
@@ -41,6 +41,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound'));
 const TTSTest = React.lazy(() => import('./pages/TTSTest'));
 const SocialMetaTest = React.lazy(() => import('./pages/SocialMetaTest'));
 const SocialMetaDebug = React.lazy(() => import('./pages/SocialMetaDebug'));
+const SocialMetricsDashboard = React.lazy(() => import('./pages/SocialMetricsDashboard'));
 
 // 전역 TTS 관리 컴포넌트 (향상됨)
 const TTSManager = () => {
@@ -155,6 +156,18 @@ const VoiceManagerInitializer = () => {
   return null;
 };
 
+// Prefetch frequently visited routes to improve perceived speed
+const RoutePrefetcher = () => {
+  useEffect(() => {
+    const prefetchArticle = () => import('./pages/ArticleDetail');
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(prefetchArticle);
+    } else {
+      setTimeout(prefetchArticle, 2000);
+    }
+  }, []);
+  return null;
+};
 
 
 // Suspense 로딩 컴포넌트
@@ -189,6 +202,12 @@ const PageLoadingFallback = ({ pageName }) => (
     </style>
   </div>
 );
+
+// Social → Article 경로 클라이언트 리다이렉트 (SPA 내 이동 문제 해결)
+const SocialArticleRedirect = () => {
+  const { articleId } = useParams();
+  return <Navigate to={`/article/${articleId}`} replace />;
+};
 
 // 향상된 페이지 래퍼 컴포넌트 (Suspense + ErrorBoundary)
 const PageWrapper = ({ children, pageName }) => {
@@ -260,6 +279,7 @@ function App() {
                   <NetworkMonitor />
                   <VoiceManagerInitializer />
                   <TTSManager />
+                  <RoutePrefetcher />
 
 
 
@@ -375,6 +395,23 @@ function App() {
                         <PageWrapper pageName="Line Login">
                           <LineCallback />
                         </PageWrapper>
+                      }
+                    />
+
+                    {/* 소셜 메트릭 대시보드 (관리자 전용) */}
+                    <Route
+                      path="/social/article/:articleId"
+                      element={<SocialArticleRedirect />}
+                    />
+
+                    <Route
+                      path="/social-metrics"
+                      element={
+                        <AuthGuard requireAdmin={true}>
+                          <PageWrapper pageName="Social Metrics">
+                            <SocialMetricsDashboard />
+                          </PageWrapper>
+                        </AuthGuard>
                       }
                     />
 

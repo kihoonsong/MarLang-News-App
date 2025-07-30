@@ -980,6 +980,12 @@ exports.socialPrerender = socialPrerender;
 const { serveSitemap } = require('./serveSitemap');
 exports.serveSitemap = serveSitemap;
 
+// 소셜 메트릭 수집 함수들
+const { trackSocialShare, trackCrawlerAccess, generateSocialReport } = require('./socialMetrics');
+exports.trackSocialShare = trackSocialShare;
+exports.trackCrawlerAccess = trackCrawlerAccess;
+exports.generateSocialReport = generateSocialReport;
+
 // 자동 사이트맵 업데이트 시스템
 const { updateSitemap, analyzeAllArticles } = require('./sitemapGenerator');
 
@@ -1454,6 +1460,170 @@ exports.publishScheduledArticlesManual = functions.https.onRequest(async (req, r
       error: 'Internal server error',
       message: error.message,
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 소셜 메타데이터 생성을 위한 서버 사이드 렌더링 함수
+exports.generateSocialMeta = functions.https.onRequest(async (req, res) => {
+  // CORS 헤더 설정
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const { articleId } = req.query;
+
+    if (!articleId) {
+      res.status(400).json({ error: 'Missing articleId parameter' });
+      return;
+    }
+
+    console.log(`🔍 소셜 메타데이터 생성 요청: ${articleId}`);
+
+    // Firestore에서 기사 데이터 조회
+    const articleDoc = await admin.firestore().collection('articles').doc(articleId).get();
+
+    if (!articleDoc.exists) {
+      res.status(404).json({ error: 'Article not found' });
+      return;
+    }
+
+    const article = articleDoc.data();
+    const baseUrl = "https://marlang-app.web.app";
+    const socialUrl = `${baseUrl}/social/article/${articleId}`;
+    const canonicalUrl = `${baseUrl}/article/${articleId}`;
+
+    // 메타데이터 생성
+    const title = article.title || 'NEWStep News Article';
+    const description = article.summary || article.description || `Read "${article.title}" on NEWStep News - Learn English through latest news.`;
+    
+    // 이미지 URL 처리
+    let metaImageUrl = `${baseUrl}/newstep-social-image.png`;
+    if (article.image) {
+      const imageStr = String(article.image).trim();
+      if (imageStr && imageStr !== '' && imageStr !== 'undefined' && imageStr !== 'null') {
+        if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
+          try {
+            new URL(imageStr);
+            if (!imageStr.includes('firebasestorage.googleapis.com')) {
+              metaImageUrl = imageStr;
+            }
+          } catch (e) {
+            console.log('Invalid image URL, using default');
+          }
+        } else if (imageStr.startsWith('/')) {
+          metaImageUrl = `${baseUrl}${imageStr}`;
+        } else if (!imageStr.startsWith('data:') && !imageStr.startsWith('blob:')) {
+          metaImageUrl = `${baseUrl}/${imageStr}`;
+        }
+      }
+    }
+
+    // HTML 메타데이터 생성
+    const html = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+    <meta name="keywords" content="${article.title}, English news, ${article.category || 'news'}, English learning, NEWStep">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:url" content="${socialUrl}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="NEWStep Eng News">
+    <meta property="og:image" content="${metaImageUrl}">
+    <meta property="og:image:secure_url" content="${metaImageUrl}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="${title}">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:updated_time" content="${new Date().toISOString()}">
+    <meta property="article:published_time" content="${article.publishedAt || new Date().toISOString()}">
+    <meta property="article:modified_time" content="${new Date().toISOString()}">
+    <meta property="article:section" content="${article.category || 'News'}">
+    <meta property="article:tag" content="${article.title}, English, News, Learning">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@NEWStepNews">
+    <meta name="twitter:creator" content="@NEWStepNews">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${metaImageUrl}">
+    <meta name="twitter:image:alt" content="${title}">
+    
+    <!-- Additional Meta -->
+    <meta name="image" content="${metaImageUrl}">
+    <meta name="author" content="NEWStep News Team">
+    <meta itemprop="image" content="${metaImageUrl}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="${canonicalUrl}">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": "${title}",
+      "description": "${description}",
+      "image": "${metaImageUrl}",
+      "author": {
+        "@type": "Organization",
+        "name": "NEWStep News Team"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NEWStep Eng News",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "${baseUrl}/logo.png"
+        }
+      },
+      "datePublished": "${article.publishedAt || new Date().toISOString()}",
+      "dateModified": "${new Date().toISOString()}",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "${canonicalUrl}"
+      },
+      "url": "${socialUrl}"
+    }
+    </script>
+    
+    <!-- Redirect to actual article after meta generation -->
+    <meta http-equiv="refresh" content="0;url=${canonicalUrl}">
+</head>
+<body>
+    <p>Redirecting to article...</p>
+    <script>
+        window.location.href = '${canonicalUrl}';
+    </script>
+</body>
+</html>`;
+
+    console.log(`✅ 소셜 메타데이터 생성 완료: ${articleId}`);
+    
+    res.set('Content-Type', 'text/html');
+    res.send(html);
+
+  } catch (error) {
+    console.error('🚨 소셜 메타데이터 생성 중 오류 발생:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });

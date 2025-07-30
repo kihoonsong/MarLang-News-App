@@ -189,34 +189,78 @@ const Home = () => {
     };
   }, [refreshArticles, toast]);
 
-  // Load category data from context with proper guards
+  // Load category data from context with enhanced error handling
   useEffect(() => {
     const loadCategoryData = async () => {
       try {
         setHomeError(null);
 
-        if (!loading && Array.isArray(categories)) {
-          const categoryData = {};
+        // 로딩 중이거나 필수 데이터가 없으면 대기
+        if (loading || !Array.isArray(categories)) {
+          if (import.meta.env.DEV) {
+            console.log('🏠 Home 데이터 로딩 대기 중...', { loading, categoriesType: typeof categories });
+          }
+          return;
+        }
 
-          // 안전한 기사 데이터 로드
+        const categoryData = {};
+
+        // 안전한 기사 데이터 로드 with null checks
+        try {
           if (getRecentArticles && typeof getRecentArticles === 'function') {
-            categoryData.recent = getRecentArticles(10) || [];
+            const recentArticles = getRecentArticles(10);
+            categoryData.recent = Array.isArray(recentArticles) ? recentArticles : [];
+          } else {
+            categoryData.recent = [];
           }
+        } catch (recentError) {
+          console.warn('Recent articles 로드 실패:', recentError);
+          categoryData.recent = [];
+        }
 
+        try {
           if (getPopularArticles && typeof getPopularArticles === 'function') {
-            categoryData.popular = getPopularArticles(10) || [];
+            const popularArticles = getPopularArticles(10);
+            categoryData.popular = Array.isArray(popularArticles) ? popularArticles : [];
+          } else {
+            categoryData.popular = [];
           }
+        } catch (popularError) {
+          console.warn('Popular articles 로드 실패:', popularError);
+          categoryData.popular = [];
+        }
 
+        // 카테고리별 기사 로드
+        if (Array.isArray(categories)) {
           categories.forEach((category) => {
-            if (category && category.type === 'category' && category.id && category.name) {
-              if (getArticlesByCategory && typeof getArticlesByCategory === 'function') {
-                categoryData[category.id] = getArticlesByCategory(category.name, 5) || [];
+            try {
+              if (category && category.type === 'category' && category.id && category.name) {
+                if (getArticlesByCategory && typeof getArticlesByCategory === 'function') {
+                  const categoryArticles = getArticlesByCategory(category.name, 5);
+                  categoryData[category.id] = Array.isArray(categoryArticles) ? categoryArticles : [];
+                } else {
+                  categoryData[category.id] = [];
+                }
+              }
+            } catch (categoryError) {
+              console.warn(`카테고리 ${category?.name} 로드 실패:`, categoryError);
+              if (category?.id) {
+                categoryData[category.id] = [];
               }
             }
           });
-
-          setAllNewsData(categoryData);
         }
+
+        setAllNewsData(categoryData);
+        
+        if (import.meta.env.DEV) {
+          console.log('🏠 Home 데이터 로드 완료:', {
+            categoriesCount: Object.keys(categoryData).length,
+            recentCount: categoryData.recent?.length || 0,
+            popularCount: categoryData.popular?.length || 0
+          });
+        }
+
       } catch (error) {
         console.error('🚨 Home 컴포넌트 데이터 로드 오류:', error);
         setHomeError(error.message || 'Failed to load home data');
@@ -224,7 +268,12 @@ const Home = () => {
       }
     };
 
-    loadCategoryData();
+    // 비동기 함수 호출을 안전하게 처리
+    loadCategoryData().catch((error) => {
+      console.error('🚨 loadCategoryData 실행 오류:', error);
+      setHomeError('Failed to initialize home data');
+    });
+
   }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
   const handleCategoryClick = (category) => {
     const element = document.getElementById(`category-${category.id}`);
@@ -297,19 +346,17 @@ const Home = () => {
         {/* 에러 상태 처리 */}
         {(error || homeError) && (
           <Box sx={{ p: 2 }}>
-            <ErrorBoundary fallback={NewsListErrorFallback}>
-              <Alert
-                severity="warning"
-                action={
-                  <Button color="inherit" size="small" onClick={retryNews} startIcon={<RefreshIcon />}>
-                    Retry
-                  </Button>
-                }
-                sx={{ mb: 2 }}
-              >
-                Failed to load news: {error || homeError}
-              </Alert>
-            </ErrorBoundary>
+            <Alert
+              severity="warning"
+              action={
+                <Button color="inherit" size="small" onClick={retryNews} startIcon={<RefreshIcon />}>
+                  Retry
+                </Button>
+              }
+              sx={{ mb: 2 }}
+            >
+              Failed to load news: {error || homeError}
+            </Alert>
           </Box>
         )}
 
@@ -505,4 +552,39 @@ const EmptyCategory = styled.div`
   border: 2px dashed ${props => props.theme.palette.mode === 'dark' ? '#555' : '#ddd'};
 `;
 
-export default Home;
+// Home 컴포넌트를 ErrorBoundary로 감싸서 export
+const SafeHome = () => {
+  return (
+    <ErrorBoundary fallback={({ error, resetError }) => (
+      <PageContainer>
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h4" gutterBottom color="error">
+            Oops! Something went wrong in Home
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            We're sorry for the inconvenience. Please try refreshing the page.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button variant="contained" onClick={resetError}>
+              Try Again
+            </Button>
+            <Button variant="outlined" onClick={() => window.location.href = '/'}>
+              Go Home
+            </Button>
+          </Box>
+          {import.meta.env.DEV && (
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="caption" color="error">
+                Dev Error: {error?.message}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </PageContainer>
+    )}>
+      <Home />
+    </ErrorBoundary>
+  );
+};
+
+export default SafeHome;

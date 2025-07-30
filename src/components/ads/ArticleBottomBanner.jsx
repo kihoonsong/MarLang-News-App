@@ -45,10 +45,19 @@ const ArticleBottomBanner = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const bannerSize = isMobile ? '320x50' : '728x90';
   
-  // 실제 카카오 애드핏 광고 단위 ID 사용
+  // 실제 카카오 애드핏 광고 단위 ID 사용 (환경 변수 확인 강화)
   const unitId = isMobile 
     ? (import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT || 'DAN-RNzVkjnBfLSGDxqM')
     : (import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT || 'DAN-JVIJRJhlqIMMpiLm');
+  
+  if (import.meta.env.DEV) {
+    console.log('🎯 광고 단위 설정:', {
+      isMobile,
+      unitId,
+      mobileUnit: import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT,
+      desktopUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT
+    });
+  }
   
   // 고유한 컨테이너 ID 생성 (안정적인 ID)
   const containerId = `article-banner-${articleId}`;

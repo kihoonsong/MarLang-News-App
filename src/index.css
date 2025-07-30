@@ -201,7 +201,7 @@ body {
 }
 
 /* 다크 모드 지원 */
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark-disabled) {
   :root {
     --color-text-primary: #ffffff;
     --color-text-secondary: #cccccc;

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { Container, Typography, Divider } from '@mui/material';
 import MainNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 
@@ -87,9 +88,9 @@ const TermsOfService = () => {
               </SectionTitle>
               <Typography variant="body1" paragraph>
                 개인정보 처리에 관한 자세한 내용은 
-                <a href="/privacy" style={{ color: '#1976d2', textDecoration: 'none' }}>
+                <Link to="/privacy" style={{ color: '#1976d2', textDecoration: 'none' }}>
                   개인정보 처리방침
-                </a>
+                </Link>
                 을 참고해 주시기 바랍니다.
               </Typography>
             </Section>

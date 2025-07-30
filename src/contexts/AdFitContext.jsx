@@ -28,7 +28,7 @@ export const AdFitProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 논블로킹 AdFit 스크립트 로드 함수
+  // 개선된 AdFit 스크립트 로드 함수
   const loadAdFit = useCallback(async () => {
     // 이미 로드되어 있으면 바로 반환
     if (isAdFitLoaded && document.querySelector('script[src*="kas/static/ba.min.js"]')) {
@@ -43,7 +43,6 @@ export const AdFitProvider = ({ children }) => {
       let existingScript = document.querySelector('script[src*="kas/static/ba.min.js"]');
       
       if (existingScript) {
-        // 기존 스크립트가 있으면 로드 완료로 처리
         setIsAdFitLoaded(true);
         setIsLoading(false);
         if (import.meta.env.DEV) {
@@ -52,50 +51,52 @@ export const AdFitProvider = ({ children }) => {
         return Promise.resolve();
       }
 
-      // 비동기로 스크립트 로드 (메인 스레드 보호)
+      // 스크립트 로드
       return new Promise((resolve, reject) => {
-        // requestIdleCallback 사용하여 유휴 시간에 로드
-        const loadScript = (deadline) => {
-          if (deadline.timeRemaining() > 0 || deadline.didTimeout) {
-            const script = document.createElement('script');
-            script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
-            script.async = true;
-            script.defer = true; // defer 추가로 파싱 블로킹 방지
-            script.id = 'kakao-adfit-script';
-            
-            script.onload = () => {
-              if (import.meta.env.DEV) {
-                console.log('✅ AdFit script loaded successfully');
-              }
-              setIsAdFitLoaded(true);
-              setIsLoading(false);
-              resolve();
-            };
-            
-            script.onerror = (err) => {
-              console.error('❌ Failed to load AdFit script:', err);
-              setError('Failed to load AdFit script');
-              setIsLoading(false);
-              reject(err);
-            };
-            
-            // 스크립트를 body 끝에 추가 (렌더링 블로킹 방지)
-            document.body.appendChild(script);
+        const script = document.createElement('script');
+        script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+        script.async = true;
+        script.defer = true;
+        script.id = 'kakao-adfit-script';
+        
+        script.onload = () => {
+          if (import.meta.env.DEV) {
+            console.log('✅ AdFit script loaded successfully');
           }
+          setIsAdFitLoaded(true);
+          setIsLoading(false);
+          
+          // 스크립트 로드 후 광고 초기화
+          setTimeout(() => {
+            try {
+              if (window.adsbygoogle) {
+                if (import.meta.env.DEV) {
+                  console.log('✅ AdFit 광고 시스템 준비 완료');
+                }
+              }
+            } catch (initError) {
+              console.warn('AdFit 초기화 경고:', initError);
+            }
+          }, 100);
+          
+          resolve();
         };
-
-        // requestIdleCallback 지원 확인
-        if (window.requestIdleCallback) {
-          window.requestIdleCallback(loadScript, { timeout: 2000 });
-        } else {
-          // 폴백: setTimeout 사용
-          setTimeout(() => loadScript({ timeRemaining: () => 50, didTimeout: false }), 0);
-        }
+        
+        script.onerror = (err) => {
+          console.error('❌ Failed to load AdFit script:', err);
+          setError('Failed to load AdFit script');
+          setIsLoading(false);
+          reject(err);
+        };
+        
+        // 스크립트를 head에 추가 (더 안정적)
+        document.head.appendChild(script);
       });
     } catch (err) {
       console.error('AdFit loading error:', err);
       setError(err.message);
       setIsLoading(false);
+      throw err;
     }
   }, [isAdFitLoaded]);
 

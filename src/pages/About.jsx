@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import PageContainer from '../components/PageContainer';
 
@@ -102,15 +103,15 @@ const About = () => {
             
             <h2>Get in Touch</h2>
             <p>
-              궁금한 점이나 제안사항이 있으시면 언제든지 <a href="/contact" style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 'bold' }}>문의해 주세요</a>.
+              궁금한 점이나 제안사항이 있으시면 언제든지 <Link to="/contact" style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 'bold' }}>문의해 주세요</Link>.
               저희 팀이 신속하게 답변드리겠습니다.
             </p>
             
             <h2>Privacy & Terms</h2>
             <p>
               사용자의 개인정보 보호를 최우선으로 생각합니다. 
-              자세한 내용은 <a href="/privacy" style={{ color: '#1976d2' }}>개인정보처리방침</a>과 
-              <a href="/terms" style={{ color: '#1976d2' }}>이용약관</a>을 참고해 주세요.
+              자세한 내용은 <Link to="/privacy" style={{ color: '#1976d2' }}>개인정보처리방침</Link>과 
+              <Link to="/terms" style={{ color: '#1976d2' }}>이용약관</Link>을 참고해 주세요.
             </p>
             
             <p style={{ marginTop: '2rem', textAlign: 'center', color: '#666' }}>

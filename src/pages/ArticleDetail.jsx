@@ -33,8 +33,11 @@ import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 // 광고 컴포넌트 지연 로딩 (메인 기능과 분리)
-const ArticleBottomBanner = React.lazy(() => 
-  import('../components/ads').then(module => ({ default: module.ArticleBottomBanner }))
+const ArticleBottomBanner = React.lazy(() =>
+  import('../components/ads/ArticleBottomBanner').catch(() => {
+    // 광고 로딩 실패 시 빈 컴포넌트 반환
+    return { default: () => null };
+  })
 );
 import { useAdFit } from '../contexts/AdFitContext';
 import DOMPurify from 'dompurify';
@@ -1214,9 +1217,7 @@ const ArticleDetail = () => {
 
     // 배속 변경 시 토스트 알림
     if (toast) {
-      toast.show({
-        message: `${newSpeed.toFixed(1)}× 속도로 변경되었습니다`,
-        type: 'success',
+      toast.success(`${newSpeed.toFixed(1)}× 속도로 변경되었습니다`, {
         duration: 1500,
         position: 'top'
       });

@@ -88,54 +88,54 @@ const AdFitUnit = ({
     };
   }, [finalContainerId, size, registerAdUnit, unregisterAdUnit]);
 
-  // 논블로킹 광고 로딩 (메인 스레드 보호)
+  // 개선된 광고 로딩 (안정성 강화)
   useEffect(() => {
     if (!isVisible || isDisplayed || hasError || isAdBlocked) {
       return;
     }
 
-    const loadAd = () => {
-      // requestIdleCallback 사용하여 메인 스레드 보호
-      const loadCallback = (deadline) => {
-        if (deadline.timeRemaining() > 0 || deadline.didTimeout) {
+    const loadAd = async () => {
+      try {
+        if (import.meta.env.DEV) {
+          console.log(`🎯 광고 로딩 시작: ${unitId}`);
+        }
+
+        // AdFit 스크립트 로드 확인
+        await displayAd(unitId);
+        
+        // 광고 스크립트 실행
+        setTimeout(() => {
           try {
-            // 비동기로 광고 로드
-            displayAd(unitId).catch(error => {
-              console.error(`Failed to load ad: ${unitId}`, error);
-              setHasError(true);
-              setIsLoading(false);
-              onError && onError(error);
-            });
+            if (window.adsbygoogle) {
+              (window.adsbygoogle = window.adsbygoogle || []).push({});
+            }
             
-            // 즉시 로딩 상태 해제 (UI 블로킹 방지)
-            setTimeout(() => {
-              setIsLoading(false);
-              setIsDisplayed(true);
-              onLoad && onLoad();
-              if (import.meta.env.DEV) {
-                console.log(`✅ AdFitUnit displayed: ${unitId}`);
-              }
-            }, 100); // 100ms로 더욱 단축
+            setIsLoading(false);
+            setIsDisplayed(true);
+            onLoad && onLoad();
             
-          } catch (error) {
-            console.error(`Failed to load ad: ${unitId}`, error);
+            if (import.meta.env.DEV) {
+              console.log(`✅ AdFitUnit 로드 완료: ${unitId}`);
+            }
+          } catch (adError) {
+            console.error(`광고 실행 오류: ${unitId}`, adError);
             setHasError(true);
             setIsLoading(false);
-            onError && onError(error);
+            onError && onError(adError);
           }
-        }
-      };
-
-      // requestIdleCallback 지원 확인
-      if (window.requestIdleCallback) {
-        window.requestIdleCallback(loadCallback, { timeout: 1000 });
-      } else {
-        // 폴백: setTimeout 사용
-        setTimeout(() => loadCallback({ timeRemaining: () => 50, didTimeout: false }), 0);
+        }, 500); // 충분한 로딩 시간 확보
+        
+      } catch (error) {
+        console.error(`광고 로드 실패: ${unitId}`, error);
+        setHasError(true);
+        setIsLoading(false);
+        onError && onError(error);
       }
     };
 
-    loadAd();
+    // 지연 로딩
+    const timer = setTimeout(loadAd, 100);
+    return () => clearTimeout(timer);
   }, [isVisible, isDisplayed, hasError, isAdBlocked, displayAd, unitId, onLoad, onError]);
 
   // 광고 차단기 감지 시 처리
