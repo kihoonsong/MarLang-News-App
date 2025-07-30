@@ -620,7 +620,8 @@ const WordList = styled.div`
 // 단어장 광고 관련 스타일드 컴포넌트 제거 - 애드센스 정책 준수
 
 const WordCard = styled.div`
-  background: ${getColor('background.paper')};
+  background: #ffffff;
+  color: #000000;
   border-radius: 16px;
   border: 1px solid ${getColor('border')};
   padding: 20px;
@@ -695,7 +696,7 @@ const WordText = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
-  color: ${getColor('text.primary')};
+  color: #000000;
   word-break: break-word;
   line-height: 1.2;
 `;
@@ -779,7 +780,7 @@ const Definition = styled.p`
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
-  color: ${getColor('text.secondary')};
+  color: #000000;
   flex: 1;
   overflow: hidden;
   display: -webkit-box;
@@ -801,7 +802,7 @@ const Example = styled.p`
   font-size: 0.8rem;
   line-height: 1.4;
   margin: 12px 0 0 0;
-  color: ${getColor('text.secondary')};
+  color: #000000;
   padding: 8px 12px;
   background: ${getColor('background.grey')};
   border-radius: 8px;
