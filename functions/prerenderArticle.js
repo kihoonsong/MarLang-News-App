@@ -322,7 +322,7 @@ const isSocialCrawler = (userAgent) => {
   const crawlers = [
     'facebookexternalhit', 'facebookcatalog', 'facebookbot',
     'twitterbot', 'linkedinbot', 'whatsappbot', 'telegrambot',
-    'discordbot', 'slackbot', 'googlebot', 'bingbot', 'applebot'
+    'discordbot', 'slackbot', 'googlebot', 'bingbot', 'applebot', 'threadsbot', 'threads'
   ];
   
   return crawlers.some(crawler => ua.includes(crawler));
@@ -334,6 +334,7 @@ const detectCrawlerType = (userAgent) => {
   
   if (ua.includes('facebookexternalhit') || ua.includes('facebookbot')) return 'facebook';
   if (ua.includes('twitterbot')) return 'twitter';
+  if (ua.includes('threads')) return 'threads';
   if (ua.includes('linkedinbot')) return 'linkedin';
   if (ua.includes('whatsapp')) return 'whatsapp';
   if (ua.includes('telegram')) return 'telegram';

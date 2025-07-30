@@ -1,26 +1,132 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
-// 소셜 미디어 크롤러 감지
+// 소셜 미디어 크롤러 감지 (모바일 앱 포함)
 const isSocialCrawler = (userAgent) => {
   if (!userAgent) return false;
   
+  const ua = userAgent.toLowerCase();
+  
   const crawlers = [
+    // Facebook/Meta
     'facebookexternalhit',
-    'Twitterbot',
-    'LinkedInBot',
-    'WhatsApp',
-    'TelegramBot',
-    'SkypeUriPreview',
-    'SlackBot',
-    'DiscordBot',
-    'Applebot',
-    'GoogleBot'
+    'facebookcatalog',
+    'facebookbot',
+    'meta-externalagent',
+    
+    // Twitter/X (데스크톱 + 모바일)
+    'twitterbot',
+    'twitter',
+    'x11',
+    
+    // Threads (Meta)
+    'threadsbot',
+    'threads',
+    
+    // LinkedIn
+    'linkedinbot',
+    'linkedin',
+    
+    // WhatsApp
+    'whatsapp',
+    'whatsappbot',
+    
+    // Telegram
+    'telegrambot',
+    'telegram',
+    
+    // Discord
+    'discordbot',
+    'discord',
+    
+    // Slack
+    'slackbot',
+    'slack',
+    
+    // Skype
+    'skypeuripreview',
+    'skype',
+    
+    // Apple
+    'applebot',
+    'apple',
+    
+    // Google
+    'googlebot',
+    'google',
+    
+    // 기타 소셜 플랫폼
+    'kakaotalk',
+    'kakao',
+    'line',
+    'naver',
+    'pinterest',
+    'reddit',
+    'tumblr',
+    'snapchat',
+    'instagram',
+    'tiktok',
+    
+    // 일반적인 소셜 크롤러 패턴
+    'social',
+    'crawler',
+    'bot',
+    'spider',
+    'scraper',
+    'preview',
+    'unfurl',
+    'embed'
   ];
   
-  return crawlers.some(crawler => 
-    userAgent.toLowerCase().includes(crawler.toLowerCase())
-  );
+  // 명확한 크롤러만 감지 (일반 브라우저 제외)
+  const explicitCrawlers = [
+    'facebookexternalhit',
+    'facebookcatalog', 
+    'facebookbot',
+    'twitterbot',
+    'linkedinbot',
+    'whatsappbot',
+    'telegrambot',
+    'discordbot',
+    'slackbot',
+    'googlebot',
+    'bingbot',
+    'applebot',
+    'threadsbot',
+    'threads'
+  ];
+  
+  const isExplicitCrawler = explicitCrawlers.some(crawler => ua.includes(crawler));
+  
+  // 일반 브라우저는 명시적으로 제외
+  const isRegularBrowser = ua.includes('mozilla') && 
+                          (ua.includes('chrome') || ua.includes('safari') || ua.includes('firefox')) &&
+                          !explicitCrawlers.some(crawler => ua.includes(crawler));
+  
+  // 명확한 크롤러만 true 반환, 일반 브라우저는 false
+  return isExplicitCrawler && !isRegularBrowser;
+};
+
+// 크롤러 타입 감지 함수
+const detectCrawlerType = (userAgent) => {
+  const ua = userAgent.toLowerCase();
+  
+  if (ua.includes('facebookexternalhit') || ua.includes('facebookbot')) return 'facebook';
+  if (ua.includes('twitterbot') || ua.includes('twitter')) return 'twitter';
+  if (ua.includes('threads')) return 'threads';
+  if (ua.includes('linkedinbot') || ua.includes('linkedin')) return 'linkedin';
+  if (ua.includes('whatsapp')) return 'whatsapp';
+  if (ua.includes('telegram')) return 'telegram';
+  if (ua.includes('discord')) return 'discord';
+  if (ua.includes('slack')) return 'slack';
+  if (ua.includes('kakaotalk') || ua.includes('kakao')) return 'kakao';
+  if (ua.includes('line')) return 'line';
+  if (ua.includes('naver')) return 'naver';
+  if (ua.includes('googlebot')) return 'google';
+  if (ua.includes('bingbot')) return 'bing';
+  if (ua.includes('applebot')) return 'apple';
+  
+  return 'unknown';
 };
 
 // 기본 메타데이터 생성
@@ -128,6 +234,12 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
   
   // 일반 사용자는 실제 기사 페이지로 리다이렉트
   if (!isSocialCrawler(userAgent)) {
+    console.log('👤 일반 사용자 감지 - 리다이렉트:', {
+      userAgent: userAgent,
+      path: path,
+      timestamp: new Date().toISOString()
+    });
+    
     // /social/article/123 → /article/123 로 리다이렉트
     const articleMatch = path.match(/^\/social\/article\/(.+)$/);
     if (articleMatch) {
@@ -138,7 +250,12 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
     return res.redirect(301, 'https://marlang-app.web.app');
   }
   
-  console.log('소셜 크롤러 감지:', userAgent, 'Path:', path);
+  console.log('🔍 소셜 크롤러 감지:', {
+    userAgent: userAgent,
+    path: path,
+    isCrawler: true,
+    timestamp: new Date().toISOString()
+  });
   
   let metaTags = '';
   let title = 'NEWStep Eng News';
@@ -149,6 +266,26 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
     
     if (articleMatch) {
       const articleId = articleMatch[1];
+      
+      // 크롤러 접근 메트릭 수집 (비동기)
+      try {
+        const crawlerType = detectCrawlerType(userAgent);
+        admin.firestore().collection('crawlerMetrics').add({
+          articleId,
+          userAgent,
+          path,
+          crawlerType,
+          timestamp: new Date().toISOString(),
+          date: new Date().toISOString().split('T')[0],
+          hour: new Date().getHours(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        }).catch(error => {
+          console.warn('소셜 크롤러 메트릭 기록 실패:', error);
+        });
+      } catch (metricError) {
+        console.warn('소셜 크롤러 메트릭 수집 오류:', metricError);
+      }
+      
       const articleMeta = await generateArticleMeta(articleId);
       
       if (articleMeta) {
