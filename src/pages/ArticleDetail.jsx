@@ -620,7 +620,7 @@ const ArticleDetail = () => {
         setIsLoading(false);
       }
     }
-  }, [id, articlesLoading]); // 의존성 배열 최적화 - user?.uid 제거
+  }, [id, articlesLoading, user?.uid, getArticleById, addViewRecord, updateActivityTime, incrementArticleViews]); // 의존성 배열 완전 최적화
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {

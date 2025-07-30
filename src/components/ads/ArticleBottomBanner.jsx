@@ -50,15 +50,19 @@ const ArticleBottomBanner = ({
     ? (import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT || 'DAN-RNzVkjnBfLSGDxqM')
     : (import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT || 'DAN-JVIJRJhlqIMMpiLm');
   
-  // 고유한 컨테이너 ID 생성
-  const containerId = `article-banner-${articleId}-${Date.now()}`;
+  // 고유한 컨테이너 ID 생성 (안정적인 ID)
+  const containerId = `article-banner-${articleId}`;
 
   const handleAdLoad = () => {
-    console.log(`✅ Article bottom banner loaded: ${containerId}`);
+    if (import.meta.env.DEV) {
+      console.log(`✅ Article bottom banner loaded: ${containerId}`);
+    }
   };
 
   const handleAdError = (error) => {
-    console.error(`❌ Article bottom banner error: ${containerId}`, error);
+    if (import.meta.env.DEV) {
+      console.error(`❌ Article bottom banner error: ${containerId}`, error);
+    }
   };
 
   return (

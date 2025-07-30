@@ -46,7 +46,9 @@ export const AdFitProvider = ({ children }) => {
         // 기존 스크립트가 있으면 로드 완료로 처리
         setIsAdFitLoaded(true);
         setIsLoading(false);
-        console.log('✅ AdFit script already exists');
+        if (import.meta.env.DEV) {
+          console.log('✅ AdFit script already exists');
+        }
         return Promise.resolve();
       }
 
@@ -58,7 +60,9 @@ export const AdFitProvider = ({ children }) => {
         script.id = 'kakao-adfit-script'; // ID 추가로 중복 방지
         
         script.onload = () => {
-          console.log('✅ AdFit script loaded successfully');
+          if (import.meta.env.DEV) {
+            console.log('✅ AdFit script loaded successfully');
+          }
           setIsAdFitLoaded(true);
           setIsLoading(false);
           resolve();
@@ -85,10 +89,16 @@ export const AdFitProvider = ({ children }) => {
     const { id, size, position } = unitConfig;
     
     setAdUnits(prev => {
+      // 이미 존재하면 상태 업데이트 하지 않음
+      if (prev.has(id)) {
+        return prev;
+      }
+      
       const newUnits = new Map(prev);
-      if (!newUnits.has(id)) {
-        const adUnit = createAdUnit(id, size, position);
-        newUnits.set(id, adUnit);
+      const adUnit = createAdUnit(id, size, position);
+      newUnits.set(id, adUnit);
+      
+      if (import.meta.env.DEV) {
         console.log(`📝 AdUnit registered: ${id} (${size}) at ${position}`);
       }
       return newUnits;
@@ -101,7 +111,9 @@ export const AdFitProvider = ({ children }) => {
       const newUnits = new Map(prev);
       if (newUnits.has(unitId)) {
         newUnits.delete(unitId);
-        console.log(`🗑️ AdUnit unregistered: ${unitId}`);
+        if (import.meta.env.DEV) {
+          console.log(`🗑️ AdUnit unregistered: ${unitId}`);
+        }
       }
       return newUnits;
     });
@@ -124,7 +136,9 @@ export const AdFitProvider = ({ children }) => {
     try {
       await loadAdFit();
       updateAdUnit(unitId, { isLoaded: true });
-      console.log(`✅ Ad unit ready: ${unitId}`);
+      if (import.meta.env.DEV) {
+        console.log(`✅ Ad unit ready: ${unitId}`);
+      }
     } catch (err) {
       console.error(`❌ Failed to display ad ${unitId}:`, err);
       updateAdUnit(unitId, { isLoaded: false });
@@ -138,7 +152,9 @@ export const AdFitProvider = ({ children }) => {
     // 스크립트는 유지하고 상태만 초기화
     // setIsAdFitLoaded(false);
     setError(null);
-    console.log('🔄 Ads reset for page transition (script preserved)');
+    if (import.meta.env.DEV) {
+      console.log('🔄 Ads reset for page transition (script preserved)');
+    }
   }, []);
 
   // 광고 새로고침
@@ -146,7 +162,9 @@ export const AdFitProvider = ({ children }) => {
     try {
       if (window.adfit && window.adfit.refresh) {
         window.adfit.refresh(unitId);
-        console.log(`🔄 Ad refreshed: ${unitId}`);
+        if (import.meta.env.DEV) {
+          console.log(`🔄 Ad refreshed: ${unitId}`);
+        }
       }
     } catch (err) {
       console.error(`❌ Failed to refresh ad ${unitId}:`, err);
@@ -158,7 +176,9 @@ export const AdFitProvider = ({ children }) => {
     try {
       if (window.adfit && window.adfit.destroy) {
         window.adfit.destroy(unitId);
-        console.log(`💥 Ad destroyed: ${unitId}`);
+        if (import.meta.env.DEV) {
+          console.log(`💥 Ad destroyed: ${unitId}`);
+        }
       }
       updateAdUnit(unitId, { isLoaded: false });
     } catch (err) {
@@ -191,7 +211,7 @@ export const AdFitProvider = ({ children }) => {
         setIsAdBlocked(isBlocked);
         document.body.removeChild(testAd);
         
-        if (isBlocked) {
+        if (isBlocked && import.meta.env.DEV) {
           console.warn('⚠️ Ad blocker detected');
         }
       }, 100);

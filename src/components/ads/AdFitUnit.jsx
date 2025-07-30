@@ -38,18 +38,21 @@ const AdFitUnit = ({
   const adSize = AD_SIZES[size] || AD_SIZES['300x250'];
   const finalContainerId = containerId || unitId;
   
-  console.log('🎯 AdFitUnit 렌더링:', { 
-    unitId, 
-    containerId: finalContainerId,
-    size, 
-    lazy, 
-    isAdBlocked, 
-    isAdFitLoaded,
-    isVisible,
-    isLoading,
-    hasError,
-    isDisplayed
-  });
+  // 개발 환경에서만 로깅
+  if (import.meta.env.DEV) {
+    console.log('🎯 AdFitUnit 렌더링:', { 
+      unitId, 
+      containerId: finalContainerId,
+      size, 
+      lazy, 
+      isAdBlocked, 
+      isAdFitLoaded,
+      isVisible,
+      isLoading,
+      hasError,
+      isDisplayed
+    });
+  }
 
   // Intersection Observer를 이용한 지연 로딩
   useEffect(() => {
@@ -96,13 +99,15 @@ const AdFitUnit = ({
         // AdFitContext를 통한 스크립트 로드
         await displayAd(unitId);
         
-        // 3초 후 로딩 상태 해제
+        // 1.5초 후 로딩 상태 해제 (모바일 최적화)
         setTimeout(() => {
           setIsLoading(false);
           setIsDisplayed(true);
           onLoad && onLoad();
-          console.log(`✅ AdFitUnit displayed: ${unitId}`);
-        }, 3000);
+          if (import.meta.env.DEV) {
+            console.log(`✅ AdFitUnit displayed: ${unitId}`);
+          }
+        }, 1500);
         
       } catch (error) {
         console.error(`Failed to load ad: ${unitId}`, error);
