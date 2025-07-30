@@ -21,7 +21,7 @@
         "function": "serveSitemap"
       },
       {
-        "source": "/article/**",
+        "source": "/social/**",
         "function": "socialPrerender"
       },
       {

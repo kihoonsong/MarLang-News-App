@@ -107,41 +107,16 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
   const userAgent = req.get('User-Agent') || '';
   const path = req.path;
   
-  // 소셜 크롤러가 아닌 일반 사용자는 React 앱 index.html 제공
+  // 일반 사용자는 실제 기사 페이지로 리다이렉트
   if (!isSocialCrawler(userAgent)) {
-    // React 앱의 index.html을 직접 제공
-    const indexHtml = `<!doctype html>
-<html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1976d2" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="NEWStep" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NEWStep Eng News</title>
-    <script type="module" crossorigin src="/assets/js/index-ByeA7C-i.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
-    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-pZh--RZW.js">
-    <link rel="stylesheet" crossorigin href="/assets/css/index-Bi__1-R8.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>`;
-    
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.send(indexHtml);
+    // /social/article/123 → /article/123 로 리다이렉트
+    const articleMatch = path.match(/^\/social\/article\/(.+)$/);
+    if (articleMatch) {
+      const articleId = articleMatch[1];
+      return res.redirect(301, `https://marlang-app.web.app/article/${articleId}`);
+    }
+    // 기타 경로는 홈으로 리다이렉트
+    return res.redirect(301, 'https://marlang-app.web.app');
   }
   
   console.log('소셜 크롤러 감지:', userAgent, 'Path:', path);
@@ -150,8 +125,8 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
   let title = 'NEWStep Eng News';
   
   try {
-    // 기사 페이지인지 확인
-    const articleMatch = path.match(/^\/article\/(.+)$/);
+    // /social/article/123 형태의 기사 페이지인지 확인
+    const articleMatch = path.match(/^\/social\/article\/(.+)$/);
     
     if (articleMatch) {
       const articleId = articleMatch[1];

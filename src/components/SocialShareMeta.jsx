@@ -12,10 +12,13 @@ const SocialShareMeta = ({ article }) => {
     }
 
     const baseUrl = "https://marlang-app.web.app";
+    // 소셜 미디어용 URL (메타데이터 생성용)
+    const socialUrl = `${baseUrl}/social/article/${article.id}`;
+    // 실제 기사 URL
+    const canonicalUrl = `${baseUrl}/article/${article.id}`;
     // 캐시 무효화를 위한 타임스탬프 추가
     const timestamp = Date.now();
-    const articleUrl = `${baseUrl}/article/${article.id}?v=${timestamp}`;
-    const canonicalUrl = `${baseUrl}/article/${article.id}`;
+    const articleUrl = `${canonicalUrl}?v=${timestamp}`;
 
     // 기본 메타 정보 (제목은 기사 제목만)
     const title = article.title;
@@ -58,7 +61,7 @@ const SocialShareMeta = ({ article }) => {
     // Open Graph 메타 태그
     updateMetaTag('meta[property="og:title"]', 'property', title);
     updateMetaTag('meta[property="og:description"]', 'property', description);
-    updateMetaTag('meta[property="og:url"]', 'property', articleUrl);
+    updateMetaTag('meta[property="og:url"]', 'property', socialUrl);
     updateMetaTag('meta[property="og:type"]', 'property', 'article');
     updateMetaTag('meta[property="og:site_name"]', 'property', 'NEWStep Eng News');
 
