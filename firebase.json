@@ -21,6 +21,10 @@
         "function": "serveSitemap"
       },
       {
+        "source": "/article/**",
+        "function": "socialPrerender"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

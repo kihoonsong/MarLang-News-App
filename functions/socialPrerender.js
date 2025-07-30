@@ -83,27 +83,23 @@ const generateHomeMeta = () => {
   return generateBaseMeta(title, description, imageUrl, url);
 };
 
-// 기본 HTML 템플릿
+// 소셜 크롤러용 HTML 템플릿 (리다이렉트 없음)
 const getBaseHtml = (metaTags, title) => {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   ${metaTags}
-  <meta http-equiv="refresh" content="0;url=https://marlang-app.web.app">
+  <!-- 소셜 크롤러용 - 리다이렉트 없음 -->
 </head>
 <body>
   <h1>${title}</h1>
-  <p>잠시만 기다려주세요. 페이지를 로드하고 있습니다...</p>
-  <script>
-    window.location.href = 'https://marlang-app.web.app';
-  </script>
+  <p>NEWStep Eng News - 영어 뉴스로 배우는 영어</p>
+  <p>이 페이지는 소셜 미디어 공유를 위한 메타데이터를 제공합니다.</p>
 </body>
-</html>
-  `;
+</html>`;
 };
 
 // 소셜 프리렌더링 함수
@@ -111,9 +107,41 @@ exports.socialPrerender = functions.https.onRequest(async (req, res) => {
   const userAgent = req.get('User-Agent') || '';
   const path = req.path;
   
-  // 소셜 크롤러가 아니면 원본 사이트로 리다이렉트
+  // 소셜 크롤러가 아닌 일반 사용자는 React 앱 index.html 제공
   if (!isSocialCrawler(userAgent)) {
-    return res.redirect(301, `https://marlang-app.web.app${path}`);
+    // React 앱의 index.html을 직접 제공
+    const indexHtml = `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="NEWStep" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEWStep Eng News</title>
+    <script type="module" crossorigin src="/assets/js/index-ByeA7C-i.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/js/react-vendor-Dz8DRwSR.js">
+    <link rel="modulepreload" crossorigin href="/assets/js/mui-core-pZh--RZW.js">
+    <link rel="stylesheet" crossorigin href="/assets/css/index-Bi__1-R8.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+    
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(indexHtml);
   }
   
   console.log('소셜 크롤러 감지:', userAgent, 'Path:', path);
