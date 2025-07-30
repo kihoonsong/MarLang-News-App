@@ -1,4 +1,4 @@
-// 소셜 공유를 위한 동적 메타 태그 컴포넌트
+// 소셜 공유를 위한 동적 메타 태그 컴포넌트 (강화된 버전)
 import React, { useEffect } from 'react';
 import { useSocialImage } from '../hooks/useSocialImage';
 import { refreshSocialCache, getSocialDebugUrls } from '../utils/socialCacheUtils';
@@ -183,8 +183,53 @@ const SocialShareMeta = ({ article }) => {
     updateMetaTag('meta[property="og:locale"]', 'property', 'ko_KR');
     updateMetaTag('meta[name="author"]', 'name', 'NEWStep News Team');
 
+    // 추가 소셜 메타 태그 (강화)
+    updateMetaTag('meta[property="og:updated_time"]', 'property', new Date().toISOString());
+    updateMetaTag('meta[property="article:published_time"]', 'property', article.publishedAt || new Date().toISOString());
+    updateMetaTag('meta[property="article:modified_time"]', 'property', new Date().toISOString());
+    updateMetaTag('meta[property="article:section"]', 'property', article.category || 'News');
+    updateMetaTag('meta[property="article:tag"]', 'property', `${article.title}, English, News, Learning`);
+
+    // 구조화된 데이터 (JSON-LD) 추가
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "headline": title,
+      "description": description,
+      "image": metaImageUrl,
+      "author": {
+        "@type": "Organization",
+        "name": "NEWStep News Team"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NEWStep Eng News",
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${baseUrl}/logo.png`
+        }
+      },
+      "datePublished": article.publishedAt || new Date().toISOString(),
+      "dateModified": new Date().toISOString(),
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": canonicalUrl
+      }
+    };
+
+    // 기존 구조화된 데이터 스크립트 제거
+    const existingStructuredData = document.querySelectorAll('script[type="application/ld+json"]');
+    existingStructuredData.forEach(script => script.remove());
+
+    // 새로운 구조화된 데이터 스크립트 추가
+    const structuredDataScript = document.createElement('script');
+    structuredDataScript.type = 'application/ld+json';
+    structuredDataScript.textContent = JSON.stringify(structuredData);
+    document.head.appendChild(structuredDataScript);
+
     if (import.meta.env.DEV) {
       console.log('🏷️ 최종 메타 이미지 URL:', metaImageUrl);
+      console.log('📊 구조화된 데이터 추가됨');
     }
 
     // 소셜 플랫폼 캐시 디버깅 도구 링크 출력 (개발 환경에서만)
@@ -199,80 +244,12 @@ const SocialShareMeta = ({ article }) => {
 
     // Facebook 캐시 새로고침 시도 (비동기, 개발 환경에서만)
     if (import.meta.env.DEV) {
-      refreshSocialCache(canonicalUrl, 'facebook').then(success => {
-        if (success) {
-          console.log('✅ Facebook 캐시 새로고침 완료');
-        } else {
-          console.log('⚠️ Facebook 캐시 새로고침 실패 (수동으로 디버거 사용 필요)');
-        }
-      });
+      refreshSocialCache(canonicalUrl);
     }
 
+  }, [article, socialImageUrl]);
 
-
-    // Article 관련 메타 태그
-    if (article.publishedAt) {
-      updateMetaTag('meta[property="article:published_time"]', 'property', new Date(article.publishedAt).toISOString());
-    }
-    if (article.category) {
-      updateMetaTag('meta[property="article:section"]', 'property', article.category);
-    }
-    updateMetaTag('meta[property="article:author"]', 'property', 'NEWStep News Team');
-
-    // Canonical URL (타임스탬프 없는 깨끗한 URL)
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = canonicalUrl;
-
-    // JSON-LD 구조화된 데이터
-    const jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "NewsArticle",
-      "headline": article.title,
-      "description": description,
-      "image": metaImageUrl,
-      "url": articleUrl,
-      "author": {
-        "@type": "Organization",
-        "name": "NEWStep News Team"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "NEWStep Eng News",
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${baseUrl}/logo.png`
-        }
-      },
-      "datePublished": article.publishedAt,
-      "dateModified": article.updatedAt || article.publishedAt,
-      "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": articleUrl
-      },
-      "articleSection": article.category,
-      "keywords": [article.title, "English news", article.category || "news", "English learning", "NEWStep"]
-    };
-
-    // 기존 JSON-LD 스크립트 제거
-    const existingScript = document.querySelector('script[type="application/ld+json"]');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // 새 JSON-LD 스크립트 추가
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.textContent = JSON.stringify(jsonLd);
-    document.head.appendChild(script);
-
-  }, [article]);
-
-  return null; // 이 컴포넌트는 렌더링하지 않음
+  return null; // 이 컴포넌트는 UI를 렌더링하지 않음
 };
 
 export default SocialShareMeta;

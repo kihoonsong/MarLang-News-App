@@ -21,10 +21,6 @@
         "function": "serveSitemap"
       },
       {
-        "source": "/article/**",
-        "function": "prerenderArticle"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

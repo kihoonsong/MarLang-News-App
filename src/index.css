@@ -63,6 +63,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden; /* 가로 스크롤 차단 */
+  
+  /* 모바일 최적화 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #root {
@@ -70,6 +79,26 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden; /* 가로 스크롤 차단 */
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  body {
+    /* 모바일에서 스크롤 성능 최적화 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* 모바일에서 터치 영역 최적화 */
+  button, a, input, textarea, select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 모바일에서 폰트 크기 최적화 */
+  html {
+    font-size: 16px; /* iOS에서 자동 확대 방지 */
+  }
 }
 
 /* 스크롤바 스타일링 */
@@ -86,21 +115,129 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--color-text-secondary);
   border-radius: 4px;
-  opacity: 0.6;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-primary);
-  opacity: 0.8;
 }
 
-/* 다크모드 스크롤바 개선 */
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #484f58;
+/* 모바일 스크롤바 숨김 */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #656c76;
+/* 모바일 터치 최적화 */
+@media (hover: none) and (pointer: coarse) {
+  /* 터치 디바이스에서 호버 효과 비활성화 */
+  *:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  /* 터치 피드백 최적화 */
+  button:active,
+  a:active,
+  input:active,
+  textarea:active,
+  select:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* 모바일 성능 최적화 */
+@media (max-width: 768px) {
+  /* 애니메이션 최적화 */
+  * {
+    will-change: auto;
+  }
+  
+  /* GPU 가속 활성화 */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* 이미지 최적화 */
+  img {
+    max-width: 100%;
+    height: auto;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+  
+  /* 폰트 최적화 */
+  * {
+    text-rendering: optimizeSpeed;
+  }
+}
+
+/* 고해상도 디스플레이 최적화 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* 고해상도에서 선명한 렌더링 */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 배터리 절약 모드 감지 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+    --color-text-hint: #999999;
+    --color-background: #121212;
+    --color-background-grey: #1e1e1e;
+    --color-border: #333333;
+  }
+}
+
+/* 접근성 개선 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-primary: #0000ff;
+    --color-text-primary: #000000;
+    --color-background: #ffffff;
+  }
+}
+
+/* 인쇄 스타일 */
+@media print {
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
 }
 
 /* 포커스 링 통일 */
@@ -129,118 +266,6 @@ select:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* 터치 디바이스 최적화 */
-@media (hover: none) and (pointer: coarse) {
-  button,
-  .clickable {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-/* 고해상도 디스플레이 최적화 */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  img {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-}
-
-/* 인쇄 최적화 */
-@media print {
-  * {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-  }
-  
-  nav,
-  .no-print {
-    display: none !important;
-  }
-}
-
-/* 다크모드 CSS 변수 */
-[data-theme="dark"] {
-  --color-text-primary: #e1e1e1;
-  --color-text-secondary: #b3b3b3;
-  --color-text-hint: #888888;
-  --color-background: #0d1117;
-  --color-background-grey: #21262d;
-  --color-border: #30363d;
-  --color-primary: #58a6ff;
-  --color-primary-light: #161b22;
-  --color-primary-dark: #79c0ff;
-  --color-warning: #f85149;
-  --color-success: #56d364;
-  --color-error: #f85149;
-  
-  /* 그림자 다크모드 버전 */
-  --shadow-card: 0 2px 12px rgba(0,0,0,0.3);
-  --shadow-large: 0 8px 32px rgba(0,0,0,0.4);
-}
-
-/* 라이트모드 기본값 유지 */
-[data-theme="light"] {
-  --color-text-primary: #333;
-  --color-text-secondary: #666;
-  --color-background: #ffffff;
-  --color-background-grey: #f5f5f5;
-  --color-border: #e0e0e0;
-  --color-primary: #1976d2;
-  --color-primary-light: #e3f2fd;
-  --color-primary-dark: #1565c0;
-  --color-warning: #ff9800;
-  --color-success: #4caf50;
-}
-
-a {
-  font-weight: 500;
-  color: var(--color-primary);
-  text-decoration: inherit;
-}
-a:hover {
-  color: var(--color-primary-dark);
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-button:hover {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary-light);
-}
-
-/* 다크모드 버튼 개선 */
-[data-theme="dark"] button {
-  background-color: #21262d;
-  border-color: #30363d;
-}
-
-[data-theme="dark"] button:hover {
-  background-color: #30363d;
-  border-color: #58a6ff;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
 }
 
 /* 단어 하이라이트 및 클릭 스타일 */
