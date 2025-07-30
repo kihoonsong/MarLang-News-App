@@ -61,7 +61,7 @@ const SocialShareMeta = ({ article }) => {
     // Open Graph 메타 태그
     updateMetaTag('meta[property="og:title"]', 'property', title);
     updateMetaTag('meta[property="og:description"]', 'property', description);
-    updateMetaTag('meta[property="og:url"]', 'property', socialUrl);
+    updateMetaTag('meta[property="og:url"]', 'property', canonicalUrl);
     updateMetaTag('meta[property="og:type"]', 'property', 'article');
     updateMetaTag('meta[property="og:site_name"]', 'property', 'NEWStep Eng News');
 

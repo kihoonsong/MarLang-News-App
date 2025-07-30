@@ -47,6 +47,8 @@ const generateBaseMeta = (title, description, imageUrl, url) => {
 // 기사 메타데이터 생성
 const generateArticleMeta = async (articleId) => {
   try {
+    console.log(`🔍 기사 데이터 조회 시작: ${articleId}`);
+    
     // Firestore에서 기사 데이터 가져오기
     const articleDoc = await admin.firestore()
       .collection('articles')
@@ -54,16 +56,33 @@ const generateArticleMeta = async (articleId) => {
       .get();
     
     if (!articleDoc.exists) {
+      console.log(`❌ 기사 없음: ${articleId}`);
       return null;
     }
     
     const article = articleDoc.data();
+    console.log(`✅ 기사 데이터 발견:`, {
+      id: articleId,
+      title: article.title,
+      hasImage: !!article.image,
+      hasSummary: !!article.summary,
+      status: article.status
+    });
+    
+    // 발행되지 않은 기사는 기본 메타데이터 사용
+    if (article.status !== 'published') {
+      console.log(`⚠️ 미발행 기사: ${articleId} (status: ${article.status})`);
+      return null;
+    }
+    
     const baseUrl = 'https://marlang-app.web.app';
     
     const title = article.title || 'NEWStep Eng News';
     const description = article.summary || article.description || '영어 뉴스를 통해 영어를 배우세요.';
-    const imageUrl = article.image || `${baseUrl}/newstep-social-image.png`;
+    const imageUrl = article.image || article.imageUrl || article.urlToImage || `${baseUrl}/newstep-social-image.png`;
     const url = `${baseUrl}/article/${articleId}`;
+    
+    console.log(`📝 메타데이터 생성:`, { title, description, imageUrl, url });
     
     return generateBaseMeta(title, description, imageUrl, url);
   } catch (error) {
