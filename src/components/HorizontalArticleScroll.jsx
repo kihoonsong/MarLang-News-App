@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useMediaQuery } from '@mui/material';
 import ArticleCard from './ArticleCard';
-import AdCard from './AdCard';
+import { AdCard } from './ads';
 import { designTokens } from '../utils/designTokens';
 import { useAdInjector } from '../hooks/useAdInjector';
 

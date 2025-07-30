@@ -99,7 +99,7 @@ const TermsOfService = () => {
                 6. 광고 및 쿠키
               </SectionTitle>
               <Typography variant="body1" paragraph>
-                본 서비스는 Google AdSense를 통한 광고를 표시할 수 있으며, 
+                본 서비스는 카카오 애드핏을 통한 광고를 표시할 수 있으며, 
                 서비스 개선을 위해 쿠키 및 유사 기술을 사용합니다. 
                 사용자는 브라우저 설정을 통해 쿠키 사용을 제어할 수 있습니다.
               </Typography>

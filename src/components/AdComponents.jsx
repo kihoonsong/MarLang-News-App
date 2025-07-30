@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import AdCard from './AdCard';
+import { AdCard } from './ads';
 import { useAdPlacement } from '../hooks/useAdInjector';
 
 // 사이드바 광고 컴포넌트

@@ -11,7 +11,7 @@ import { useData } from '../contexts/DataContext';
 import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import ArticleCard from '../components/ArticleCard';
-import AdCard from '../components/AdCard';
+import { AdCard } from '../components/ads';
 import { useAdInjector } from '../hooks/useAdInjector';
 import { designTokens } from '../utils/designTokens';
 

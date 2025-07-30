@@ -12,7 +12,7 @@ import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavi
 import PageContainer from '../components/PageContainer';
 import VerticalArticleList from '../components/VerticalArticleList';
 import ArticleCard from '../components/ArticleCard';
-import AdCard from '../components/AdCard';
+import { AdCard } from '../components/ads';
 import SimpleSEO from '../components/SimpleSEO';
 import CategorySocialMeta from '../components/CategorySocialMeta';
 import { ArticleListSkeleton } from '../components/LoadingComponents';

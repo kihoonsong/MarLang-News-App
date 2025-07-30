@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { membershipConfig } from '../config/membershipConfig';
-import { getAdsenseConfig } from '../config/adsenseConfig';
 
 // 랜덤 광고 배치를 위한 유틸리티 함수들
 const generateRandomSeed = (items) => {
@@ -59,28 +58,20 @@ const generateAdPositions = (itemCount, seed) => {
 
 export const useAdInjector = (items) => {
   const { user } = useAuth();
-  const adsenseConfig = getAdsenseConfig();
   
   // TODO: 나중에 실제 구독 상태로 교체
   const isPremium = false;
   
-  // 광고 표시 여부 결정
+  // 광고 표시 여부 결정 (카카오 애드핏)
   const shouldShowAds = useMemo(() => {
-    // 애드센스가 비활성화된 경우
-    if (!adsenseConfig.enabled) return false;
-    
     // 프리미엄 사용자에게 광고 표시 안함
-    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) {
+    if (isPremium) {
       return false;
     }
     
-    // 로그인 사용자에게 광고 표시 여부 확인
-    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) {
-      return false;
-    }
-    
+    // 기본적으로 광고 표시 (카카오 애드핏)
     return true;
-  }, [user, isPremium, adsenseConfig]);
+  }, [user, isPremium]);
 
   const itemsWithAds = useMemo(() => {
     const config = membershipConfig.ads;
@@ -143,31 +134,30 @@ export const useAdInjector = (items) => {
   return {
     itemsWithAds,
     shouldShowAds,
-    adsConfig: adsenseConfig
+    adsConfig: { type: 'kakao-adfit' } // 카카오 애드핏 사용
   };
 };
 
 // 특정 위치에 광고 삽입을 위한 훅
 export const useAdPlacement = (position = 'articleBanner', hasContent = false) => {
   const { user } = useAuth();
-  const adsenseConfig = getAdsenseConfig();
   const isPremium = false; // TODO: 실제 구독 상태로 교체
   
   const shouldShowAd = useMemo(() => {
-    if (!adsenseConfig.enabled) return false;
-    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) return false;
-    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) return false;
+    // 프리미엄 사용자에게 광고 표시 안함
+    if (isPremium) return false;
     
     // 콘텐츠가 없는 경우 광고 표시 안함
     if (!hasContent) return false;
     
+    // 기본적으로 광고 표시 (카카오 애드핏)
     return true;
-  }, [user, isPremium, adsenseConfig, hasContent]);
+  }, [user, isPremium, hasContent]);
   
   return {
     shouldShowAd,
     adSlot: position,
-    adsConfig: adsenseConfig
+    adsConfig: { type: 'kakao-adfit' } // 카카오 애드핏 사용
   };
 };
 
@@ -177,13 +167,14 @@ export const useVerticalAdInjector = (items, injectEvery = 3) => {
   const adsenseConfig = getAdsenseConfig();
   const isPremium = false; // TODO: 실제 구독 상태로 교체
   
-  // 광고 표시 여부 결정
+  // 광고 표시 여부 결정 (카카오 애드핏)
   const shouldShowAds = useMemo(() => {
-    if (!adsenseConfig.enabled) return false;
-    if (isPremium && !adsenseConfig.displayRules.showToPremiumUsers) return false;
-    if (user && !adsenseConfig.displayRules.showToLoggedInUsers) return false;
+    // 프리미엄 사용자에게 광고 표시 안함
+    if (isPremium) return false;
+    
+    // 기본적으로 광고 표시 (카카오 애드핏)
     return true;
-  }, [user, isPremium, adsenseConfig]);
+  }, [user, isPremium]);
 
   const itemsWithAds = useMemo(() => {
     // 광고를 표시하지 않거나, 아이템이 없거나, 최소 임계값 미만인 경우

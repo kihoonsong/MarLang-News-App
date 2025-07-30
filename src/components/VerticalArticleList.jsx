@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import ArticleCard from './ArticleCard';
-import AdCard from './AdCard';
+import { AdCard } from './ads';
 import { designTokens } from '../utils/designTokens';
 import { useVerticalAdInjector } from '../hooks/useAdInjector';
 
