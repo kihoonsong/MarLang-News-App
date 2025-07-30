@@ -91,29 +91,26 @@ export const copyToClipboard = async (text) => {
 // 소셜 미디어별 공유 URL 생성 (서버 사이드 렌더링된 메타데이터 사용)
 export const getSocialShareUrls = (article, socialImageUrl) => {
   const baseUrl = window.location.origin;
-  // 소셜 크롤러용 URL (서버 사이드 렌더링된 메타데이터 포함)
-  const socialUrl = `${baseUrl}/social/article/${article.id}`;
   // 실제 기사 URL (사용자 접근용)
   const articleUrl = `${baseUrl}/article/${article.id}`;
   
   const title = encodeURIComponent(article.title);
   const description = encodeURIComponent(article.summary || article.description || '');
-  const encodedSocialUrl = encodeURIComponent(socialUrl);
   const encodedArticleUrl = encodeURIComponent(articleUrl);
   const shareText = encodeURIComponent(`${article.title}\n\n${articleUrl}`);
   
   return {
     // 소셜 크롤러가 메타데이터를 읽을 수 있도록 소셜 URL 사용
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedSocialUrl}`,
-    threads: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${article.title}\n\n${socialUrl}`)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedArticleUrl}`,
+    threads: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${article.title}\n\n${articleUrl}`)}`,
     twitter: `https://twitter.com/intent/tweet?text=${shareText}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedSocialUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedArticleUrl}`,
     whatsapp: `https://wa.me/?text=${shareText}`,
-    telegram: `https://t.me/share/url?url=${encodedSocialUrl}&text=${title}`,
-    reddit: `https://reddit.com/submit?url=${encodedSocialUrl}&title=${title}`,
+    telegram: `https://t.me/share/url?url=${encodedArticleUrl}&text=${title}`,
+    reddit: `https://reddit.com/submit?url=${encodedArticleUrl}&title=${title}`,
     pinterest: socialImageUrl 
-      ? `https://pinterest.com/pin/create/button/?url=${encodedSocialUrl}&media=${encodeURIComponent(socialImageUrl)}&description=${title}`
-      : `https://pinterest.com/pin/create/button/?url=${encodedSocialUrl}&description=${title}`,
+      ? `https://pinterest.com/pin/create/button/?url=${encodedArticleUrl}&media=${encodeURIComponent(socialImageUrl)}&description=${title}`
+      : `https://pinterest.com/pin/create/button/?url=${encodedArticleUrl}&description=${title}`,
     email: `mailto:?subject=${title}&body=${description}%0A%0A${articleUrl}`
   };
 };
