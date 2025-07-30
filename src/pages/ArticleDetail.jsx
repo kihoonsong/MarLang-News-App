@@ -32,7 +32,10 @@ import SocialShareMeta from '../components/SocialShareMeta';
 import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
-import { ArticleBottomBanner } from '../components/ads';
+// 광고 컴포넌트 지연 로딩 (메인 기능과 분리)
+const ArticleBottomBanner = React.lazy(() => 
+  import('../components/ads').then(module => ({ default: module.ArticleBottomBanner }))
+);
 import { useAdFit } from '../contexts/AdFitContext';
 import DOMPurify from 'dompurify';
 
@@ -821,10 +824,7 @@ const ArticleDetail = () => {
           console.log('🍎 iOS 감지 - A안 적용: 전체 기사 한 번에 재생');
         }
 
-        // 1) 광고 push 차단 (선택적)
-        if (window.adsbygoogle) {
-          window.adsbygoogle = [];
-        }
+        // TTS는 광고와 독립적으로 실행
 
         // 2) 정제된 기사 전체 문자열 준비 (HTML 태그 제거)
         const cleanContent = cleanHtmlContent(currentContent);
@@ -2361,8 +2361,12 @@ const ArticleDetail = () => {
 
             </SwipeCardContainer>
 
-            {/* 기사 하단 배너 광고 (네비게이션 바 위) */}
-            {articleData && <ArticleBottomBanner articleId={articleData.id} />}
+            {/* 기사 하단 배너 광고 (네비게이션 바 위) - 지연 로딩 */}
+            {articleData && (
+              <React.Suspense fallback={<div style={{ height: '90px', background: '#f5f5f5' }} />}>
+                <ArticleBottomBanner articleId={articleData.id} />
+              </React.Suspense>
+            )}
           </PremiumContentGuard>
         </PageContainer>
 

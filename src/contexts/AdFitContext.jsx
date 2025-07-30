@@ -28,7 +28,7 @@ export const AdFitProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // AdFit 스크립트 로드 함수 (안정적인 전역 관리)
+  // 논블로킹 AdFit 스크립트 로드 함수
   const loadAdFit = useCallback(async () => {
     // 이미 로드되어 있으면 바로 반환
     if (isAdFitLoaded && document.querySelector('script[src*="kas/static/ba.min.js"]')) {
@@ -52,30 +52,45 @@ export const AdFitProvider = ({ children }) => {
         return Promise.resolve();
       }
 
-      // 새 스크립트 로드
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
-        script.async = true;
-        script.id = 'kakao-adfit-script'; // ID 추가로 중복 방지
-        
-        script.onload = () => {
-          if (import.meta.env.DEV) {
-            console.log('✅ AdFit script loaded successfully');
+      // 비동기로 스크립트 로드 (메인 스레드 보호)
+      return new Promise((resolve, reject) => {
+        // requestIdleCallback 사용하여 유휴 시간에 로드
+        const loadScript = (deadline) => {
+          if (deadline.timeRemaining() > 0 || deadline.didTimeout) {
+            const script = document.createElement('script');
+            script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+            script.async = true;
+            script.defer = true; // defer 추가로 파싱 블로킹 방지
+            script.id = 'kakao-adfit-script';
+            
+            script.onload = () => {
+              if (import.meta.env.DEV) {
+                console.log('✅ AdFit script loaded successfully');
+              }
+              setIsAdFitLoaded(true);
+              setIsLoading(false);
+              resolve();
+            };
+            
+            script.onerror = (err) => {
+              console.error('❌ Failed to load AdFit script:', err);
+              setError('Failed to load AdFit script');
+              setIsLoading(false);
+              reject(err);
+            };
+            
+            // 스크립트를 body 끝에 추가 (렌더링 블로킹 방지)
+            document.body.appendChild(script);
           }
-          setIsAdFitLoaded(true);
-          setIsLoading(false);
-          resolve();
         };
-        
-        script.onerror = (err) => {
-          console.error('❌ Failed to load AdFit script:', err);
-          setError('Failed to load AdFit script');
-          setIsLoading(false);
-          reject(err);
-        };
-        
-        document.head.appendChild(script);
+
+        // requestIdleCallback 지원 확인
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(loadScript, { timeout: 2000 });
+        } else {
+          // 폴백: setTimeout 사용
+          setTimeout(() => loadScript({ timeRemaining: () => 50, didTimeout: false }), 0);
+        }
       });
     } catch (err) {
       console.error('AdFit loading error:', err);
@@ -131,14 +146,22 @@ export const AdFitProvider = ({ children }) => {
     });
   }, []);
 
-  // 간단한 광고 표시
+  // 비동기 광고 표시 (메인 스레드 블로킹 방지)
   const displayAd = useCallback(async (unitId) => {
     try {
-      await loadAdFit();
-      updateAdUnit(unitId, { isLoaded: true });
-      if (import.meta.env.DEV) {
-        console.log(`✅ Ad unit ready: ${unitId}`);
-      }
+      // 비동기로 광고 로드 (메인 스레드 블로킹 방지)
+      setTimeout(async () => {
+        try {
+          await loadAdFit();
+          updateAdUnit(unitId, { isLoaded: true });
+          if (import.meta.env.DEV) {
+            console.log(`✅ Ad unit ready: ${unitId}`);
+          }
+        } catch (err) {
+          console.error(`❌ Failed to display ad ${unitId}:`, err);
+          updateAdUnit(unitId, { isLoaded: false });
+        }
+      }, 0); // 다음 이벤트 루프에서 실행
     } catch (err) {
       console.error(`❌ Failed to display ad ${unitId}:`, err);
       updateAdUnit(unitId, { isLoaded: false });
