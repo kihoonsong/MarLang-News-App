@@ -763,8 +763,8 @@ const RevealButton = styled.button`
 
 const PartOfSpeech = styled.span`
   font-size: 0.7rem;
-  color: ${getColor('text.secondary')};
-  background: ${getColor('background.grey')};
+  color: ${getColor('primary')};
+  background: ${getColor('primaryLight')};
   padding: 1px 4px;
   border-radius: 8px;
   font-weight: 500;
@@ -804,7 +804,7 @@ const Example = styled.p`
   margin: 12px 0 0 0;
   color: #000000;
   padding: 8px 12px;
-  background: ${getColor('background.grey')};
+  background: #ffffff;
   border-radius: 8px;
   border-left: 3px solid ${getColor('primary')};
   overflow: hidden;
