@@ -1,55 +1,69 @@
 // 소셜 공유를 위한 동적 메타 태그 컴포넌트 (강화된 버전)
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSocialImage } from '../hooks/useSocialImage';
 import { refreshSocialCache, getSocialDebugUrls } from '../utils/socialCacheUtils';
 
 const SocialShareMeta = ({ article }) => {
   const { socialImageUrl, isGenerating } = useSocialImage(article);
+  const metaUpdateRef = useRef(false);
 
   useEffect(() => {
     if (!article) {
       return;
     }
 
+    // 중복 실행 방지
+    if (metaUpdateRef.current) {
+      return;
+    }
+    metaUpdateRef.current = true;
+
     const baseUrl = "https://marlang-app.web.app";
     // 소셜 미디어용 URL (메타데이터 생성용)
     const socialUrl = `${baseUrl}/social/article/${article.id}`;
-    // 실제 기사 URL
+    // 실제 기사 URL (사용자가 접근하는 URL)
     const canonicalUrl = `${baseUrl}/article/${article.id}`;
     // 캐시 무효화를 위한 타임스탬프 추가
     const timestamp = Date.now();
     const articleUrl = `${canonicalUrl}?v=${timestamp}`;
 
     // 기본 메타 정보 (제목은 기사 제목만)
-    const title = article.title;
+    const title = article.title || 'NEWStep News Article';
     const description = article.summary || article.description || `Read "${article.title}" on NEWStep News - Learn English through latest news.`;
 
     // 동적으로 메타 태그 업데이트 (강제 교체)
     const updateMetaTag = (selector, attribute, value) => {
-      // 기존 태그 완전 제거
-      const existingMetas = document.querySelectorAll(selector);
-      existingMetas.forEach(meta => meta.remove());
+      try {
+        // 기존 태그 완전 제거
+        const existingMetas = document.querySelectorAll(selector);
+        existingMetas.forEach(meta => meta.remove());
 
-      // 새 태그 생성
-      const meta = document.createElement('meta');
-      if (attribute === 'property') {
-        meta.setAttribute('property', selector.replace('meta[property="', '').replace('"]', ''));
-      } else if (attribute === 'name') {
-        meta.setAttribute('name', selector.replace('meta[name="', '').replace('"]', ''));
-      } else if (attribute === 'itemprop') {
-        meta.setAttribute('itemprop', selector.replace('meta[itemprop="', '').replace('"]', ''));
-      }
+        // 새 태그 생성
+        const meta = document.createElement('meta');
+        if (attribute === 'property') {
+          const propertyName = selector.replace('meta[property="', '').replace('"]', '');
+          meta.setAttribute('property', propertyName);
+        } else if (attribute === 'name') {
+          const nameValue = selector.replace('meta[name="', '').replace('"]', '');
+          meta.setAttribute('name', nameValue);
+        } else if (attribute === 'itemprop') {
+          const itempropValue = selector.replace('meta[itemprop="', '').replace('"]', '');
+          meta.setAttribute('itemprop', itempropValue);
+        }
 
-      meta.setAttribute('content', value);
-      document.head.appendChild(meta);
+        meta.setAttribute('content', value);
+        document.head.appendChild(meta);
 
-      // 디버깅용 로그
-      if (selector.includes('og:image') || selector.includes('twitter:image')) {
-        console.log(`🏷️ 메타태그 강제 교체:`, {
-          selector,
-          newValue: value,
-          element: meta
-        });
+        // 디버깅용 로그
+        if (selector.includes('og:image') || selector.includes('twitter:image')) {
+          console.log(`🏷️ 메타태그 강제 교체:`, {
+            selector,
+            newValue: value,
+            element: meta
+          });
+        }
+      } catch (error) {
+        console.error('메타태그 업데이트 실패:', error);
       }
     };
 
@@ -58,12 +72,22 @@ const SocialShareMeta = ({ article }) => {
     updateMetaTag('meta[name="description"]', 'name', description);
     updateMetaTag('meta[name="keywords"]', 'name', `${article.title}, English news, ${article.category || 'news'}, English learning, NEWStep`);
 
-    // Open Graph 메타 태그
+    // Open Graph 메타 태그 (소셜 크롤러용 URL 사용)
     updateMetaTag('meta[property="og:title"]', 'property', title);
     updateMetaTag('meta[property="og:description"]', 'property', description);
-    updateMetaTag('meta[property="og:url"]', 'property', canonicalUrl);
+    updateMetaTag('meta[property="og:url"]', 'property', socialUrl); // 소셜 크롤러용 URL 사용
     updateMetaTag('meta[property="og:type"]', 'property', 'article');
     updateMetaTag('meta[property="og:site_name"]', 'property', 'NEWStep Eng News');
+    
+    // Canonical URL은 실제 기사 URL로 설정
+    const existingCanonical = document.querySelector('link[rel="canonical"]');
+    if (existingCanonical) {
+      existingCanonical.remove();
+    }
+    const canonicalLink = document.createElement('link');
+    canonicalLink.rel = 'canonical';
+    canonicalLink.href = canonicalUrl;
+    document.head.appendChild(canonicalLink);
 
     // 기사 이미지 처리 (강화된 버전)
     if (import.meta.env.DEV) {
@@ -120,21 +144,10 @@ const SocialShareMeta = ({ article }) => {
           try {
             new URL(imageStr);
             
-            // Firebase Storage URL 처리 (CORS 문제 방지)
-            if (imageStr.includes('firebasestorage.googleapis.com')) {
-              // Firebase Storage 이미지는 소셜 메타에서 기본 이미지 사용
-              // 실제 페이지에서는 정상 표시되지만 소셜 미리보기에서는 안정성을 위해 기본 이미지 사용
-              if (import.meta.env.DEV) {
-                console.log('🔄 Firebase Storage 이미지 감지 - 소셜 메타에서는 기본 이미지 사용');
-                console.log('💡 실제 페이지에서는 Firebase Storage 이미지가 정상 표시됩니다');
-              }
-              // metaImageUrl을 변경하지 않음 (기본 이미지 유지)
-            } else {
-              // 외부 이미지는 그대로 사용
-              metaImageUrl = imageStr;
-              if (import.meta.env.DEV) {
-                console.log('✅ 기사 HTTP 이미지 사용:', metaImageUrl);
-              }
+            // Firebase Storage 여부와 관계없이 절대 URL을 사용
+            metaImageUrl = imageStr;
+            if (import.meta.env.DEV) {
+              console.log('✅ 기사 이미지 사용:', metaImageUrl);
             }
           } catch (e) {
             if (import.meta.env.DEV) {
@@ -217,7 +230,8 @@ const SocialShareMeta = ({ article }) => {
       "mainEntityOfPage": {
         "@type": "WebPage",
         "@id": canonicalUrl
-      }
+      },
+      "url": socialUrl
     };
 
     // 기존 구조화된 데이터 스크립트 제거
@@ -237,18 +251,25 @@ const SocialShareMeta = ({ article }) => {
 
     // 소셜 플랫폼 캐시 디버깅 도구 링크 출력 (개발 환경에서만)
     if (import.meta.env.DEV) {
-      const debugUrls = getSocialDebugUrls(canonicalUrl);
+      const debugUrls = getSocialDebugUrls(socialUrl); // 소셜 URL로 디버깅
       console.log('🔧 소셜 플랫폼 캐시 디버깅 도구:');
       console.log('📘 Facebook Debugger:', debugUrls.facebook);
       console.log('🧵 Threads Debugger:', debugUrls.threads);
       console.log('🐦 Twitter Card Validator:', debugUrls.twitter);
       console.log('💼 LinkedIn Post Inspector:', debugUrls.linkedin);
+      console.log('🔗 소셜 크롤러용 URL:', socialUrl);
+      console.log('🔗 실제 기사 URL:', canonicalUrl);
     }
 
     // Facebook 캐시 새로고침 시도 (비동기, 개발 환경에서만)
     if (import.meta.env.DEV) {
-      refreshSocialCache(canonicalUrl);
+      refreshSocialCache(socialUrl); // 소셜 URL로 캐시 새로고침
     }
+
+    // 메타데이터 업데이트 완료 후 플래그 리셋
+    setTimeout(() => {
+      metaUpdateRef.current = false;
+    }, 1000);
 
   }, [article, socialImageUrl]);
 
