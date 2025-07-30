@@ -164,12 +164,12 @@ const CardTitle = styled.h3`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  color: ${getColor('text.primary')};
+  color: #000000;
 `;
 
 const CardSummary = styled.p`
   font-size: 0.875rem;
-  color: ${getColor('text.secondary')};
+  color: #000000;
   line-height: 1.5;
   margin: 0;
   display: -webkit-box;
