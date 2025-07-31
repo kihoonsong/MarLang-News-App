@@ -32,13 +32,8 @@ import SocialShareMeta from '../components/SocialShareMeta';
 import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
-// 광고 컴포넌트 지연 로딩 (메인 기능과 분리)
-const ArticleBottomBanner = React.lazy(() =>
-  import('../components/ads/ArticleBottomBanner').catch(() => {
-    // 광고 로딩 실패 시 빈 컴포넌트 반환
-    return { default: () => null };
-  })
-);
+// 광고 컴포넌트 직접 import (안정성 확보)
+import ArticleBottomBanner from '../components/ads/ArticleBottomBanner';
 import { useAdFit } from '../contexts/AdFitContext';
 import DOMPurify from 'dompurify';
 
@@ -2613,11 +2608,9 @@ const ArticleDetail = () => {
 
             </SwipeCardContainer>
 
-            {/* 기사 하단 배너 광고 (네비게이션 바 위) - 지연 로딩 */}
+            {/* 기사 하단 배너 광고 (네비게이션 바 위) */}
             {articleData && (
-              <React.Suspense fallback={<div style={{ height: '90px', background: '#f5f5f5' }} />}>
-                <ArticleBottomBanner articleId={articleData.id} />
-              </React.Suspense>
+              <ArticleBottomBanner articleId={articleData.id} />
             )}
           </PremiumContentGuard>
         </PageContainer>

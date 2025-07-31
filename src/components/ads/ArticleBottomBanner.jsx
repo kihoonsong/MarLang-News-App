@@ -50,14 +50,16 @@ const ArticleBottomBanner = ({
     ? (import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT || 'DAN-RNzVkjnBfLSGDxqM')
     : (import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT || 'DAN-JVIJRJhlqIMMpiLm');
   
-  if (import.meta.env.DEV) {
-    console.log('🎯 광고 단위 설정:', {
-      isMobile,
-      unitId,
-      mobileUnit: import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT,
-      desktopUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT
-    });
-  }
+  // 렌더링 상태 디버깅 로그 추가
+  console.log('🎯 ArticleBottomBanner 렌더링:', {
+    articleId,
+    isMobile,
+    bannerSize,
+    unitId,
+    mobileUnit: import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT,
+    desktopUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT,
+    timestamp: new Date().toISOString()
+  });
   
   // 고유한 컨테이너 ID 생성 (안정적인 ID)
   const containerId = `article-banner-${articleId}`;
@@ -83,7 +85,7 @@ const ArticleBottomBanner = ({
           unitId={unitId}
           containerId={containerId}
           size={bannerSize}
-          lazy={true}
+          lazy={false}
           onLoad={handleAdLoad}
           onError={handleAdError}
           fallback={<BannerAdSkeleton size={bannerSize} />}
