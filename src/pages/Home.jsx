@@ -213,6 +213,18 @@ const Home = () => {
         categoryData.recent = [];
       }
 
+      // Popular articles 로드 추가
+      try {
+        if (getPopularArticles && typeof getPopularArticles === 'function') {
+          const popularArticles = getPopularArticles(10);
+          categoryData.popular = Array.isArray(popularArticles) ? popularArticles : [];
+          console.log('📈 Popular articles 로드됨:', popularArticles.length);
+        }
+      } catch (popularError) {
+        console.warn('Popular articles 로드 실패:', popularError);
+        categoryData.popular = [];
+      }
+
       // 카테고리별 기사도 개별 보호
       categories.forEach((category) => {
         try {
@@ -236,7 +248,7 @@ const Home = () => {
       setHomeError(error.message || 'Failed to load home data');
       setAllNewsData({});
     }
-  }, [loading, categories, getRecentArticles, getArticlesByCategory]);
+  }, [loading, categories, getRecentArticles, getPopularArticles, getArticlesByCategory]);
 
   // Load category data from context with enhanced error handling
   useEffect(() => {
