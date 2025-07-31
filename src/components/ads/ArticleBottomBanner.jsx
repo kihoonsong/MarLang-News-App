@@ -1,145 +1,109 @@
-import React from 'react';
-import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import AdFitUnit from './AdFitUnit';
+import React, { useEffect } from 'react';
 
-const BottomBannerContainer = styled(Box)(({ theme }) => ({
-  margin: '32px 0 24px 0',
-  padding: '16px 0',
-  borderTop: '1px solid #e0e0e0',
-  borderBottom: '1px solid #e0e0e0',
-  background: '#fafafa',
-  
-  [theme.breakpoints.down('md')]: {
-    margin: '24px 0 16px 0',
-    padding: '12px 0',
-  }
-}));
+const ArticleBottomBanner = ({ articleId = 'default', className = '' }) => {
+  console.log('🎯 ArticleBottomBanner 시작:', { articleId });
 
-const AdLabel = styled(Typography)(({ theme }) => ({
-  textAlign: 'center',
-  marginBottom: 12,
-  fontSize: 11,
-  color: '#888',
-  textTransform: 'uppercase',
-  letterSpacing: 1,
-  fontWeight: 500
-}));
-
-const BannerAdWrapper = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: 90, // 데스크톱 기준
-  
-  [theme.breakpoints.down('md')]: {
-    minHeight: 50, // 모바일 배너 높이
-  }
-}));
-
-const ArticleBottomBanner = ({ 
-  articleId = 'default', 
-  className = '' 
-}) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const bannerSize = isMobile ? '320x50' : '728x90';
-  
-  // React 페이지 전용 광고 단위 ID 사용 (크롤링 페이지와 분리)
-  const unitId = isMobile 
-    ? (import.meta.env.VITE_ADFIT_REACT_BANNER_MOBILE || 'DAN-ks07LuYMpBfOqPPa')
-    : (import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT || 'DAN-JVIJRJhlqIMMpiLm');
-  
-  // 렌더링 상태 디버깅 로그 추가 (React 전용 광고 단위)
-  console.log('🎯 ArticleBottomBanner 렌더링 시작 (React 전용):', {
-    articleId,
-    isMobile,
-    bannerSize,
-    unitId,
-    reactMobileUnit: import.meta.env.VITE_ADFIT_REACT_BANNER_MOBILE,
-    desktopUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT,
-    timestamp: new Date().toISOString(),
-    location: window.location.href
-  });
-
-  // 컴포넌트가 실제로 렌더링되는지 확인
-  React.useEffect(() => {
-    console.log('🎯 ArticleBottomBanner useEffect 실행됨:', articleId);
-    return () => {
-      console.log('🎯 ArticleBottomBanner 언마운트됨:', articleId);
-    };
-  }, [articleId]);
-  
-  // 고유한 컨테이너 ID 생성 (안정적인 ID)
-  const containerId = `article-banner-${articleId}`;
-
-  const handleAdLoad = () => {
-    console.log(`✅ Article bottom banner loaded: ${containerId}`);
-  };
-
-  const handleAdError = (error) => {
-    console.error(`❌ Article bottom banner error: ${containerId}`, error);
-  };
-
-  return (
-    <BottomBannerContainer className={`bottom-banner-container ${className}`}>
-      <AdLabel>광고</AdLabel>
+  useEffect(() => {
+    const insertKakaoAd = () => {
+      console.log('🎯 카카오 광고 삽입 시작');
       
-      <BannerAdWrapper className="banner-ad-wrapper">
-        <AdFitUnit
-          unitId={unitId}
-          containerId={containerId}
-          size={bannerSize}
-          lazy={false}
-          onLoad={handleAdLoad}
-          onError={handleAdError}
-          fallback={<BannerAdSkeleton size={bannerSize} />}
-        />
-      </BannerAdWrapper>
-    </BottomBannerContainer>
-  );
-};
-
-// 배너 광고 스켈레톤 컴포넌트
-const BannerAdSkeleton = ({ size }) => {
-  const [width, height] = size.split('x').map(Number);
-  
-  return (
-    <Box sx={{ 
-      width: width,
-      height: height,
-      maxWidth: '100%',
-      bgcolor: 'grey.100',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 1,
-      mx: 'auto',
-      position: 'relative',
-      overflow: 'hidden',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: '-100%',
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
-        animation: 'loading 1.5s infinite'
+      // 광고 컨테이너 찾기
+      const container = document.getElementById('kakao-ad-container');
+      if (!container) {
+        console.error('❌ 광고 컨테이너를 찾을 수 없음');
+        return;
       }
+
+      // 이미 광고가 있으면 제거
+      container.innerHTML = '';
+
+      // 카카오 애드핏 광고 HTML 직접 삽입
+      const adHTML = `
+        <ins class="kakao_ad_area" 
+             style="display:none;" 
+             data-ad-unit="DAN-ks07LuYMpBfOqPPa" 
+             data-ad-width="320" 
+             data-ad-height="50">
+        </ins>
+      `;
+      
+      container.innerHTML = adHTML;
+      console.log('✅ 광고 HTML 삽입 완료');
+
+      // 스크립트 로드
+      if (!document.querySelector('script[src*="kas/static/ba.min.js"]')) {
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+        script.async = true;
+        
+        script.onload = () => {
+          console.log('✅ 카카오 애드핏 스크립트 로드 완료');
+        };
+        
+        script.onerror = (error) => {
+          console.error('❌ 카카오 애드핏 스크립트 로드 실패:', error);
+        };
+        
+        document.head.appendChild(script);
+        console.log('📜 카카오 애드핏 스크립트 추가됨');
+      } else {
+        console.log('✅ 카카오 애드핏 스크립트 이미 존재');
+      }
+    };
+
+    // 1초 후 광고 삽입
+    const timer = setTimeout(insertKakaoAd, 1000);
+    return () => clearTimeout(timer);
+  }, [articleId]);
+
+  return (
+    <div style={{
+      margin: '32px 0',
+      padding: '16px',
+      borderTop: '1px solid #e0e0e0',
+      borderBottom: '1px solid #e0e0e0',
+      backgroundColor: '#fafafa',
+      textAlign: 'center'
     }}>
-      <Typography variant="caption" color="text.secondary">
+      <div style={{
+        fontSize: '11px',
+        color: '#888',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        marginBottom: '12px',
+        fontWeight: '500'
+      }}>
+        광고
+      </div>
+      
+      <div style={{
+        fontSize: '12px',
+        color: '#666',
+        marginBottom: '10px'
+      }}>
+        React 전용 광고 (DAN-ks07LuYMpBfOqPPa)
+      </div>
+      
+      <div 
+        id="kakao-ad-container"
+        style={{
+          width: '320px',
+          height: '50px',
+          maxWidth: '100%',
+          margin: '0 auto',
+          border: '1px dashed #ccc',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9f9f9',
+          fontSize: '12px',
+          color: '#999'
+        }}
+      >
         광고 로딩 중...
-      </Typography>
-      <style>
-        {`
-          @keyframes loading {
-            0% { left: -100%; }
-            100% { left: 100%; }
-          }
-        `}
-      </style>
-    </Box>
+      </div>
+    </div>
   );
 };
 

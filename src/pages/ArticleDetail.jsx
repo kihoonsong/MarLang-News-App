@@ -2610,10 +2610,8 @@ const ArticleDetail = () => {
 
           </PremiumContentGuard>
 
-          {/* 기사 하단 배너 광고 (네비게이션 바 위) - PremiumContentGuard 밖으로 이동 */}
-          {articleData && (
-            <ArticleBottomBanner articleId={articleData.id} />
-          )}
+          {/* 기사 하단 배너 광고 (네비게이션 바 위) - 강제 렌더링 */}
+          <ArticleBottomBanner articleId={articleData?.id || 'test-article'} />
         </PageContainer>
 
         {/* 단어 팝업 */}
