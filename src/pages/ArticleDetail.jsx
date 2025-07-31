@@ -2542,7 +2542,7 @@ const ArticleDetail = () => {
                         <ArrowBackIosIcon fontSize="inherit" />
                       </LevelChangeButton>
                       <ContentTitle>
-                        Level {level} - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
+                        Level <LevelNumber>{level}</LevelNumber> - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
                       </ContentTitle>
                       <LevelChangeButton
                         onClick={(e) => {
@@ -3174,7 +3174,7 @@ const ContentHeader = styled.div`
 const LevelChangeButton = styled.button`
   background: transparent;
   border: none;
-  color: #999;
+  color: #dc3545;
   cursor: pointer;
   font-size: 1.2rem;
   transition: all 0.3s ease;
@@ -3187,13 +3187,13 @@ const LevelChangeButton = styled.button`
   min-height: 40px;
   
   &:hover {
-    color: #1976d2;
-    background: rgba(25, 118, 210, 0.08);
+    color: #c82333;
+    background: rgba(220, 53, 69, 0.08);
     transform: scale(1.1);
   }
   
   &:focus {
-    outline: 2px solid #1976d2;
+    outline: 2px solid #dc3545;
     outline-offset: 2px;
   }
   
@@ -3209,6 +3209,10 @@ const ContentTitle = styled.h3`
   text-align: center;
   margin: 0;
   flex-grow: 1;
+`;
+
+const LevelNumber = styled.span`
+  color: #dc3545;
 `;
 
 const ContentText = styled.div`
