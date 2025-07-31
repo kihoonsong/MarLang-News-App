@@ -2608,11 +2608,12 @@ const ArticleDetail = () => {
 
             </SwipeCardContainer>
 
-            {/* 기사 하단 배너 광고 (네비게이션 바 위) */}
-            {articleData && (
-              <ArticleBottomBanner articleId={articleData.id} />
-            )}
           </PremiumContentGuard>
+
+          {/* 기사 하단 배너 광고 (네비게이션 바 위) - PremiumContentGuard 밖으로 이동 */}
+          {articleData && (
+            <ArticleBottomBanner articleId={articleData.id} />
+          )}
         </PageContainer>
 
         {/* 단어 팝업 */}

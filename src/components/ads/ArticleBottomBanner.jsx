@@ -45,35 +45,40 @@ const ArticleBottomBanner = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const bannerSize = isMobile ? '320x50' : '728x90';
   
-  // 실제 카카오 애드핏 광고 단위 ID 사용 (환경 변수 확인 강화)
+  // React 페이지 전용 광고 단위 ID 사용 (크롤링 페이지와 분리)
   const unitId = isMobile 
-    ? (import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT || 'DAN-RNzVkjnBfLSGDxqM')
+    ? (import.meta.env.VITE_ADFIT_REACT_BANNER_MOBILE || 'DAN-ks07LuYMpBfOqPPa')
     : (import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT || 'DAN-JVIJRJhlqIMMpiLm');
   
-  // 렌더링 상태 디버깅 로그 추가
-  console.log('🎯 ArticleBottomBanner 렌더링:', {
+  // 렌더링 상태 디버깅 로그 추가 (React 전용 광고 단위)
+  console.log('🎯 ArticleBottomBanner 렌더링 시작 (React 전용):', {
     articleId,
     isMobile,
     bannerSize,
     unitId,
-    mobileUnit: import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT,
+    reactMobileUnit: import.meta.env.VITE_ADFIT_REACT_BANNER_MOBILE,
     desktopUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    location: window.location.href
   });
+
+  // 컴포넌트가 실제로 렌더링되는지 확인
+  React.useEffect(() => {
+    console.log('🎯 ArticleBottomBanner useEffect 실행됨:', articleId);
+    return () => {
+      console.log('🎯 ArticleBottomBanner 언마운트됨:', articleId);
+    };
+  }, [articleId]);
   
   // 고유한 컨테이너 ID 생성 (안정적인 ID)
   const containerId = `article-banner-${articleId}`;
 
   const handleAdLoad = () => {
-    if (import.meta.env.DEV) {
-      console.log(`✅ Article bottom banner loaded: ${containerId}`);
-    }
+    console.log(`✅ Article bottom banner loaded: ${containerId}`);
   };
 
   const handleAdError = (error) => {
-    if (import.meta.env.DEV) {
-      console.error(`❌ Article bottom banner error: ${containerId}`, error);
-    }
+    console.error(`❌ Article bottom banner error: ${containerId}`, error);
   };
 
   return (
