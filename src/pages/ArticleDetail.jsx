@@ -147,7 +147,75 @@ const ArticleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth() || {};
-  const { loading: articlesLoading, incrementArticleViews, incrementArticleLikes, getArticleById } = useArticles();
+
+  // 컴포넌트 레벨 에러 핸들링
+  useEffect(() => {
+    const handleComponentError = (error) => {
+      console.error('ArticleDetail 컴포넌트 에러:', error);
+      // 에러 발생 시 안전한 상태로 복구
+      try {
+        if (window.globalStopTTS) {
+          window.globalStopTTS();
+        }
+      } catch (cleanupError) {
+        console.warn('에러 복구 중 정리 작업 실패:', cleanupError);
+      }
+    };
+
+    // 전역 에러 이벤트 리스너 등록
+    window.addEventListener('error', handleComponentError);
+    window.addEventListener('unhandledrejection', (event) => {
+      handleComponentError(event.reason);
+    });
+
+    return () => {
+      window.removeEventListener('error', handleComponentError);
+      window.removeEventListener('unhandledrejection', handleComponentError);
+    };
+  }, []);
+  
+  // 안전한 Context 사용
+  const articlesContext = useArticles();
+  const {
+    loading: articlesLoading = true,
+    incrementArticleViews = () => Promise.resolve(),
+    incrementArticleLikes = () => Promise.resolve(),
+    getArticleById = () => null
+  } = articlesContext || {};
+
+  // Context 함수들의 안전한 래퍼
+  const safeIncrementArticleViews = useCallback(async (articleId) => {
+    try {
+      if (incrementArticleViews && typeof incrementArticleViews === 'function') {
+        return await incrementArticleViews(articleId);
+      }
+    } catch (error) {
+      console.warn('조회수 증가 실패:', error);
+    }
+  }, [incrementArticleViews]);
+
+  const safeIncrementArticleLikes = useCallback(async (articleId) => {
+    try {
+      if (incrementArticleLikes && typeof incrementArticleLikes === 'function') {
+        return await incrementArticleLikes(articleId);
+      }
+    } catch (error) {
+      console.warn('좋아요 수 증가 실패:', error);
+    }
+  }, [incrementArticleLikes]);
+
+  const safeGetArticleById = useCallback((articleId) => {
+    try {
+      if (getArticleById && typeof getArticleById === 'function') {
+        return getArticleById(articleId);
+      }
+      return null;
+    } catch (error) {
+      console.warn('기사 조회 실패:', error);
+      return null;
+    }
+  }, [getArticleById]);
+  
   const { resetAds } = useAdFit();
   const {
     savedWords,
@@ -186,15 +254,17 @@ const ArticleDetail = () => {
     error: null,
     selectedWord: null
   });
-  const [selectedLanguage, setSelectedLanguage] = useState(userSettings?.translationLanguage || 'en');
+  
+  // 안전한 초기값 설정
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [ttsSpeed, setTtsSpeed] = useState(0.8);
+  const [_ttsPause, setTtsPause] = useState(false);
+  const [_totalSentences, setTotalSentences] = useState(0);
 
   // TTS 상태 (통합)
   const [isTTSPlaying, setIsTTSPlaying] = useState(false);
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [currentSentence, setCurrentSentence] = useState(-1);
-  const [ttsSpeed, setTtsSpeed] = useState(userSettings?.ttsSpeed || 0.8);
-  const [_ttsPause, setTtsPause] = useState(userSettings?.ttsPause || false);
-  const [_totalSentences, setTotalSentences] = useState(0);
 
   // 통합 TTS 인스턴스
   const unifiedTTSRef = useRef(null);
@@ -223,50 +293,81 @@ const ArticleDetail = () => {
 
   // 페이지 이동 시 TTS 자동 정지 및 광고 초기화 (개선된 버전)
   useEffect(() => {
+    let isMounted = true;
+
     // 페이지 진입 시 광고 초기화
-    resetAds();
+    try {
+      resetAds();
+    } catch (error) {
+      console.warn('광고 초기화 실패:', error);
+    }
 
     return () => {
+      isMounted = false;
+      
       // 컴포넌트 언마운트 시 TTS 완전 정지
       if (import.meta.env.DEV) {
         console.log('📤 ArticleDetail 언마운트 - 통합 TTS 정지');
       }
 
-      // 배치 상태 초기화
-      React.unstable_batchedUpdates(() => {
-        setIsTTSPlaying(false);
-        setIsTTSLoading(false);
-        setCurrentSentence(-1);
-        setTotalSentences(0);
-      });
-
-      // iOS 감지 후 적절한 중지 방법 사용
-      const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-      if (isIOSDevice) {
-        // iOS에서는 speechSynthesis.cancel() 사용
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
+      try {
+        // 상태 초기화를 try-catch로 감싸기
+        if (isMounted) {
+          setIsTTSPlaying(false);
+          setIsTTSLoading(false);
+          setCurrentSentence(-1);
+          setTotalSentences(0);
         }
-        // iOS utterance 참조 정리
-        iosUtteranceRef.current = null;
-        iosCurrentTextRef.current = '';
-      } else {
-        // 기존 UnifiedTTS 중지
-        if (unifiedTTSRef.current) {
-          unifiedTTSRef.current.stop();
-          unifiedTTSRef.current = null;
+
+        // iOS 감지 후 적절한 중지 방법 사용
+        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        if (isIOSDevice) {
+          // iOS에서는 speechSynthesis.cancel() 사용
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+          // iOS utterance 참조 정리
+          if (iosUtteranceRef.current) {
+            iosUtteranceRef.current = null;
+          }
+          iosCurrentTextRef.current = '';
+        } else {
+          // 기존 UnifiedTTS 중지
+          if (unifiedTTSRef.current) {
+            try {
+              unifiedTTSRef.current.stop();
+            } catch (error) {
+              console.warn('UnifiedTTS 정지 실패:', error);
+            }
+            unifiedTTSRef.current = null;
+          }
         }
-      }
 
-      // DOM 하이라이트 정리
-      if (activeSentenceRef.current) {
-        activeSentenceRef.current.classList.remove('active-sentence');
-        activeSentenceRef.current = null;
-      }
+        // DOM 하이라이트 정리
+        if (activeSentenceRef.current) {
+          try {
+            activeSentenceRef.current.classList.remove('active-sentence');
+          } catch (error) {
+            console.warn('DOM 하이라이트 정리 실패:', error);
+          }
+          activeSentenceRef.current = null;
+        }
 
-      if (import.meta.env.DEV) {
-        console.log('✅ 언마운트 TTS 정지 완료');
+        // 전역 TTS 정지 함수 호출
+        if (window.globalStopTTS) {
+          try {
+            window.globalStopTTS();
+          } catch (error) {
+            console.warn('전역 TTS 정지 실패:', error);
+          }
+        }
+
+        if (import.meta.env.DEV) {
+          console.log('✅ 언마운트 TTS 정지 완료');
+        }
+      } catch (error) {
+        console.error('언마운트 정리 중 오류:', error);
       }
     };
   }, []); // 빈 배열로 마운트/언마운트에만 실행
@@ -399,246 +500,297 @@ const ArticleDetail = () => {
 
   // 기사 데이터 로드 (향상된 버전)
   useEffect(() => {
+    let isMounted = true;
     let dataLoaded = false;
 
-    // 프리렌더된 데이터 우선 처리
-    const prerenderedData = window.__PRERENDERED_ARTICLE__;
-
-    if (prerenderedData) {
-      const validation = validatePrerenderedData(prerenderedData);
-
-      if (validation.isValid) {
-        try {
-          if (import.meta.env.DEV) {
-            console.log('🚀 프리렌더된 기사 데이터 사용:', prerenderedData);
-            console.log('🖼️ 프리렌더 이미지 정보:', {
-              originalImage: prerenderedData.image,
-              imageLength: prerenderedData.image ? prerenderedData.image.length : 0,
-              imageType: typeof prerenderedData.image,
-              isValidUrl: !!validateImageUrl(prerenderedData.image)
-            });
-          }
-
-          const transformedArticle = transformPrerenderedData(prerenderedData);
-
-          if (import.meta.env.DEV) {
-            console.log('🔧 변환된 기사 데이터:', {
-              id: transformedArticle.id,
-              title: transformedArticle.title,
-              image: transformedArticle.image,
-              imageExists: !!transformedArticle.image
-            });
-          }
-          setArticleData(transformedArticle);
-          setIsLoading(false);
-          dataLoaded = true;
-
-          // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
-          if (user?.uid) {
-            try {
-              addViewRecord(transformedArticle);
-              updateActivityTime && updateActivityTime();
-            } catch (recordError) {
-              console.warn('조회 기록 추가 실패:', recordError);
-              // 비치명적 오류이므로 계속 진행
-            }
-          }
-
-          // 기사 조회수 증가 (로그인된 사용자만)
-          if (incrementArticleViews && user?.uid) {
-            try {
-              incrementArticleViews(transformedArticle.id);
-            } catch (viewError) {
-              console.warn('조회수 증가 실패:', viewError);
-              // 비치명적 오류이므로 계속 진행
-            }
-          }
-
-          // 프리렌더 데이터 정리 (메모리 절약)
-          setTimeout(() => {
-            try {
-              delete window.__PRERENDERED_ARTICLE__;
-            } catch (cleanupError) {
-              console.warn('프리렌더 데이터 정리 실패:', cleanupError);
-            }
-          }, 1000);
-
-          return;
-        } catch (transformError) {
-          console.error('프리렌더 데이터 변환 실패:', transformError);
-          // 폴백으로 기존 방식 사용
-        }
-      } else {
-        if (import.meta.env.DEV) {
-          console.warn('프리렌더 데이터 검증 실패:', validation.reason);
-        }
-        // 폴백으로 기존 방식 사용
-      }
-    }
-
-    // 프리렌더된 데이터가 없거나 실패한 경우 기존 API 방식 사용 (폴백)
-    if (!dataLoaded && !articlesLoading && id) {
+    const loadData = async () => {
       try {
-        const foundArticle = getArticleById(id);
+        // 프리렌더된 데이터 우선 처리
+        const prerenderedData = window.__PRERENDERED_ARTICLE__;
 
-        if (foundArticle) {
-          if (import.meta.env.DEV) {
-            console.log('🔍 API에서 기사 데이터 로드:', foundArticle.id);
-            console.log('🔍 이미지 관련 필드 확인:', {
-              image: foundArticle.image,
-              imageUrl: foundArticle.imageUrl,
-              thumbnail: foundArticle.thumbnail,
-              hasImage: !!foundArticle.image,
-              hasImageUrl: !!foundArticle.imageUrl,
-              hasThumbnail: !!foundArticle.thumbnail,
-              allKeys: Object.keys(foundArticle)
-            });
-          }
+        if (prerenderedData && isMounted) {
+          const validation = validatePrerenderedData(prerenderedData);
 
-          // 안전한 기사 데이터 변환
-          const transformedArticle = {
-            id: foundArticle.id,
-            title: foundArticle.title || 'Untitled',
-            summary: foundArticle.summary || foundArticle.description || foundArticle.content || 'No summary available',
-            category: foundArticle.category || 'General',
-            publishedAt: foundArticle.publishedAt,
-            date: (() => {
-              try {
-                return new Date(foundArticle.publishedAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
+          if (validation.isValid) {
+            try {
+              if (import.meta.env.DEV) {
+                console.log('🚀 프리렌더된 기사 데이터 사용:', prerenderedData);
+                console.log('🖼️ 프리렌더 이미지 정보:', {
+                  originalImage: prerenderedData.image,
+                  imageLength: prerenderedData.image ? prerenderedData.image.length : 0,
+                  imageType: typeof prerenderedData.image,
+                  isValidUrl: !!validateImageUrl(prerenderedData.image)
                 });
-              } catch (dateError) {
-                console.warn('API 데이터 날짜 변환 실패:', dateError);
-                return 'Unknown date';
               }
-            })(),
-            image: validateImageUrl(foundArticle.image),
-            liked: false,
-            levels: (() => {
-              try {
-                return generateLevelsFromContent(foundArticle);
-              } catch (levelError) {
-                console.warn('API 데이터 레벨 생성 실패:', levelError);
-                // 최종 폴백
-                const fallbackContent = foundArticle.summary || foundArticle.description || 'Content not available';
-                return {
-                  1: { title: 'Level 1 - Beginner', content: fallbackContent },
-                  2: { title: 'Level 2 - Intermediate', content: fallbackContent },
-                  3: { title: 'Level 3 - Advanced', content: fallbackContent }
-                };
+
+              const transformedArticle = transformPrerenderedData(prerenderedData);
+
+              if (import.meta.env.DEV) {
+                console.log('🔧 변환된 기사 데이터:', {
+                  id: transformedArticle.id,
+                  title: transformedArticle.title,
+                  image: transformedArticle.image,
+                  imageExists: !!transformedArticle.image
+                });
               }
-            })(),
-            // 메타데이터 추가
-            _metadata: {
-              source: 'api',
-              loadedAt: new Date().toISOString(),
-              version: '1.0'
+
+              if (isMounted) {
+                setArticleData(transformedArticle);
+                setIsLoading(false);
+                dataLoaded = true;
+              }
+
+              // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+              if (user?.uid && isMounted) {
+                try {
+                  await addViewRecord(transformedArticle);
+                  if (updateActivityTime) {
+                    await updateActivityTime();
+                  }
+                } catch (recordError) {
+                  console.warn('조회 기록 추가 실패:', recordError);
+                  // 비치명적 오류이므로 계속 진행
+                }
+              }
+
+              // 기사 조회수 증가 (로그인된 사용자만)
+              if (user?.uid && isMounted) {
+                await safeIncrementArticleViews(transformedArticle.id);
+              }
+
+              // 프리렌더 데이터 정리 (메모리 절약)
+              setTimeout(() => {
+                try {
+                  delete window.__PRERENDERED_ARTICLE__;
+                } catch (cleanupError) {
+                  console.warn('프리렌더 데이터 정리 실패:', cleanupError);
+                }
+              }, 1000);
+
+              return;
+            } catch (transformError) {
+              console.error('프리렌더 데이터 변환 실패:', transformError);
+              // 폴백으로 기존 방식 사용
             }
-          };
-
-          if (import.meta.env.DEV) {
-            console.log('🔧 API에서 변환된 기사 데이터:', transformedArticle);
-            console.log('🔧 변환된 이미지 필드:', {
-              originalImage: foundArticle.image,
-              transformedImage: transformedArticle.image,
-              imageType: typeof transformedArticle.image,
-              imageLength: transformedArticle.image ? transformedArticle.image.length : 0
-            });
+          } else {
+            if (import.meta.env.DEV) {
+              console.warn('프리렌더 데이터 검증 실패:', validation.reason);
+            }
+            // 폴백으로 기존 방식 사용
           }
+        }
 
-          setArticleData(transformedArticle);
-          setIsLoading(false);
-          dataLoaded = true;
+        // 프리렌더된 데이터가 없거나 실패한 경우 기존 API 방식 사용 (폴백)
+        if (!dataLoaded && !articlesLoading && id && isMounted) {
+          try {
+            const foundArticle = safeGetArticleById(id);
 
-          // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
-          if (user?.uid) {
-            try {
-              addViewRecord(foundArticle);
-              updateActivityTime && updateActivityTime();
-            } catch (recordError) {
-              console.warn('API 데이터 조회 기록 추가 실패:', recordError);
+            if (foundArticle && isMounted) {
+              if (import.meta.env.DEV) {
+                console.log('🔍 API에서 기사 데이터 로드:', foundArticle.id);
+                console.log('🔍 이미지 관련 필드 확인:', {
+                  image: foundArticle.image,
+                  imageUrl: foundArticle.imageUrl,
+                  thumbnail: foundArticle.thumbnail,
+                  hasImage: !!foundArticle.image,
+                  hasImageUrl: !!foundArticle.imageUrl,
+                  hasThumbnail: !!foundArticle.thumbnail,
+                  allKeys: Object.keys(foundArticle)
+                });
+              }
+
+              // 안전한 기사 데이터 변환
+              const transformedArticle = {
+                id: foundArticle.id,
+                title: foundArticle.title || 'Untitled',
+                summary: foundArticle.summary || foundArticle.description || foundArticle.content || 'No summary available',
+                category: foundArticle.category || 'General',
+                publishedAt: foundArticle.publishedAt,
+                date: (() => {
+                  try {
+                    return new Date(foundArticle.publishedAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                  } catch (dateError) {
+                    console.warn('API 데이터 날짜 변환 실패:', dateError);
+                    return 'Unknown date';
+                  }
+                })(),
+                image: validateImageUrl(foundArticle.image),
+                liked: false,
+                levels: (() => {
+                  try {
+                    return generateLevelsFromContent(foundArticle);
+                  } catch (levelError) {
+                    console.warn('API 데이터 레벨 생성 실패:', levelError);
+                    // 최종 폴백
+                    const fallbackContent = foundArticle.summary || foundArticle.description || 'Content not available';
+                    return {
+                      1: { title: 'Level 1 - Beginner', content: fallbackContent },
+                      2: { title: 'Level 2 - Intermediate', content: fallbackContent },
+                      3: { title: 'Level 3 - Advanced', content: fallbackContent }
+                    };
+                  }
+                })(),
+                // 메타데이터 추가
+                _metadata: {
+                  source: 'api',
+                  loadedAt: new Date().toISOString(),
+                  version: '1.0'
+                }
+              };
+
+              if (import.meta.env.DEV) {
+                console.log('🔧 API에서 변환된 기사 데이터:', transformedArticle);
+                console.log('🔧 변환된 이미지 필드:', {
+                  originalImage: foundArticle.image,
+                  transformedImage: transformedArticle.image,
+                  imageType: typeof transformedArticle.image,
+                  imageLength: transformedArticle.image ? transformedArticle.image.length : 0
+                });
+              }
+
+              if (isMounted) {
+                setArticleData(transformedArticle);
+                setIsLoading(false);
+                dataLoaded = true;
+              }
+
+              // 조회 기록 추가 및 활동 시간 업데이트 (로그인된 사용자만)
+              if (user?.uid && isMounted) {
+                try {
+                  await addViewRecord(foundArticle);
+                  if (updateActivityTime) {
+                    await updateActivityTime();
+                  }
+                } catch (recordError) {
+                  console.warn('API 데이터 조회 기록 추가 실패:', recordError);
+                }
+              }
+
+              // 기사 조회수 증가 (로그인된 사용자만)
+              if (user?.uid && isMounted) {
+                await safeIncrementArticleViews(foundArticle.id);
+              }
+            } else if (isMounted) {
+              // 기사를 찾을 수 없는 경우
+              if (import.meta.env.DEV) {
+                console.warn(`기사를 찾을 수 없음: ${id}`);
+              }
+
+              // 404 상태를 나타내는 특별한 상태 설정
+              setArticleData({
+                id: id,
+                title: '기사를 찾을 수 없습니다',
+                summary: '요청하신 기사를 찾을 수 없습니다.',
+                category: 'Error',
+                publishedAt: new Date().toISOString(),
+                date: 'Unknown',
+                image: null,
+                liked: false,
+                levels: {
+                  1: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
+                  2: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
+                  3: { title: 'Error', content: '기사를 찾을 수 없습니다.' }
+                },
+                _metadata: {
+                  source: 'error',
+                  loadedAt: new Date().toISOString(),
+                  version: '1.0',
+                  error: 'article_not_found'
+                }
+              });
+              setIsLoading(false);
+            }
+          } catch (apiError) {
+            console.error('API 데이터 로딩 실패:', apiError);
+
+            // API 실패 시 최종 폴백
+            if (isMounted) {
+              setArticleData({
+                id: id || 'unknown',
+                title: '데이터 로딩 실패',
+                summary: '기사 데이터를 불러오는 중 오류가 발생했습니다.',
+                category: 'Error',
+                publishedAt: new Date().toISOString(),
+                date: 'Unknown',
+                image: null,
+                liked: false,
+                levels: {
+                  1: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
+                  2: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
+                  3: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' }
+                },
+                _metadata: {
+                  source: 'error',
+                  loadedAt: new Date().toISOString(),
+                  version: '1.0',
+                  error: 'api_loading_failed'
+                }
+              });
+              setIsLoading(false);
             }
           }
-
-          // 기사 조회수 증가 (로그인된 사용자만)
-          if (incrementArticleViews && user?.uid) {
-            try {
-              incrementArticleViews(foundArticle.id);
-            } catch (viewError) {
-              console.warn('API 데이터 조회수 증가 실패:', viewError);
-            }
-          }
-        } else {
-          // 기사를 찾을 수 없는 경우
-          if (import.meta.env.DEV) {
-            console.warn(`기사를 찾을 수 없음: ${id}`);
-          }
-
-          // 404 상태를 나타내는 특별한 상태 설정
+        }
+      } catch (error) {
+        console.error('데이터 로딩 중 예외 발생:', error);
+        if (isMounted) {
           setArticleData({
-            id: id,
-            title: '기사를 찾을 수 없습니다',
-            summary: '요청하신 기사를 찾을 수 없습니다.',
+            id: id || 'unknown',
+            title: '오류 발생',
+            summary: '예상치 못한 오류가 발생했습니다.',
             category: 'Error',
             publishedAt: new Date().toISOString(),
             date: 'Unknown',
             image: null,
             liked: false,
             levels: {
-              1: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
-              2: { title: 'Error', content: '기사를 찾을 수 없습니다.' },
-              3: { title: 'Error', content: '기사를 찾을 수 없습니다.' }
+              1: { title: 'Error', content: '예상치 못한 오류가 발생했습니다.' },
+              2: { title: 'Error', content: '예상치 못한 오류가 발생했습니다.' },
+              3: { title: 'Error', content: '예상치 못한 오류가 발생했습니다.' }
             },
             _metadata: {
               source: 'error',
               loadedAt: new Date().toISOString(),
               version: '1.0',
-              error: 'article_not_found'
+              error: 'unexpected_error'
             }
           });
           setIsLoading(false);
         }
-      } catch (apiError) {
-        console.error('API 데이터 로딩 실패:', apiError);
-
-        // API 실패 시 최종 폴백
-        setArticleData({
-          id: id || 'unknown',
-          title: '데이터 로딩 실패',
-          summary: '기사 데이터를 불러오는 중 오류가 발생했습니다.',
-          category: 'Error',
-          publishedAt: new Date().toISOString(),
-          date: 'Unknown',
-          image: null,
-          liked: false,
-          levels: {
-            1: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
-            2: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' },
-            3: { title: 'Error', content: '데이터 로딩 중 오류가 발생했습니다.' }
-          },
-          _metadata: {
-            source: 'error',
-            loadedAt: new Date().toISOString(),
-            version: '1.0',
-            error: 'api_loading_failed'
-          }
-        });
-        setIsLoading(false);
       }
-    }
-  }, [id, articlesLoading, user?.uid]); // 의존성 배열 최적화 - 함수 제거
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, articlesLoading, user?.uid, safeGetArticleById, safeIncrementArticleViews]); // 의존성 배열 최적화
 
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
-    if (isArticleLiked && articleData && user?.uid) {
-      const likedStatus = isArticleLiked(articleData.id);
-      if (import.meta.env.DEV) {
-        console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
+    let isMounted = true;
+    
+    if (isArticleLiked && articleData && user?.uid && isMounted) {
+      try {
+        const likedStatus = isArticleLiked(articleData.id);
+        if (import.meta.env.DEV) {
+          console.log('💖 좋아요 상태 확인:', articleData.id, likedStatus);
+        }
+        if (isMounted) {
+          setIsLiked(likedStatus);
+        }
+      } catch (error) {
+        console.warn('좋아요 상태 확인 실패:', error);
       }
-      setIsLiked(likedStatus);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [isArticleLiked, articleData?.id, user?.uid]);
 
   // userSettings 변경 시 언어 설정 동기화
@@ -650,59 +802,104 @@ const ArticleDetail = () => {
 
   // 하이라이트된 단어들을 사용자 단어장에서 로드 (통합된 useEffect)
   useEffect(() => {
-    if (articleData && savedWords) {
-      // 현재 기사에 해당하는 저장된 단어들로 하이라이트 설정
-      const articleWords = savedWords
-        .filter(word => word.articleId === articleData.id)
-        .map(word => word.word.toLowerCase());
+    let isMounted = true;
+    
+    if (articleData && savedWords && isMounted) {
+      try {
+        // 현재 기사에 해당하는 저장된 단어들로 하이라이트 설정
+        const articleWords = savedWords
+          .filter(word => word && word.articleId === articleData.id)
+          .map(word => word.word ? word.word.toLowerCase() : '')
+          .filter(word => word.length > 0);
 
-      setHighlightedWords(new Set(articleWords));
-      if (import.meta.env.DEV) {
-        console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
+        if (isMounted) {
+          setHighlightedWords(new Set(articleWords));
+          if (import.meta.env.DEV) {
+            console.log('🌈 하이라이트 로드:', articleWords.length, '개 단어');
+          }
+        }
+      } catch (error) {
+        console.warn('하이라이트 로드 실패:', error);
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [articleData?.id, savedWords])
 
   // 키보드 이벤트 핸들러 (화살표 키로 레벨 변경)
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // 팝업이 열려있거나 input/textarea에 포커스가 있을 때는 키보드 이벤트 무시
-      if (wordPopup.open ||
-        document.activeElement.tagName === 'INPUT' ||
-        document.activeElement.tagName === 'TEXTAREA') {
-        return;
-      }
+    let isMounted = true;
 
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handleLevelChange(selectedLevel - 1 < 1 ? 3 : selectedLevel - 1);
-      }
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleLevelChange(selectedLevel + 1 > 3 ? 1 : selectedLevel + 1);
+    const handleKeyDown = (e) => {
+      try {
+        if (!isMounted) return;
+        
+        // 팝업이 열려있거나 input/textarea에 포커스가 있을 때는 키보드 이벤트 무시
+        if (wordPopup.open ||
+          document.activeElement?.tagName === 'INPUT' ||
+          document.activeElement?.tagName === 'TEXTAREA') {
+          return;
+        }
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const newLevel = selectedLevel - 1 < 1 ? 3 : selectedLevel - 1;
+          if (isMounted) {
+            handleLevelChange(newLevel);
+          }
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const newLevel = selectedLevel + 1 > 3 ? 1 : selectedLevel + 1;
+          if (isMounted) {
+            handleLevelChange(newLevel);
+          }
+        }
+      } catch (error) {
+        console.warn('키보드 이벤트 처리 실패:', error);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      isMounted = false;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [selectedLevel, wordPopup.open]);
 
   // Firebase 데이터 변경 감지 (다른 디바이스에서 단어장 변경 시 자동 동기화)
   useEffect(() => {
     if (!articleData) return;
 
+    let isMounted = true;
+
     const handleWordUpdated = (event) => {
-      if (event.detail && event.detail.articleId === articleData.id) {
-        // 현재 기사에 해당하는 단어들로 하이라이트 업데이트
-        const updatedWords = savedWords
-          .filter(word => word.articleId === articleData.id)
-          .map(word => word.word.toLowerCase());
-        setHighlightedWords(new Set(updatedWords));
+      try {
+        if (event.detail && event.detail.articleId === articleData.id && isMounted) {
+          // 현재 기사에 해당하는 단어들로 하이라이트 업데이트
+          const updatedWords = savedWords
+            .filter(word => word && word.articleId === articleData.id)
+            .map(word => word.word ? word.word.toLowerCase() : '')
+            .filter(word => word.length > 0);
+          
+          if (isMounted) {
+            setHighlightedWords(new Set(updatedWords));
+          }
+        }
+      } catch (error) {
+        console.warn('단어 업데이트 이벤트 처리 실패:', error);
       }
     };
 
     window.addEventListener('wordUpdated', handleWordUpdated);
-    return () => window.removeEventListener('wordUpdated', handleWordUpdated);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener('wordUpdated', handleWordUpdated);
+    };
   }, [articleData?.id, savedWords]);
 
   // 하이라이트 상태 변경 시 DOM 업데이트 (React 상태 기반으로 처리됨)
@@ -1224,53 +1421,84 @@ const ArticleDetail = () => {
     }
   };
 
-  const handleLevelChange = async (level) => {
-    if (import.meta.env.DEV) {
-      console.log('🔄 레벨 변경:', selectedLevel, '→', level);
-    }
-
-    // iOS 감지
-    // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
-
-    // TTS 중지
-    if (isIOS) {
-      // iOS에서는 speechSynthesis.cancel() 사용
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      // iOS utterance 참조 정리
-      iosUtteranceRef.current = null;
-    } else {
-      // 기존 UnifiedTTS 중지
-      if (unifiedTTSRef.current) {
-        unifiedTTSRef.current.stop();
-      }
-    }
-
-    // 상태 초기화
-    setIsTTSPlaying(false);
-    setIsTTSLoading(false);
-    setCurrentSentence(-1);
-    setTotalSentences(0);
-    setSelectedLevel(level);
-
-    // DOM 하이라이트 정리
-    if (activeSentenceRef.current) {
-      activeSentenceRef.current.classList.remove('active-sentence');
-      activeSentenceRef.current = null;
-    }
+  const handleLevelChange = useCallback(async (level) => {
     try {
-      stopAllTTS();
-    } catch (error) {
       if (import.meta.env.DEV) {
-        console.warn('레벨 변경 시 TTS 중지 오류:', error);
+        console.log('🔄 레벨 변경:', selectedLevel, '→', level);
+      }
+
+      // 유효성 검사
+      if (level < 1 || level > 3 || level === selectedLevel) {
+        return;
+      }
+
+      // iOS 감지
+      // const { isIOS } = await import('../utils/deviceDetect'); // 이미 상단에서 임포트됨
+
+      // TTS 중지
+      try {
+        if (isIOS) {
+          // iOS에서는 speechSynthesis.cancel() 사용
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+          // iOS utterance 참조 정리
+          if (iosUtteranceRef.current) {
+            iosUtteranceRef.current = null;
+          }
+        } else {
+          // 기존 UnifiedTTS 중지
+          if (unifiedTTSRef.current) {
+            unifiedTTSRef.current.stop();
+          }
+        }
+      } catch (ttsError) {
+        console.warn('TTS 중지 실패:', ttsError);
+      }
+
+      // 상태 초기화
+      try {
+        setIsTTSPlaying(false);
+        setIsTTSLoading(false);
+        setCurrentSentence(-1);
+        setTotalSentences(0);
+        setSelectedLevel(level);
+      } catch (stateError) {
+        console.warn('상태 초기화 실패:', stateError);
+      }
+
+      // DOM 하이라이트 정리
+      try {
+        if (activeSentenceRef.current) {
+          activeSentenceRef.current.classList.remove('active-sentence');
+          activeSentenceRef.current = null;
+        }
+      } catch (domError) {
+        console.warn('DOM 정리 실패:', domError);
+      }
+
+      // 전역 TTS 중지
+      try {
+        if (window.globalStopTTS) {
+          window.globalStopTTS();
+        }
+      } catch (globalError) {
+        console.warn('전역 TTS 중지 실패:', globalError);
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('✅ 레벨 변경 완료');
+      }
+    } catch (error) {
+      console.error('레벨 변경 중 오류:', error);
+      // 최소한 레벨은 변경하도록 시도
+      try {
+        setSelectedLevel(level);
+      } catch (fallbackError) {
+        console.error('레벨 변경 폴백 실패:', fallbackError);
       }
     }
-
-    if (import.meta.env.DEV) {
-      console.log('✅ 레벨 변경 완료');
-    }
-  };
+  }, [selectedLevel, isIOS]);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -1451,57 +1679,77 @@ const ArticleDetail = () => {
     }
   };
 
-  const handleLike = () => {
-    // 기사 데이터 검증 (프리렌더/API 모두 호환)
-    if (!articleData) {
-      toast?.warning('기사 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-      return;
-    }
-
-    // 데이터 무결성 확인
-    if (!articleData.id) {
-      console.error('기사 ID가 없습니다:', articleData);
-      toast?.error('기사 정보가 올바르지 않습니다.');
-      return;
-    }
-
-    // 로그인 상태 확인
-    if (!isAuthenticated) {
-      toast?.warning('좋아요 기능을 사용하려면 로그인이 필요합니다.');
-      return;
-    }
-
-    if (import.meta.env.DEV) {
-      console.log('💖 좋아요 토글 시작:', {
-        articleId: articleData.id,
-        currentStatus: isLiked,
-        dataSource: articleData._metadata?.source || 'unknown'
-      });
-    }
-
+  const handleLike = useCallback(() => {
     try {
+      // 기사 데이터 검증 (프리렌더/API 모두 호환)
+      if (!articleData) {
+        toast?.warning('기사 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+
+      // 데이터 무결성 확인
+      if (!articleData.id) {
+        console.error('기사 ID가 없습니다:', articleData);
+        toast?.error('기사 정보가 올바르지 않습니다.');
+        return;
+      }
+
+      // 로그인 상태 확인
+      if (!isAuthenticated) {
+        toast?.warning('좋아요 기능을 사용하려면 로그인이 필요합니다.');
+        return;
+      }
+
+      // toggleLike 함수 존재 확인
+      if (!toggleLike || typeof toggleLike !== 'function') {
+        console.error('toggleLike 함수를 사용할 수 없습니다');
+        toast?.error('좋아요 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('💖 좋아요 토글 시작:', {
+          articleId: articleData.id,
+          currentStatus: isLiked,
+          dataSource: articleData._metadata?.source || 'unknown'
+        });
+      }
+
       // 현재 좋아요 상태 저장
       const currentLikeStatus = isLiked;
 
       // 토글 실행
-      const newLikeStatus = toggleLike(articleData, incrementArticleLikes);
-      setIsLiked(newLikeStatus);
+      const newLikeStatus = toggleLike(articleData, safeIncrementArticleLikes);
+      
+      // 상태 업데이트
+      if (typeof newLikeStatus === 'boolean') {
+        setIsLiked(newLikeStatus);
+      } else {
+        console.warn('toggleLike가 예상치 못한 값을 반환했습니다:', newLikeStatus);
+        return;
+      }
 
       // 활동 시간 업데이트
       try {
-        updateActivityTime && updateActivityTime();
+        if (updateActivityTime && typeof updateActivityTime === 'function') {
+          updateActivityTime();
+        }
       } catch (activityError) {
         console.warn('활동 시간 업데이트 실패:', activityError);
         // 비치명적 오류이므로 계속 진행
       }
 
       // 토스트 메시지 표시 - 현재 상태 기반으로 메시지 결정
-      if (newLikeStatus && !currentLikeStatus) {
-        // 좋아요 추가된 경우
-        toast?.success('기사를 좋아요에 추가했습니다!');
-      } else if (!newLikeStatus && currentLikeStatus) {
-        // 좋아요 제거된 경우
-        toast?.info('기사를 좋아요에서 제거했습니다.');
+      try {
+        if (newLikeStatus && !currentLikeStatus) {
+          // 좋아요 추가된 경우
+          toast?.success('기사를 좋아요에 추가했습니다!');
+        } else if (!newLikeStatus && currentLikeStatus) {
+          // 좋아요 제거된 경우
+          toast?.info('기사를 좋아요에서 제거했습니다.');
+        }
+      } catch (toastError) {
+        console.warn('토스트 메시지 표시 실패:', toastError);
       }
 
       // 좋아요 상태 변경을 다른 컴포넌트에 알림
@@ -1528,12 +1776,15 @@ const ArticleDetail = () => {
 
       // 오류 발생 시 상태 복원 시도
       try {
-        setIsLiked(isArticleLiked(articleData.id));
+        if (isArticleLiked && typeof isArticleLiked === 'function' && articleData?.id) {
+          const currentStatus = isArticleLiked(articleData.id);
+          setIsLiked(currentStatus);
+        }
       } catch (restoreError) {
         console.warn('좋아요 상태 복원 실패:', restoreError);
       }
     }
-  };
+  }, [articleData, isLiked, isAuthenticated, toggleLike, safeIncrementArticleLikes, updateActivityTime, isArticleLiked, toast]);
 
 
 

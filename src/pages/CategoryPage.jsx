@@ -38,7 +38,14 @@ const getCategoryEmoji = (categoryName) => {
 const CategoryPage = () => {
   const navigate = useNavigate();
   const { categorySlug } = useParams();
-  const { categories, getArticlesByCategory, loading, error, refreshArticles } = useArticles();
+  const articlesContext = useArticles();
+  const { 
+    categories = [], 
+    getArticlesByCategory = () => [], 
+    loading = true, 
+    error = null, 
+    refreshArticles = () => Promise.resolve() 
+  } = articlesContext || {};
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   const [sortBy, setSortBy] = useState('publishedDate');

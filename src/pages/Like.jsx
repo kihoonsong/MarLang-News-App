@@ -22,7 +22,8 @@ const Like = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, signInWithGoogle } = useAuth() || {};
   const { likedArticles } = useData();
-  const { getArticleById } = useArticles();
+  const articlesContext = useArticles();
+  const { getArticleById = () => null } = articlesContext || {};
   
   const [sortBy, setSortBy] = useState('dateLiked');
   const [refreshKey, setRefreshKey] = useState(0);

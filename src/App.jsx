@@ -20,6 +20,7 @@ import {
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 import AuthGuard from './components/AuthGuard';
+import SafePageWrapper from './components/SafePageWrapper';
 // SocialShareMeta는 각 페이지에서 개별적으로 사용
 
 // 페이지 컴포넌트들을 동적 import로 변경 (코드 스플리팅)
@@ -52,19 +53,51 @@ const TTSManager = () => {
   useEffect(() => {
     // 가장 확실한 방법으로 TTS를 중지하는 함수
     const forceStopTTS = () => {
-      if (window.speechSynthesis) {
-        // 진행 중인 발화를 즉시 중단
-        window.speechSynthesis.cancel();
-      }
+      try {
+        if (window.speechSynthesis) {
+          // 진행 중인 발화를 즉시 중단
+          window.speechSynthesis.cancel();
+        }
 
-      // 전역 TTS 중지 함수 호출
-      if (window.stopCurrentSpeech) {
-        window.stopCurrentSpeech();
-      }
+        // 전역 TTS 중지 함수 호출
+        if (window.stopCurrentSpeech) {
+          window.stopCurrentSpeech();
+        }
 
-      // 다른 컴포넌트에서 실행 중인 TTS도 중지
-      if (window.stopCurrentTTS) {
-        window.stopCurrentTTS();
+        // 다른 컴포넌트에서 실행 중인 TTS도 중지
+        if (window.stopCurrentTTS) {
+          window.stopCurrentTTS();
+        }
+
+        // UnifiedTTS 인스턴스들 정리
+        if (window.unifiedTTSInstances) {
+          window.unifiedTTSInstances.forEach(instance => {
+            try {
+              if (instance && instance.stop) {
+                instance.stop();
+              }
+            } catch (error) {
+              console.warn('UnifiedTTS 인스턴스 정리 실패:', error);
+            }
+          });
+          window.unifiedTTSInstances = [];
+        }
+
+        // DOM에서 활성 문장 하이라이트 제거
+        try {
+          const activeElements = document.querySelectorAll('.active-sentence');
+          activeElements.forEach(el => {
+            el.classList.remove('active-sentence');
+          });
+        } catch (domError) {
+          console.warn('DOM 정리 실패:', domError);
+        }
+
+        if (import.meta.env.DEV) {
+          console.log('🔇 전역 TTS 강제 중지 완료');
+        }
+      } catch (error) {
+        console.error('TTS 강제 중지 중 오류:', error);
       }
     };
 
@@ -209,59 +242,27 @@ const SocialArticleRedirect = () => {
   return <Navigate to={`/article/${articleId}`} replace />;
 };
 
-// 향상된 페이지 래퍼 컴포넌트 (Suspense + ErrorBoundary)
-const PageWrapper = ({ children, pageName }) => {
-  return (
-    <ErrorBoundary
-      fallback={(props) => (
-        <div style={{
-          padding: '2rem',
-          textAlign: 'center',
-          minHeight: '50vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center'
-        }}>
-          <h2>Oops! Something went wrong in {pageName}</h2>
-          <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
-          <div style={{ marginTop: '1rem' }}>
-            <button
-              onClick={props.retry}
-              style={{
-                padding: '0.5rem 1rem',
-                marginRight: '0.5rem',
-                backgroundColor: '#1976d2',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Try Again
-            </button>
-            <button
-              onClick={props.goHome}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#f5f5f5',
-                color: '#333',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Go Home
-            </button>
-          </div>
-          <NetworkStatusIndicator showDetails style={{ marginTop: '1rem' }} />
-        </div>
-      )}
-    >
-      <React.Suspense fallback={<PageLoadingFallback pageName={pageName} />}>
-        {children}
-      </React.Suspense>
-    </ErrorBoundary>
-  );
+// 기존 PageWrapper는 SafePageWrapper로 대체됨
+
+// 라우터 에러 핸들러
+const RouterErrorHandler = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // 라우트 변경 시 전역 상태 정리
+    try {
+      if (window.globalStopTTS) {
+        window.globalStopTTS();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (error) {
+      console.warn('라우트 변경 시 정리 작업 실패:', error);
+    }
+  }, [location.pathname]);
+
+  return null;
 };
 
 function App() {
@@ -279,6 +280,7 @@ function App() {
                   <NetworkMonitor />
                   <VoiceManagerInitializer />
                   <TTSManager />
+                  <RouterErrorHandler />
                   <RoutePrefetcher />
 
 
@@ -288,33 +290,33 @@ function App() {
                     <Route
                       path="/"
                       element={
-                        <PageWrapper pageName="Home">
+                        <SafePageWrapper pageName="Home">
                           <Home />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/article/:id"
                       element={
-                        <PageWrapper pageName="Article">
+                        <SafePageWrapper pageName="Article">
                           <ArticleDetail />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/search"
                       element={
-                        <PageWrapper pageName="Search">
+                        <SafePageWrapper pageName="Search">
                           <Search />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/date"
                       element={
-                        <PageWrapper pageName="Date">
+                        <SafePageWrapper pageName="Date">
                           <DatePage />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
 
@@ -322,9 +324,9 @@ function App() {
                     <Route
                       path="/wordbook"
                       element={
-                        <PageWrapper pageName="Wordbook">
+                        <SafePageWrapper pageName="Wordbook">
                           <Wordbook />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
 
@@ -332,51 +334,51 @@ function App() {
                     <Route
                       path="/like"
                       element={
-                        <PageWrapper pageName="Liked Articles">
+                        <SafePageWrapper pageName="Liked Articles">
                           <Like />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/profile"
                       element={
-                        <PageWrapper pageName="Profile">
+                        <SafePageWrapper pageName="Profile">
                           <Profile />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/dashboard"
                       element={
                         <AuthGuard requireAdmin={true}>
-                          <PageWrapper pageName="Dashboard">
+                          <SafePageWrapper pageName="Dashboard">
                             <BlogStyleDashboard />
-                          </PageWrapper>
+                          </SafePageWrapper>
                         </AuthGuard>
                       }
                     />
                     <Route
                       path="/privacy"
                       element={
-                        <PageWrapper pageName="Privacy Policy">
+                        <SafePageWrapper pageName="Privacy Policy">
                           <PrivacyPolicy />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/terms"
                       element={
-                        <PageWrapper pageName="Terms of Service">
+                        <SafePageWrapper pageName="Terms of Service">
                           <TermsOfService />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/contact"
                       element={
-                        <PageWrapper pageName="Contact">
+                        <SafePageWrapper pageName="Contact">
                           <Contact />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
 
@@ -384,17 +386,17 @@ function App() {
                     <Route
                       path="/auth/naver/callback"
                       element={
-                        <PageWrapper pageName="Naver Login">
+                        <SafePageWrapper pageName="Naver Login">
                           <NaverCallback />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                     <Route
                       path="/auth/line/callback"
                       element={
-                        <PageWrapper pageName="Line Login">
+                        <SafePageWrapper pageName="Line Login">
                           <LineCallback />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
 
@@ -408,9 +410,9 @@ function App() {
                       path="/social-metrics"
                       element={
                         <AuthGuard requireAdmin={true}>
-                          <PageWrapper pageName="Social Metrics">
+                          <SafePageWrapper pageName="Social Metrics">
                             <SocialMetricsDashboard />
-                          </PageWrapper>
+                          </SafePageWrapper>
                         </AuthGuard>
                       }
                     />
@@ -421,25 +423,25 @@ function App() {
                         <Route
                           path="/tts-test"
                           element={
-                            <PageWrapper pageName="TTS Test">
+                            <SafePageWrapper pageName="TTS Test">
                               <TTSTest />
-                            </PageWrapper>
+                            </SafePageWrapper>
                           }
                         />
                         <Route
                           path="/social-meta-test"
                           element={
-                            <PageWrapper pageName="Social Meta Test">
+                            <SafePageWrapper pageName="Social Meta Test">
                               <SocialMetaTest />
-                            </PageWrapper>
+                            </SafePageWrapper>
                           }
                         />
                         <Route
                           path="/social-meta-debug"
                           element={
-                            <PageWrapper pageName="Social Meta Debug">
+                            <SafePageWrapper pageName="Social Meta Debug">
                               <SocialMetaDebug />
-                            </PageWrapper>
+                            </SafePageWrapper>
                           }
                         />
                       </>
@@ -449,9 +451,9 @@ function App() {
                     <Route
                       path="/:categorySlug"
                       element={
-                        <PageWrapper pageName="Category">
+                        <SafePageWrapper pageName="Category">
                           <CategoryPage />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
 
@@ -459,9 +461,9 @@ function App() {
                     <Route
                       path="*"
                       element={
-                        <PageWrapper pageName="Not Found">
+                        <SafePageWrapper pageName="Not Found">
                           <NotFound />
-                        </PageWrapper>
+                        </SafePageWrapper>
                       }
                     />
                   </Routes>

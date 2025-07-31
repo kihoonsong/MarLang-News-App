@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import {
   AppBar, Toolbar, Typography, InputBase, Tabs, Tab, Box,
@@ -127,7 +127,7 @@ const Home = () => {
   // Use shared articles context with null check
   const articlesContext = useArticles();
 
-  // Context가 null인 경우 기본값 설정
+  // Context가 null인 경우 기본값 설정 (더 안전한 기본값)
   const {
     loading = true,
     error = null,
@@ -135,7 +135,7 @@ const Home = () => {
     getRecentArticles = () => [],
     getPopularArticles = () => [],
     getArticlesByCategory = () => [],
-    refreshArticles = () => { }
+    refreshArticles = () => Promise.resolve()
   } = articlesContext || {};
 
   // 카테고리 동기화
@@ -143,7 +143,7 @@ const Home = () => {
     ? contextCategories
     : localCategories;
 
-  // 카테고리 변경 감지 및 동기화
+  // 카테고리 동기화
   useEffect(() => {
     const handleCategoryUpdate = (event) => {
       if (import.meta.env.DEV) {
@@ -189,92 +189,63 @@ const Home = () => {
     };
   }, [refreshArticles, toast]);
 
+  // 데이터 로딩 로직 개선 (더 안전한 버전)
+  const loadCategoryData = useCallback(async () => {
+    try {
+      setHomeError(null);
+
+      // 로딩 중이거나 필수 데이터가 없으면 대기
+      if (loading || !Array.isArray(categories)) {
+        return;
+      }
+
+      const categoryData = {};
+
+      // 각 함수 호출을 개별 try-catch로 보호
+      try {
+        if (getRecentArticles && typeof getRecentArticles === 'function') {
+          const recentArticles = getRecentArticles(10);
+          categoryData.recent = Array.isArray(recentArticles) ? recentArticles : [];
+        }
+      } catch (recentError) {
+        console.warn('Recent articles 로드 실패:', recentError);
+        categoryData.recent = [];
+      }
+
+      // 카테고리별 기사도 개별 보호
+      categories.forEach((category) => {
+        try {
+          if (category && category.type === 'category' && category.id && category.name) {
+            if (getArticlesByCategory && typeof getArticlesByCategory === 'function') {
+              const categoryArticles = getArticlesByCategory(category.name, 5);
+              categoryData[category.id] = Array.isArray(categoryArticles) ? categoryArticles : [];
+            }
+          }
+        } catch (categoryError) {
+          console.warn(`카테고리 ${category?.name} 로드 실패:`, categoryError);
+          if (category?.id) {
+            categoryData[category.id] = [];
+          }
+        }
+      });
+
+      setAllNewsData(categoryData);
+    } catch (error) {
+      console.error('🚨 Home 컴포넌트 데이터 로드 오류:', error);
+      setHomeError(error.message || 'Failed to load home data');
+      setAllNewsData({});
+    }
+  }, [loading, categories, getRecentArticles, getArticlesByCategory]);
+
   // Load category data from context with enhanced error handling
   useEffect(() => {
-    const loadCategoryData = async () => {
-      try {
-        setHomeError(null);
-
-        // 로딩 중이거나 필수 데이터가 없으면 대기
-        if (loading || !Array.isArray(categories)) {
-          if (import.meta.env.DEV) {
-            console.log('🏠 Home 데이터 로딩 대기 중...', { loading, categoriesType: typeof categories });
-          }
-          return;
-        }
-
-        const categoryData = {};
-
-        // 안전한 기사 데이터 로드 with null checks
-        try {
-          if (getRecentArticles && typeof getRecentArticles === 'function') {
-            const recentArticles = getRecentArticles(10);
-            categoryData.recent = Array.isArray(recentArticles) ? recentArticles : [];
-          } else {
-            categoryData.recent = [];
-          }
-        } catch (recentError) {
-          console.warn('Recent articles 로드 실패:', recentError);
-          categoryData.recent = [];
-        }
-
-        try {
-          if (getPopularArticles && typeof getPopularArticles === 'function') {
-            const popularArticles = getPopularArticles(10);
-            categoryData.popular = Array.isArray(popularArticles) ? popularArticles : [];
-          } else {
-            categoryData.popular = [];
-          }
-        } catch (popularError) {
-          console.warn('Popular articles 로드 실패:', popularError);
-          categoryData.popular = [];
-        }
-
-        // 카테고리별 기사 로드
-        if (Array.isArray(categories)) {
-          categories.forEach((category) => {
-            try {
-              if (category && category.type === 'category' && category.id && category.name) {
-                if (getArticlesByCategory && typeof getArticlesByCategory === 'function') {
-                  const categoryArticles = getArticlesByCategory(category.name, 5);
-                  categoryData[category.id] = Array.isArray(categoryArticles) ? categoryArticles : [];
-                } else {
-                  categoryData[category.id] = [];
-                }
-              }
-            } catch (categoryError) {
-              console.warn(`카테고리 ${category?.name} 로드 실패:`, categoryError);
-              if (category?.id) {
-                categoryData[category.id] = [];
-              }
-            }
-          });
-        }
-
-        setAllNewsData(categoryData);
-        
-        if (import.meta.env.DEV) {
-          console.log('🏠 Home 데이터 로드 완료:', {
-            categoriesCount: Object.keys(categoryData).length,
-            recentCount: categoryData.recent?.length || 0,
-            popularCount: categoryData.popular?.length || 0
-          });
-        }
-
-      } catch (error) {
-        console.error('🚨 Home 컴포넌트 데이터 로드 오류:', error);
-        setHomeError(error.message || 'Failed to load home data');
-        setAllNewsData({});
-      }
-    };
-
     // 비동기 함수 호출을 안전하게 처리
     loadCategoryData().catch((error) => {
       console.error('🚨 loadCategoryData 실행 오류:', error);
       setHomeError('Failed to initialize home data');
     });
 
-  }, [loading, getRecentArticles, getPopularArticles, getArticlesByCategory, categories]);
+  }, [loadCategoryData]);
   const handleCategoryClick = (category) => {
     const element = document.getElementById(`category-${category.id}`);
     if (element) {
@@ -324,20 +295,28 @@ const Home = () => {
               }
             }}
           >
-            {Array.isArray(categories) && categories.map((category) => (
-              <Tab
-                key={category?.id || 'unknown'}
-                label={category?.name || 'Unknown'}
-                onClick={() => handleCategoryClick(category)}
-                sx={{
-                  fontWeight: 'medium',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)'
-                  }
-                }}
-              />
-            ))}
+            {Array.isArray(categories) && categories.map((category) => {
+              // 더 엄격한 null/undefined 체크
+              if (!category || typeof category !== 'object' || !category.id || !category.name) {
+                console.warn('Invalid category in tabs:', category);
+                return null;
+              }
+              
+              return (
+                <Tab
+                  key={category.id}
+                  label={category.name}
+                  onClick={() => handleCategoryClick(category)}
+                  sx={{
+                    fontWeight: 'medium',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                    }
+                  }}
+                />
+              );
+            })}
           </Tabs>
         </Box>
       </MainNavigation>
@@ -367,10 +346,15 @@ const Home = () => {
           /* 카테고리별 기사 섹션들 */
           <ContentContainer>
             {/* 공지사항 영역 */}
-            {notices.length > 0 && (
+            {Array.isArray(notices) && notices.length > 0 && (
               <NoticeSection>
-                {Array.isArray(notices) && notices.map((notice, index) => {
-                  if (!notice) return null;
+                {notices.map((notice, index) => {
+                  // 더 엄격한 null/undefined 체크
+                  if (!notice || typeof notice !== 'object') {
+                    console.warn('Invalid notice found:', notice);
+                    return null;
+                  }
+                  
                   return (
                     <Alert
                       key={notice.id || index}
@@ -403,10 +387,16 @@ const Home = () => {
             )}
 
             {Array.isArray(categories) && categories.map((category, categoryIndex) => {
-              if (!category || !category.id || !category.name) return null;
+              // 더 엄격한 null/undefined 체크
+              if (!category || typeof category !== 'object' || !category.id || !category.name) {
+                console.warn('Invalid category found:', category);
+                return null;
+              }
+              
               const articles = allNewsData[category.id] || [];
               // 첫 번째 카테고리(Recent)에서만 광고 표시
               const showAds = categoryIndex === 0 && category.id === 'recent';
+              
               return (
                 <CategoryDisplay 
                   key={category.id} 

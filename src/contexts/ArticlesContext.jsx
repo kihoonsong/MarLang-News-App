@@ -5,8 +5,6 @@ import { isAfterKoreanTime } from '../utils/timeUtils';
 
 const ArticlesContext = createContext();
 
-export const useArticles = () => useContext(ArticlesContext);
-
 const defaultCategories = [
   { id: 'recent', name: 'Recent', type: 'recent' },
   { id: 'technology', name: 'Technology', type: 'category', color: '#d6eaff' },
@@ -16,6 +14,37 @@ const defaultCategories = [
   { id: 'society', name: 'Society', type: 'category', color: '#e6ffe6' },
   { id: 'popular', name: 'Popular', type: 'popular' }
 ];
+
+export const useArticles = () => {
+  const context = useContext(ArticlesContext);
+  
+  // Context가 null이거나 undefined인 경우 안전한 기본값 반환
+  if (!context) {
+    console.warn('⚠️ ArticlesContext가 초기화되지 않았습니다. 기본값을 사용합니다.');
+    return {
+      allArticles: [],
+      categories: defaultCategories,
+      loading: true,
+      error: null,
+      getArticlesByCategory: () => [],
+      getRecentArticles: () => [],
+      getPopularArticles: () => [],
+      getArticleById: () => null,
+      getScheduledArticles: () => [],
+      getDraftArticles: () => [],
+      refreshArticles: () => Promise.resolve(),
+      addArticle: () => Promise.reject(new Error('Context not initialized')),
+      updateArticle: () => Promise.reject(new Error('Context not initialized')),
+      deleteArticle: () => Promise.reject(new Error('Context not initialized')),
+      updateCategories: () => Promise.reject(new Error('Context not initialized')),
+      incrementArticleViews: () => Promise.reject(new Error('Context not initialized')),
+      incrementArticleLikes: () => Promise.reject(new Error('Context not initialized')),
+      publishArticleManually: () => Promise.reject(new Error('Context not initialized')),
+    };
+  }
+  
+  return context;
+};
 
 export const ArticlesProvider = ({ children }) => {
   const [allArticles, setAllArticles] = useState([]);
@@ -119,47 +148,43 @@ export const ArticlesProvider = ({ children }) => {
       
       return docRef.id;
     } catch (e) {
-      console.error("🚨 Firebase 기사 추가 실패:", e);
+      console.error("🚨 Firebase addArticle 실패:", e);
       console.error("🚨 에러 코드:", e.code);
       console.error("🚨 에러 메시지:", e.message);
-      console.error("🚨 에러 스택:", e.stack);
-      setError("기사 추가에 실패했습니다.");
-      return null;
+      console.error("🚨 articleData:", articleData);
+      
+      let errorMessage = "기사 추가에 실패했습니다";
+      if (e.code === 'permission-denied') {
+        errorMessage = "권한이 없습니다. 관리자 권한으로 로그인해 주세요.";
+      } else if (e.code === 'unavailable') {
+        errorMessage = "서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.";
+      } else if (e.message) {
+        errorMessage = `${errorMessage}: ${e.message}`;
+      }
+      
+      setError(errorMessage);
+      throw e;
     }
   }, []);
 
   const updateArticle = useCallback(async (articleId, updatedData) => {
-    if (!articleId) {
-      console.error('❌ articleId가 없습니다');
-      setError("기사 ID가 없습니다.");
-      return false;
-    }
-    
-    if (!updatedData || Object.keys(updatedData).length === 0) {
-      console.error('❌ 업데이트할 데이터가 없습니다');
-      setError("업데이트할 데이터가 없습니다.");
-      return false;
-    }
-    
     const articleDocRef = doc(db, 'articles', articleId);
     try {
-      console.log('🔄 Firestore 업데이트 시작:', articleId);
-      console.log('📝 업데이트 데이터:', updatedData);
-      
-      const updatePayload = { 
+      await updateDoc(articleDocRef, { 
         ...updatedData, 
         updatedAt: new Date().toISOString() 
-      };
+      });
       
-      await updateDoc(articleDocRef, updatePayload);
-      console.log('✅ Firestore 업데이트 완료');
-      
-      const updatedArticle = { ...updatedData, id: articleId };
-      setAllArticles(prev => prev.map(a => a.id === articleId ? { ...a, ...updatedData } : a));
+      // 로컬 상태 업데이트
+      setAllArticles(prev => prev.map(article => 
+        article.id === articleId 
+          ? { ...article, ...updatedData, updatedAt: new Date().toISOString() }
+          : article
+      ));
       
       // 전역 이벤트 발생
       window.dispatchEvent(new CustomEvent('articleUpdated', {
-        detail: { type: 'update', article: updatedArticle }
+        detail: { type: 'update', article: { id: articleId, ...updatedData } }
       }));
       
       return true;
@@ -209,14 +234,6 @@ export const ArticlesProvider = ({ children }) => {
       return false;
     }
   }, [allArticles]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchCategories();
-      await fetchArticles();
-    };
-    loadData();
-  }, [fetchCategories, fetchArticles]);
 
   const getArticlesByCategory = useCallback((categoryName, limit = null) => {
     try {
@@ -322,8 +339,6 @@ export const ArticlesProvider = ({ children }) => {
       const weeklyPopular = [...allArticles]
         .filter(article => {
           const isPublished = article.status === 'published';
-          
-          // 추가 안전장치: scheduled 상태면 무조건 제외
           if (article.status === 'scheduled') {
             return false;
           }
@@ -336,30 +351,48 @@ export const ArticlesProvider = ({ children }) => {
           const scoreB = (b.likes || 0) + (b.views || 0);
           return scoreB - scoreA;
         })
-        .slice(0, limit);
-      
-      return weeklyPopular;
+        .slice(0, limit - recentPopular.length);
+
+      return [...recentPopular, ...weeklyPopular];
     }
-    
+
     return recentPopular;
   }, [allArticles]);
 
   const getArticleById = useCallback((articleId) => {
-    return allArticles.find(article => article.id === articleId) || null;
+    try {
+      if (!Array.isArray(allArticles) || !articleId) {
+        return null;
+      }
+      return allArticles.find(article => article.id === articleId) || null;
+    } catch (error) {
+      console.error('getArticleById 오류:', error);
+      return null;
+    }
   }, [allArticles]);
 
-  // 예약 기사 가져오기
   const getScheduledArticles = useCallback(() => {
-    return allArticles
-      .filter(article => article.status === 'scheduled')
-      .sort((a, b) => new Date(a.publishedAt) - new Date(b.publishedAt));
+    try {
+      if (!Array.isArray(allArticles)) {
+        return [];
+      }
+      return allArticles.filter(article => article.status === 'scheduled');
+    } catch (error) {
+      console.error('getScheduledArticles 오류:', error);
+      return [];
+    }
   }, [allArticles]);
 
-  // 임시저장 기사 가져오기
   const getDraftArticles = useCallback(() => {
-    return allArticles
-      .filter(article => article.status === 'draft')
-      .sort((a, b) => new Date(b.createdAt || b.savedAt) - new Date(a.createdAt || a.savedAt));
+    try {
+      if (!Array.isArray(allArticles)) {
+        return [];
+      }
+      return allArticles.filter(article => article.status === 'draft');
+    } catch (error) {
+      console.error('getDraftArticles 오류:', error);
+      return [];
+    }
   }, [allArticles]);
 
   // 기사 조회수 증가
@@ -370,6 +403,7 @@ export const ArticlesProvider = ({ children }) => {
       
       if (articleDoc.exists()) {
         const currentViews = articleDoc.data().views || 0;
+        
         await updateDoc(articleDocRef, { 
           views: currentViews + 1,
           updatedAt: new Date().toISOString()
@@ -463,29 +497,39 @@ export const ArticlesProvider = ({ children }) => {
     }
   }, []);
 
-  const value = useMemo(() => ({
-    allArticles,
-    categories,
-    loading,
-    error,
-    getArticlesByCategory,
-    getRecentArticles,
-    getPopularArticles,
-    getArticleById,
-    getScheduledArticles,
-    getDraftArticles,
-    refreshArticles: fetchArticles,
-    addArticle,
-    updateArticle,
-    deleteArticle,
-    updateCategories,
-    incrementArticleViews,
-    incrementArticleLikes,
-    publishArticleManually,
-  }), [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, getScheduledArticles, getDraftArticles, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories, incrementArticleViews, incrementArticleLikes, publishArticleManually]);
+  const contextValue = useMemo(() => {
+    return {
+      allArticles,
+      categories,
+      loading,
+      error,
+      getArticlesByCategory,
+      getRecentArticles,
+      getPopularArticles,
+      getArticleById,
+      getScheduledArticles,
+      getDraftArticles,
+      refreshArticles: fetchArticles,
+      addArticle,
+      updateArticle,
+      deleteArticle,
+      updateCategories,
+      incrementArticleViews,
+      incrementArticleLikes,
+      publishArticleManually,
+    };
+  }, [allArticles, categories, loading, error, getArticlesByCategory, getRecentArticles, getPopularArticles, getArticleById, getScheduledArticles, getDraftArticles, fetchArticles, addArticle, updateArticle, deleteArticle, updateCategories, incrementArticleViews, incrementArticleLikes, publishArticleManually]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchCategories();
+      await fetchArticles();
+    };
+    loadData();
+  }, [fetchCategories, fetchArticles]);
 
   return (
-    <ArticlesContext.Provider value={value}>
+    <ArticlesContext.Provider value={contextValue}>
       {children}
     </ArticlesContext.Provider>
   );

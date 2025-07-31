@@ -65,57 +65,93 @@ const DatePage = () => {
   const [currentArticles, setCurrentArticles] = useState([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   
-  // 기사 데이터 가져오기
+  // 기사 데이터 가져오기 (안전한 처리)
+  const articlesContext = useArticles();
   const { 
-    allArticles, 
-    loading: articlesLoading
-  } = useArticles();
+    allArticles = [], 
+    loading: articlesLoading = true
+  } = articlesContext || {};
   const [articlesByDate, setArticlesByDate] = useState({});
 
   // 기사 데이터가 로드되면 날짜별로 그룹핑 (published 기사만)
   useEffect(() => {
-    if (!articlesLoading && Array.isArray(allArticles) && allArticles.length > 0) {
-      // published 상태인 기사만 필터링 (scheduled 기사 제외)
-      const publishedArticles = allArticles.filter(article => {
-        const isPublished = article.status === 'published';
+    let isMounted = true;
+    
+    try {
+      if (!articlesLoading && Array.isArray(allArticles) && allArticles.length > 0 && isMounted) {
+        // published 상태인 기사만 필터링 (scheduled 기사 제외)
+        const publishedArticles = allArticles.filter(article => {
+          if (!article) return false;
+          
+          const isPublished = article.status === 'published';
+          
+          // 추가 안전장치: scheduled 상태면 무조건 제외
+          if (article.status === 'scheduled') {
+            console.log('🚫 예약 기사 제외 (Date 페이지):', article.title, article.status);
+            return false;
+          }
+          
+          // 애드센스 정책 준수: 유효한 콘텐츠만 포함
+          const hasValidContent = article && 
+            article.title && 
+            (article.content || article.summary || article.description);
+          
+          return isPublished && hasValidContent;
+        });
         
-        // 추가 안전장치: scheduled 상태면 무조건 제외
-        if (article.status === 'scheduled') {
-          console.log('🚫 예약 기사 제외 (Date 페이지):', article.title, article.status);
-          return false;
+        const grouped = groupArticlesByDate(publishedArticles);
+        
+        if (isMounted) {
+          setArticlesByDate(grouped);
+          
+          // 기사가 있는 가장 최근 날짜를 기본 선택
+          const dates = Object.keys(grouped || {}).sort().reverse();
+          if (dates.length > 0) {
+            setSelectedDate(dates[0]);
+            setCurrentArticles(grouped[dates[0]] || []);
+          }
         }
-        
-        // 애드센스 정책 준수: 유효한 콘텐츠만 포함
-        const hasValidContent = article && 
-          article.title && 
-          (article.content || article.summary || article.description);
-        
-        return isPublished && hasValidContent;
-      });
-      
-      const grouped = groupArticlesByDate(publishedArticles);
-      setArticlesByDate(grouped);
-      
-      // 기사가 있는 가장 최근 날짜를 기본 선택
-      const dates = Object.keys(grouped || {}).sort().reverse();
-      if (dates.length > 0) {
-        setSelectedDate(dates[0]);
-        setCurrentArticles(grouped[dates[0]]);
+      }
+    } catch (error) {
+      console.error('Date 페이지 기사 데이터 처리 오류:', error);
+      if (isMounted) {
+        setArticlesByDate({});
+        setCurrentArticles([]);
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [articlesLoading, allArticles]);
   
   // 선택된 날짜의 기사 필터링 (안전한 버전)
   useEffect(() => {
-    if (selectedDate && articlesByDate[selectedDate] && Array.isArray(articlesByDate[selectedDate])) {
-      let filtered = articlesByDate[selectedDate];
-      if (selectedCategory !== 'All') {
-        filtered = (filtered || []).filter(article => article && article.category === selectedCategory);
+    let isMounted = true;
+    
+    try {
+      if (selectedDate && articlesByDate[selectedDate] && Array.isArray(articlesByDate[selectedDate]) && isMounted) {
+        let filtered = articlesByDate[selectedDate];
+        if (selectedCategory !== 'All') {
+          filtered = (filtered || []).filter(article => article && article.category === selectedCategory);
+        }
+        
+        if (isMounted) {
+          setCurrentArticles(filtered || []);
+        }
+      } else if (isMounted) {
+        setCurrentArticles([]);
       }
-      setCurrentArticles(filtered || []);
-    } else {
-      setCurrentArticles([]);
+    } catch (error) {
+      console.error('Date 페이지 기사 필터링 오류:', error);
+      if (isMounted) {
+        setCurrentArticles([]);
+      }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [selectedDate, selectedCategory, articlesByDate]);
   
   const getDaysInMonth = (date) => {

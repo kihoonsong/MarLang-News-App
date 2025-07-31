@@ -29,7 +29,7 @@ const BlogStyleDashboard = () => {
     updateArticle,
     deleteArticle,
     updateCategories,
-  } = useArticles();
+  } = useArticles() || {};
   
   const [activeTab, setActiveTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
