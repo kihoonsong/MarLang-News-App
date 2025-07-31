@@ -88,7 +88,7 @@ const AdFitUnit = ({
     };
   }, [finalContainerId, size, registerAdUnit, unregisterAdUnit]);
 
-  // 개선된 광고 로딩 (안정성 강화)
+  // 개선된 광고 로딩 (타이밍 이슈 해결)
   useEffect(() => {
     if (!isVisible || isDisplayed || hasError || isAdBlocked) {
       return;
@@ -100,35 +100,39 @@ const AdFitUnit = ({
           console.log(`🎯 광고 로딩 시작: ${unitId}`);
         }
 
-        // AdFit 스크립트 로드 확인
+        // 1. DOM이 완전히 준비될 때까지 대기
+        if (document.readyState !== 'complete') {
+          await new Promise(resolve => {
+            if (document.readyState === 'complete') {
+              resolve();
+            } else {
+              window.addEventListener('load', resolve, { once: true });
+            }
+          });
+        }
+
+        // 2. AdFit Context를 통한 스크립트 로드
         await displayAd(unitId);
         
-        // 카카오 애드핏 스크립트 실행
-        setTimeout(() => {
-          try {
-            // 카카오 애드핏 스크립트 로드 확인 및 실행
-            if (!document.querySelector('script[src*="kas/static/ba.min.js"]')) {
-              const script = document.createElement('script');
-              script.type = 'text/javascript';
-              script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
-              script.async = true;
-              document.head.appendChild(script);
-            }
-            
-            setIsLoading(false);
-            setIsDisplayed(true);
-            onLoad && onLoad();
-            
-            if (import.meta.env.DEV) {
-              console.log(`✅ AdFitUnit 로드 완료: ${unitId}`);
-            }
-          } catch (adError) {
-            console.error(`광고 실행 오류: ${unitId}`, adError);
-            setHasError(true);
-            setIsLoading(false);
-            onError && onError(adError);
-          }
-        }, 500); // 충분한 로딩 시간 확보
+        // 3. DOM 요소 존재 확인
+        const adElement = document.getElementById(finalContainerId);
+        if (!adElement) {
+          throw new Error(`광고 컨테이너를 찾을 수 없습니다: ${finalContainerId}`);
+        }
+
+        // 4. 스크립트 로드 완료 대기
+        await waitForAdFitScript();
+        
+        // 5. 광고 초기화 (추가 지연으로 안정성 확보)
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        setIsLoading(false);
+        setIsDisplayed(true);
+        onLoad && onLoad();
+        
+        if (import.meta.env.DEV) {
+          console.log(`✅ AdFitUnit 로드 완료: ${unitId}`);
+        }
         
       } catch (error) {
         console.error(`광고 로드 실패: ${unitId}`, error);
@@ -138,10 +142,42 @@ const AdFitUnit = ({
       }
     };
 
-    // 지연 로딩
-    const timer = setTimeout(loadAd, 100);
+    // DOM 준비 후 로딩 시작
+    const timer = setTimeout(loadAd, 200);
     return () => clearTimeout(timer);
-  }, [isVisible, isDisplayed, hasError, isAdBlocked, displayAd, unitId, onLoad, onError]);
+  }, [isVisible, isDisplayed, hasError, isAdBlocked, displayAd, unitId, finalContainerId, onLoad, onError]);
+
+  // AdFit 스크립트 로드 완료 대기 함수
+  const waitForAdFitScript = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      const maxAttempts = 50; // 5초 최대 대기
+      let attempts = 0;
+      
+      const checkScript = () => {
+        attempts++;
+        
+        // 스크립트가 로드되었는지 확인
+        const scriptExists = document.querySelector('script[src*="kas/static/ba.min.js"]');
+        
+        if (scriptExists) {
+          // 스크립트가 실제로 실행되었는지 확인
+          if (window.kakaoAdFit || document.querySelector('.kakao_ad_area')) {
+            resolve();
+            return;
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          reject(new Error('AdFit 스크립트 로드 타임아웃'));
+          return;
+        }
+        
+        setTimeout(checkScript, 100);
+      };
+      
+      checkScript();
+    });
+  }, []);
 
   // 광고 차단기 감지 시 처리
   if (isAdBlocked) {

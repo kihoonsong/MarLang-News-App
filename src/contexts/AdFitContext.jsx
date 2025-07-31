@@ -28,7 +28,7 @@ export const AdFitProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 개선된 AdFit 스크립트 로드 함수
+  // 개선된 AdFit 스크립트 로드 함수 (타이밍 이슈 해결)
   const loadAdFit = useCallback(async () => {
     // 이미 로드되어 있으면 바로 반환
     if (isAdFitLoaded && document.querySelector('script[src*="kas/static/ba.min.js"]')) {
@@ -43,10 +43,12 @@ export const AdFitProvider = ({ children }) => {
       let existingScript = document.querySelector('script[src*="kas/static/ba.min.js"]');
       
       if (existingScript) {
+        // 스크립트가 완전히 로드되었는지 확인
+        await waitForScriptReady();
         setIsAdFitLoaded(true);
         setIsLoading(false);
         if (import.meta.env.DEV) {
-          console.log('✅ AdFit script already exists');
+          console.log('✅ AdFit script already exists and ready');
         }
         return Promise.resolve();
       }
@@ -59,30 +61,37 @@ export const AdFitProvider = ({ children }) => {
         script.defer = true;
         script.id = 'kakao-adfit-script';
         
-        script.onload = () => {
-          if (import.meta.env.DEV) {
-            console.log('✅ AdFit script loaded successfully');
-          }
-          setIsAdFitLoaded(true);
+        // 타임아웃 설정 (10초)
+        const timeout = setTimeout(() => {
+          script.remove();
+          setError('AdFit script loading timeout');
           setIsLoading(false);
+          reject(new Error('AdFit script loading timeout'));
+        }, 10000);
+        
+        script.onload = async () => {
+          clearTimeout(timeout);
           
-          // 스크립트 로드 후 광고 초기화
-          setTimeout(() => {
-            try {
-              if (window.adsbygoogle) {
-                if (import.meta.env.DEV) {
-                  console.log('✅ AdFit 광고 시스템 준비 완료');
-                }
-              }
-            } catch (initError) {
-              console.warn('AdFit 초기화 경고:', initError);
+          try {
+            // 스크립트 실행 완료까지 대기
+            await waitForScriptReady();
+            
+            if (import.meta.env.DEV) {
+              console.log('✅ AdFit script loaded and ready');
             }
-          }, 100);
-          
-          resolve();
+            setIsAdFitLoaded(true);
+            setIsLoading(false);
+            resolve();
+          } catch (initError) {
+            console.error('AdFit 초기화 실패:', initError);
+            setError('AdFit initialization failed');
+            setIsLoading(false);
+            reject(initError);
+          }
         };
         
         script.onerror = (err) => {
+          clearTimeout(timeout);
           console.error('❌ Failed to load AdFit script:', err);
           setError('Failed to load AdFit script');
           setIsLoading(false);
@@ -99,6 +108,38 @@ export const AdFitProvider = ({ children }) => {
       throw err;
     }
   }, [isAdFitLoaded]);
+
+  // 스크립트 준비 상태 확인 함수
+  const waitForScriptReady = useCallback(() => {
+    return new Promise((resolve) => {
+      const maxAttempts = 30; // 3초 최대 대기
+      let attempts = 0;
+      
+      const checkReady = () => {
+        attempts++;
+        
+        // 카카오 애드핏 관련 객체나 함수가 준비되었는지 확인
+        if (window.kakaoAdFit || 
+            typeof window.adfit !== 'undefined' ||
+            document.querySelector('.kakao_ad_area')) {
+          resolve();
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          // 타임아웃이어도 resolve (광고가 안 나와도 페이지는 동작해야 함)
+          console.warn('AdFit script ready check timeout');
+          resolve();
+          return;
+        }
+        
+        setTimeout(checkReady, 100);
+      };
+      
+      // 즉시 체크 후 필요시 재시도
+      checkReady();
+    });
+  }, []);
 
   // 광고 단위 등록
   const registerAdUnit = useCallback((unitConfig) => {
