@@ -103,11 +103,16 @@ const AdFitUnit = ({
         // AdFit 스크립트 로드 확인
         await displayAd(unitId);
         
-        // 광고 스크립트 실행
+        // 카카오 애드핏 스크립트 실행
         setTimeout(() => {
           try {
-            if (window.adsbygoogle) {
-              (window.adsbygoogle = window.adsbygoogle || []).push({});
+            // 카카오 애드핏 스크립트 로드 확인 및 실행
+            if (!document.querySelector('script[src*="kas/static/ba.min.js"]')) {
+              const script = document.createElement('script');
+              script.type = 'text/javascript';
+              script.src = '//t1.daumcdn.net/kas/static/ba.min.js';
+              script.async = true;
+              document.head.appendChild(script);
             }
             
             setIsLoading(false);
@@ -232,7 +237,7 @@ const AdFitUnit = ({
       >
         <ins 
           className="kakao_ad_area" 
-          style={{ display: 'block' }}
+          style={{ display: 'none' }}
           data-ad-unit={unitId}
           data-ad-width={adSize.width}
           data-ad-height={adSize.height}

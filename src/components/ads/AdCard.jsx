@@ -41,8 +41,19 @@ const AdCard = ({
   index = 0,
   size = '300x250'
 }) => {
-  // 실제 카카오 애드핏 광고 단위 ID
-  const adUnitId = import.meta.env.VITE_ADFIT_CARD_AD_UNIT || 'DAN-kXEIw2QcPNjJJ79V';
+  // 광고 단위 ID를 인덱스에 따라 선택
+  const getAdUnitId = (adIndex) => {
+    switch (adIndex) {
+      case 0:
+        return import.meta.env.VITE_ADFIT_CARD_AD_UNIT || 'DAN-kXEIw2QcPNjJJ79V';
+      case 1:
+        return import.meta.env.VITE_ADFIT_CARD_AD_UNIT_2 || 'DAN-030uinq3qqa7C0Zr';
+      default:
+        return import.meta.env.VITE_ADFIT_CARD_AD_UNIT || 'DAN-kXEIw2QcPNjJJ79V';
+    }
+  };
+
+  const adUnitId = getAdUnitId(index);
   // 각 카드마다 고유한 컨테이너 ID 생성
   const containerId = `adcard-${index}-${Date.now()}`;
   

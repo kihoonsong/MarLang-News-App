@@ -16,10 +16,11 @@ const adCardMobileStyle = `
 const ContentWithAds = ({
     articles = [],
     adInterval = 4,
-    maxAds = 1, // 기본값을 1로 변경
+    maxAds = 2, // 기본값을 2로 변경
     renderArticle,
     gridProps = {},
-    layout = 'grid' // 'grid' 또는 'horizontal'
+    layout = 'grid', // 'grid' 또는 'horizontal'
+    categoryId = null // 카테고리 ID 추가
 }) => {
     // 기사와 광고를 믹싱하는 로직
     const mixedContent = useMemo(() => {
@@ -36,13 +37,21 @@ const ContentWithAds = ({
                 key: `article-${article.id || index}`
             });
 
-            // 광고 삽입 조건 확인 (3번째 위치에만)
+            // 광고 삽입 조건 확인
             const position = index + 1; // 1-based position
-            const shouldInsertAd = (
-                position === 3 && // 3번째 위치에만
-                adCount < 1 && // 최대 1개 광고만
-                index < articles.length - 1 // 마지막 아이템이 아님
-            );
+            let shouldInsertAd = false;
+            
+            // Recent 섹터는 2번째, 4번째 위치에 2개 광고
+            if (categoryId === 'recent') {
+                shouldInsertAd = (
+                    (position === 2 || position === 4) && 
+                    adCount < maxAds && 
+                    index < articles.length - 1
+                );
+            } else {
+                // 다른 섹터는 광고 없음
+                shouldInsertAd = false;
+            }
 
             if (shouldInsertAd) {
                 mixed.push({
@@ -55,10 +64,12 @@ const ContentWithAds = ({
         });
 
         console.log('🎯 ContentWithAds 믹싱 결과:', {
+            categoryId,
             originalCount: articles.length,
             mixedCount: mixed.length,
             adCount,
-            layout
+            layout,
+            maxAds
         });
 
         return mixed;

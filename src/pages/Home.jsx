@@ -61,8 +61,9 @@ const CategoryDisplay = ({ category, articles, navigate, showAds = false }) => {
               <ContentWithAds
                 articles={articles}
                 adInterval={3}
-                maxAds={1}
+                maxAds={2}
                 layout="horizontal"
+                categoryId={category.id}
                 renderArticle={(article, index) => (
                   <ArticleCardWrapper key={article.id}>
                     <ArticleCard {...article} navigate={navigate} />
@@ -394,8 +395,8 @@ const Home = () => {
               }
               
               const articles = allNewsData[category.id] || [];
-              // 첫 번째 카테고리(Recent)에서만 광고 표시
-              const showAds = categoryIndex === 0 && category.id === 'recent';
+              // Recent 카테고리에서만 광고 표시
+              const showAds = (categoryIndex === 0 && category.id === 'recent');
               
               return (
                 <CategoryDisplay 
