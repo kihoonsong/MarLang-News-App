@@ -9,6 +9,7 @@ import { useArticles } from '../contexts/ArticlesContext';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import ArticleCard from '../components/ArticleCard';
 import { AdCard } from '../components/ads';
+import CategoryKakaoAd from '../components/ads/CategoryKakaoAd';
 import VerticalArticleList from '../components/VerticalArticleList';
 import SimpleSEO from '../components/SimpleSEO';
 import CategorySocialMeta from '../components/CategorySocialMeta';
@@ -43,9 +44,9 @@ const CategoryPageFixed = () => {
   const [debugInfo, setDebugInfo] = useState('');
   const [sortBy, setSortBy] = useState('publishedDate');
   const [currentPage, setCurrentPage] = useState(1);
-  const articlesPerPage = 20; // 페이지당 기사 수 (광고 포함)
-
+  
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const articlesPerPage = isMobile ? 5 : 20; // 모바일: 5개, 데스크톱: 20개
 
   // ArticlesContext 안전하게 사용
   const articlesContext = useArticles();
@@ -333,15 +334,11 @@ const CategoryPageFixed = () => {
       <MobileContentWrapper>
         <Container>
           <CategorySection>
-            <CategoryHeader>
-              <CategoryTitleSection>
-                <CategoryTitle>
-                  {categoryName} {getCategoryEmoji(categoryName)}
-                </CategoryTitle>
-                <CategorySubtitle>
-                  {sortedArticles.length}개의 기사
-                </CategorySubtitle>
-              </CategoryTitleSection>
+            {/* 카테고리 이름과 정렬 버튼을 같은 선상에 배치 (모바일 포함) */}
+            <CategoryControlsRow>
+              <CategoryNameDisplay>
+                {categoryName} {getCategoryEmoji(categoryName)}
+              </CategoryNameDisplay>
               
               <SortControls>
                 <FilterListIcon sx={{ mr: 1, color: '#666' }} />
@@ -361,26 +358,34 @@ const CategoryPageFixed = () => {
                   </Select>
                 </FormControl>
               </SortControls>
-            </CategoryHeader>
+            </CategoryControlsRow>
 
-            {/* 모바일에서는 간단한 리스트, 데스크톱에서는 그리드 */}
+            {/* 모바일에서는 5개 제한 + 특별 광고 배치, 데스크톱에서는 그리드 */}
             {isMobile ? (
-              // 모바일: 간단한 기사 리스트 (광고 없이)
+              // 모바일: 5개 기사 + 2번째, 마지막에 카카오 광고
               <MobileArticlesList>
                 {currentArticles.map((article, index) => (
-                  <MobileArticleItem key={article.id}>
-                    <ArticleCard {...article} navigate={navigate} />
-                    {/* 5개마다 간단한 광고 */}
-                    {(index + 1) % 5 === 0 && index < currentArticles.length - 1 && (
-                      <MobileAdContainer>
-                        <AdCard
-                          adSlot="categoryMobile"
-                          minHeight="200px"
-                          showLabel={true}
-                        />
-                      </MobileAdContainer>
+                  <React.Fragment key={article.id}>
+                    <MobileArticleItem>
+                      <ArticleCard {...article} navigate={navigate} />
+                    </MobileArticleItem>
+                    
+                    {/* 2번째 기사 후 첫 번째 광고 */}
+                    {index === 1 && (
+                      <CategoryKakaoAd 
+                        adUnit="DAN-sDRjvUIzoQEbk2DP"
+                        position="middle"
+                      />
                     )}
-                  </MobileArticleItem>
+                    
+                    {/* 마지막 기사 후 두 번째 광고 */}
+                    {index === currentArticles.length - 1 && (
+                      <CategoryKakaoAd 
+                        adUnit="DAN-bsp4nbsHuVijiBI4"
+                        position="bottom"
+                      />
+                    )}
+                  </React.Fragment>
                 ))}
               </MobileArticlesList>
             ) : (
@@ -595,45 +600,52 @@ const CategorySection = styled.div`
   margin-bottom: 3rem;
 `;
 
-const CategoryHeader = styled.div`
+const CategoryControlsRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e0e0e0;
   
+  /* 모든 모바일 화면에서 가로 배치 유지 */
   @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+  }
+  
+  /* 매우 작은 화면에서도 가로 배치 유지 */
+  @media (max-width: 480px) {
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
   }
 `;
 
-const CategoryTitleSection = styled.div`
+const CategoryNameDisplay = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const CategoryTitle = styled.h1`
-  font-size: 2rem;
-  font-weight: bold;
-  color: #1976d2;
-  margin: 0;
+  align-items: center;
+  flex: 1;
   
   @media (max-width: 768px) {
-    font-size: 1.5rem;
-    text-align: center;
+    font-size: 1.1rem;
+    text-align: left;
+    justify-content: flex-start;
   }
-`;
-
-const CategorySubtitle = styled.p`
-  font-size: 0.875rem;
-  color: ${designTokens.colors.text.secondary};
-  margin: 0;
-  font-weight: 400;
   
-  @media (max-width: 768px) {
-    text-align: center;
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    text-align: left;
+    justify-content: flex-start;
   }
 `;
 
@@ -641,9 +653,16 @@ const SortControls = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
-    justify-content: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    justify-content: flex-end;
+    gap: 0.25rem;
   }
 `;
 
