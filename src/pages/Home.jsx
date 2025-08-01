@@ -28,6 +28,7 @@ import { designTokens, getColor, getBorderRadius, getShadow } from '../utils/des
 import { useIsMobile, ResponsiveGrid } from '../components/ResponsiveHelpers';
 import { useAdInjector } from '../hooks/useAdInjector';
 import { getCategoryPageUrl, isValidCategory } from '../utils/categoryUtils';
+import { safeCategoryNavigate } from '../utils/mobileDebugUtils';
 
 const CategoryDisplay = ({ category, articles, navigate, showAds = false }) => {
   console.log('🏠 CategoryDisplay:', {
@@ -39,14 +40,44 @@ const CategoryDisplay = ({ category, articles, navigate, showAds = false }) => {
   return (
     <CategorySection id={`category-${category.id}`}>
       <CategoryHeader>
-        <CategoryTitle onClick={() => {
-          if (category.type === 'category' && isValidCategory(category)) {
-            const categoryUrl = getCategoryPageUrl(category);
-            if (categoryUrl) {
-              navigate(categoryUrl);
+        <CategoryTitle 
+          onClick={(event) => {
+            try {
+              console.log('🖱️ 카테고리 클릭:', category);
+              
+              // 모바일에서 안전한 카테고리 네비게이션
+              if (category.type === 'category' && isValidCategory(category)) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const categoryUrl = getCategoryPageUrl(category);
+                console.log('🔗 생성된 카테고리 URL:', categoryUrl);
+                
+                if (categoryUrl) {
+                  // 안전한 카테고리 네비게이션 함수 사용
+                  const success = safeCategoryNavigate(navigate, category, categoryUrl);
+                  if (!success) {
+                    console.error('❌ 카테고리 네비게이션 실패, 홈 유지');
+                  }
+                } else {
+                  console.error('❌ 카테고리 URL 생성 실패');
+                }
+              } else {
+                console.log('ℹ️ 클릭 불가능한 카테고리:', category.type);
+              }
+            } catch (error) {
+              console.error('🚨 카테고리 클릭 처리 오류:', error);
             }
-          }
-        }} style={{ cursor: 'pointer' }}>
+          }}
+          style={{ 
+            cursor: 'pointer',
+            // 모바일에서 터치 영역 확장
+            minHeight: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            touchAction: 'manipulation' // 더블탭 줌 방지
+          }}
+        >
           {category.name}
           {category.type === 'category' && isValidCategory(category) && (
             <AllLabel>All</AllLabel>

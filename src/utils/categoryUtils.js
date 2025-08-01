@@ -11,19 +11,103 @@ export const categoryToSlug = (categoryName) => {
     .replace(/^-|-$/g, ''); // 앞뒤 하이픈 제거
 };
 
-// slug에서 카테고리 찾기 (ID 기반으로 안전하게)
+// slug에서 카테고리 찾기 (모바일 환경에서 안전하게)
 export const findCategoryBySlug = (slug, categories) => {
-  if (!slug || !categories) return null;
-  
-  // 먼저 현재 이름으로 직접 매칭 시도
-  const directMatch = categories.find(cat => 
-    categoryToSlug(cat.name) === slug
-  );
-  
-  if (directMatch) return directMatch;
-  
-  // 매칭되지 않으면 null 반환 (카테고리가 변경되었거나 삭제됨)
-  return null;
+  try {
+    console.log('🔍 findCategoryBySlug 시작:', { slug, categoriesCount: categories?.length });
+    
+    if (!slug || !categories || !Array.isArray(categories)) {
+      console.warn('❌ findCategoryBySlug: 잘못된 매개변수', { 
+        slug: slug || 'null/undefined', 
+        categoriesLength: categories?.length || 'null/undefined',
+        categoriesType: typeof categories
+      });
+      return null;
+    }
+    
+    // 디버깅을 위한 상세 로그
+    console.log('📋 사용 가능한 카테고리들:', categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      type: cat.type,
+      slug: categoryToSlug(cat.name)
+    })));
+    
+    // 1. 정확한 매칭 시도
+    const exactMatch = categories.find(cat => {
+      try {
+        if (!cat || !cat.name) {
+          console.warn('⚠️ 잘못된 카테고리 객체:', cat);
+          return false;
+        }
+        const catSlug = categoryToSlug(cat.name);
+        const isMatch = catSlug === slug;
+        console.log(`🔍 정확 매칭 시도: "${cat.name}" -> "${catSlug}" === "${slug}" ? ${isMatch}`);
+        return isMatch;
+      } catch (error) {
+        console.warn('❌ 카테고리 매칭 중 오류:', error, cat);
+        return false;
+      }
+    });
+    
+    if (exactMatch) {
+      console.log('✅ 정확 매칭 성공:', exactMatch.name);
+      return exactMatch;
+    }
+    
+    // 2. 대소문자 무시 매칭 시도
+    const caseInsensitiveMatch = categories.find(cat => {
+      try {
+        if (!cat || !cat.name) return false;
+        const catSlug = categoryToSlug(cat.name).toLowerCase();
+        const targetSlug = slug.toLowerCase();
+        const isMatch = catSlug === targetSlug;
+        console.log(`🔍 대소문자 무시 매칭: "${cat.name}" -> "${catSlug}" === "${targetSlug}" ? ${isMatch}`);
+        return isMatch;
+      } catch (error) {
+        console.warn('❌ 대소문자 무시 매칭 중 오류:', error, cat);
+        return false;
+      }
+    });
+    
+    if (caseInsensitiveMatch) {
+      console.log('✅ 대소문자 무시 매칭 성공:', caseInsensitiveMatch.name);
+      return caseInsensitiveMatch;
+    }
+    
+    // 3. 부분 매칭 시도 (더 관대한 매칭)
+    const partialMatch = categories.find(cat => {
+      try {
+        if (!cat || !cat.name) return false;
+        const catName = cat.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const targetName = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const isMatch = catName === targetName;
+        console.log(`🔍 부분 매칭: "${cat.name}" -> "${catName}" === "${targetName}" ? ${isMatch}`);
+        return isMatch;
+      } catch (error) {
+        console.warn('❌ 부분 매칭 중 오류:', error, cat);
+        return false;
+      }
+    });
+    
+    if (partialMatch) {
+      console.log('✅ 부분 매칭 성공:', partialMatch.name);
+      return partialMatch;
+    }
+    
+    console.warn('❌ 모든 매칭 실패:', { 
+      slug, 
+      availableCategories: categories.map(c => ({
+        name: c.name,
+        slug: categoryToSlug(c.name),
+        type: c.type
+      }))
+    });
+    return null;
+  } catch (error) {
+    console.error('🚨 findCategoryBySlug 치명적 오류:', error);
+    return null;
+  }
 };
 
 // 카테고리 유효성 검사

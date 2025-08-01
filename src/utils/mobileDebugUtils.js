@@ -172,6 +172,60 @@ export const safeNavigate = (navigate, url, delay = 0) => {
   }
 };
 
+// 카테고리 네비게이션 전용 안전 함수
+export const safeCategoryNavigate = (navigate, category, categoryUrl) => {
+  try {
+    if (import.meta.env.DEV) {
+      console.log('🔗 카테고리 네비게이션 시도:', {
+        categoryName: category?.name,
+        categoryType: category?.type,
+        url: categoryUrl,
+        isMobile: isMobileDevice()
+      });
+    }
+    
+    // URL 유효성 검사
+    if (!categoryUrl || typeof categoryUrl !== 'string') {
+      throw new Error('유효하지 않은 카테고리 URL');
+    }
+    
+    // 모바일에서는 약간의 지연을 두어 터치 이벤트 충돌 방지
+    const delay = isMobileDevice() ? 100 : 0;
+    
+    if (delay > 0) {
+      setTimeout(() => {
+        try {
+          navigate(categoryUrl);
+        } catch (navError) {
+          console.error('지연된 네비게이션 실패:', navError);
+          window.location.href = categoryUrl;
+        }
+      }, delay);
+    } else {
+      navigate(categoryUrl);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('카테고리 네비게이션 오류:', error);
+    reportMobileError(error, { 
+      action: 'category-navigation', 
+      category: category?.name,
+      url: categoryUrl 
+    });
+    
+    // 폴백: 직접 페이지 이동
+    try {
+      window.location.href = categoryUrl;
+    } catch (fallbackError) {
+      console.error('폴백 네비게이션도 실패:', fallbackError);
+      return false;
+    }
+    
+    return false;
+  }
+};
+
 // 종합 디버그 정보 수집
 export const collectDebugInfo = () => {
   return {

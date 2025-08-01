@@ -1,19 +1,13 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ErrorBoundary from './ErrorBoundary';
 
-const SafePageWrapper = ({ children, pageName }) => {
-  const location = useLocation();
-
-  // 모바일 환경에서 카테고리 페이지 특별 처리
-  const isCategoryPage = location.pathname.match(/^\/[a-z-]+$/);
-  const isMobile = typeof window !== 'undefined' && 
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const CategoryPageErrorBoundary = ({ children, categorySlug }) => {
+  const navigate = useNavigate();
 
   return (
     <ErrorBoundary
-      key={`${location.pathname}-${isCategoryPage ? 'category' : 'page'}`} // 카테고리 페이지 특별 키
-      fallback={(props) => (
+      fallback={({ error, resetError }) => (
         <div style={{
           padding: '2rem',
           textAlign: 'center',
@@ -32,34 +26,25 @@ const SafePageWrapper = ({ children, pageName }) => {
             maxWidth: '500px',
             width: '100%'
           }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚨</div>
             <h2 style={{ 
               color: '#dc3545', 
               marginBottom: '1rem',
               fontSize: '1.5rem'
             }}>
-              {isCategoryPage && isMobile ? '카테고리 로딩 오류' : '페이지 로딩 오류'}
+              카테고리 페이지 오류
             </h2>
             <p style={{ 
               color: '#6c757d', 
               marginBottom: '1.5rem',
               lineHeight: '1.5'
             }}>
-              {isCategoryPage && isMobile ? (
-                <>
-                  카테고리 페이지를 불러오는 중 오류가 발생했습니다.
-                  <br />
-                  네트워크 연결을 확인하고 다시 시도해주세요.
-                </>
-              ) : (
-                <>
-                  {pageName} 페이지를 불러오는 중 오류가 발생했습니다.
-                  <br />
-                  잠시 후 다시 시도해주세요.
-                </>
-              )}
+              "{categorySlug}" 카테고리 페이지를 불러오는 중 오류가 발생했습니다.
+              <br />
+              홈페이지로 돌아가서 다시 시도해주세요.
             </p>
             
-            {import.meta.env.DEV && props.error && (
+            {import.meta.env.DEV && error && (
               <details style={{ 
                 marginBottom: '1.5rem',
                 textAlign: 'left',
@@ -82,9 +67,9 @@ const SafePageWrapper = ({ children, pageName }) => {
                   whiteSpace: 'pre-wrap',
                   color: '#dc3545'
                 }}>
-                  {props.error.message}
+                  {error.message}
                   {'\n\n'}
-                  {props.error.stack}
+                  {error.stack}
                 </pre>
               </details>
             )}
@@ -109,8 +94,8 @@ const SafePageWrapper = ({ children, pageName }) => {
                     console.warn('정리 작업 실패:', cleanupError);
                   }
                   
-                  // 페이지 새로고침
-                  window.location.reload();
+                  // 홈으로 이동
+                  navigate('/', { replace: true });
                 }}
                 style={{
                   padding: '0.75rem 1.5rem',
@@ -123,12 +108,12 @@ const SafePageWrapper = ({ children, pageName }) => {
                   fontWeight: '500'
                 }}
               >
-                페이지 새로고침
+                홈으로 이동
               </button>
               
               <button
                 onClick={() => {
-                  // 전역 상태 정리 후 홈으로 이동
+                  // 전역 상태 정리 후 재시도
                   try {
                     if (window.globalStopTTS) {
                       window.globalStopTTS();
@@ -140,7 +125,7 @@ const SafePageWrapper = ({ children, pageName }) => {
                     console.warn('정리 작업 실패:', cleanupError);
                   }
                   
-                  window.location.href = '/';
+                  resetError();
                 }}
                 style={{
                   padding: '0.75rem 1.5rem',
@@ -153,52 +138,16 @@ const SafePageWrapper = ({ children, pageName }) => {
                   fontWeight: '500'
                 }}
               >
-                홈으로 이동
+                다시 시도
               </button>
             </div>
           </div>
         </div>
       )}
     >
-      <React.Suspense 
-        fallback={
-          <div style={{
-            padding: '2rem',
-            textAlign: 'center',
-            minHeight: '50vh',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                border: '4px solid #f3f3f3',
-                borderTop: '4px solid #007bff',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-            </div>
-            <p style={{ color: '#6c757d' }}>
-              {pageName} 로딩 중...
-            </p>
-            <style>
-              {`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}
-            </style>
-          </div>
-        }
-      >
-        {children}
-      </React.Suspense>
+      {children}
     </ErrorBoundary>
   );
 };
 
-export default SafePageWrapper;
+export default CategoryPageErrorBoundary;

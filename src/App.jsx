@@ -32,7 +32,7 @@ const Like = React.lazy(() => import('./pages/Like'));
 const DatePage = React.lazy(() => import('./pages/Date'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const BlogStyleDashboard = React.lazy(() => import('./pages/BlogStyleDashboard'));
-const CategoryPage = React.lazy(() => import('./pages/CategoryPage'));
+const CategoryPage = React.lazy(() => import('./pages/CategoryPageFixed'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 const Contact = React.lazy(() => import('./pages/Contact'));

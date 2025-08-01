@@ -9,6 +9,25 @@ const MobileErrorHandler = () => {
     // 모바일 환경에서만 추가 에러 핸들링 활성화
     if (!isMobileDevice()) return;
 
+    // 카테고리 페이지 로딩 에러 특별 처리
+    const handleCategoryPageError = (error) => {
+      const currentPath = window.location.pathname;
+      const isCategoryPage = currentPath.match(/^\/[a-z-]+$/);
+      
+      if (isCategoryPage) {
+        console.error('카테고리 페이지 에러:', error);
+        showError('카테고리 페이지 로딩 중 오류가 발생했습니다. 홈으로 이동합니다.', {
+          duration: 3000,
+          group: 'category-error'
+        });
+        
+        // 3초 후 홈으로 자동 이동
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+      }
+    };
+
     // 터치 이벤트 에러 핸들링
     const handleTouchError = (event) => {
       try {
@@ -82,6 +101,28 @@ const MobileErrorHandler = () => {
     // 메모리 사용량 주기적 체크 (30초마다)
     const memoryCheckInterval = setInterval(checkMemoryUsage, 30000);
 
+    // 전역 에러 핸들러에 카테고리 페이지 처리 추가
+    const originalErrorHandler = window.onerror;
+    window.onerror = (message, source, lineno, colno, error) => {
+      if (error) {
+        handleCategoryPageError(error);
+      }
+      if (originalErrorHandler) {
+        return originalErrorHandler(message, source, lineno, colno, error);
+      }
+    };
+
+    // Promise rejection 핸들러에도 카테고리 페이지 처리 추가
+    const originalUnhandledRejection = window.onunhandledrejection;
+    window.onunhandledrejection = (event) => {
+      if (event.reason) {
+        handleCategoryPageError(event.reason);
+      }
+      if (originalUnhandledRejection) {
+        return originalUnhandledRejection(event);
+      }
+    };
+
     // 초기 디버그 정보 수집
     if (import.meta.env.DEV) {
       console.log('📱 Mobile Error Handler initialized:', collectDebugInfo());
@@ -95,6 +136,10 @@ const MobileErrorHandler = () => {
       window.removeEventListener('online', () => showError.dismiss('network-error'));
       window.removeEventListener('offline', handleNetworkError);
       clearInterval(memoryCheckInterval);
+      
+      // 전역 에러 핸들러 복원
+      window.onerror = originalErrorHandler;
+      window.onunhandledrejection = originalUnhandledRejection;
     };
   }, [showError]);
 
