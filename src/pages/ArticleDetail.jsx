@@ -33,7 +33,7 @@ import SocialShareButton from '../components/SocialShareButton';
 import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 // 광고 컴포넌트 직접 import (안정성 확보)
-import ArticleBottomBanner from '../components/ads/ArticleBottomBanner';
+import BasicAdFitBanner from '../components/ads/BasicAdFitBanner';
 import { useAdFit } from '../contexts/AdFitContext';
 import DOMPurify from 'dompurify';
 
@@ -168,7 +168,7 @@ const ArticleDetail = () => {
       window.removeEventListener('unhandledrejection', handleComponentError);
     };
   }, []);
-  
+
   // 안전한 Context 사용
   const articlesContext = useArticles();
   const {
@@ -210,7 +210,7 @@ const ArticleDetail = () => {
       return null;
     }
   }, [getArticleById]);
-  
+
   const { resetAds } = useAdFit();
   const {
     savedWords,
@@ -249,7 +249,7 @@ const ArticleDetail = () => {
     error: null,
     selectedWord: null
   });
-  
+
   // 안전한 초기값 설정
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [ttsSpeed, setTtsSpeed] = useState(0.8);
@@ -299,7 +299,7 @@ const ArticleDetail = () => {
 
     return () => {
       isMounted = false;
-      
+
       // 컴포넌트 언마운트 시 TTS 완전 정지
       if (import.meta.env.DEV) {
         console.log('📤 ArticleDetail 언마운트 - 통합 TTS 정지');
@@ -768,7 +768,7 @@ const ArticleDetail = () => {
   // 컴포넌트 마운트 시 좋아요 상태 확인
   useEffect(() => {
     let isMounted = true;
-    
+
     if (isArticleLiked && articleData && user?.uid && isMounted) {
       try {
         const likedStatus = isArticleLiked(articleData.id);
@@ -798,7 +798,7 @@ const ArticleDetail = () => {
   // 하이라이트된 단어들을 사용자 단어장에서 로드 (통합된 useEffect)
   useEffect(() => {
     let isMounted = true;
-    
+
     if (articleData && savedWords && isMounted) {
       try {
         // 현재 기사에 해당하는 저장된 단어들로 하이라이트 설정
@@ -830,7 +830,7 @@ const ArticleDetail = () => {
     const handleKeyDown = (e) => {
       try {
         if (!isMounted) return;
-        
+
         // 팝업이 열려있거나 input/textarea에 포커스가 있을 때는 키보드 이벤트 무시
         if (wordPopup.open ||
           document.activeElement?.tagName === 'INPUT' ||
@@ -858,7 +858,7 @@ const ArticleDetail = () => {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       isMounted = false;
       document.removeEventListener('keydown', handleKeyDown);
@@ -879,7 +879,7 @@ const ArticleDetail = () => {
             .filter(word => word && word.articleId === articleData.id)
             .map(word => word.word ? word.word.toLowerCase() : '')
             .filter(word => word.length > 0);
-          
+
           if (isMounted) {
             setHighlightedWords(new Set(updatedWords));
           }
@@ -890,7 +890,7 @@ const ArticleDetail = () => {
     };
 
     window.addEventListener('wordUpdated', handleWordUpdated);
-    
+
     return () => {
       isMounted = false;
       window.removeEventListener('wordUpdated', handleWordUpdated);
@@ -1715,7 +1715,7 @@ const ArticleDetail = () => {
 
       // 토글 실행
       const newLikeStatus = toggleLike(articleData, safeIncrementArticleLikes);
-      
+
       // 상태 업데이트
       if (typeof newLikeStatus === 'boolean') {
         setIsLiked(newLikeStatus);
@@ -2611,7 +2611,12 @@ const ArticleDetail = () => {
           </PremiumContentGuard>
 
           {/* 기사 하단 배너 광고 (네비게이션 바 위) - 강제 렌더링 */}
-          <ArticleBottomBanner articleId={articleData?.id || 'test-article'} />
+          <BasicAdFitBanner
+            adUnitId={import.meta.env.VITE_ADFIT_TEST_BANNER || import.meta.env.VITE_ADFIT_BANNER_MOBILE_AD_UNIT || 'DAN-RNzVkjnBfLSGDxqM'}
+            width={320}
+            height={100}
+            className="article-bottom-ad"
+          />
         </PageContainer>
 
         {/* 단어 팝업 */}
