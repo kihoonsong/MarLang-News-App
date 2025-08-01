@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
+// 전역 네트워크 상태 캐시 (중복 요청 방지)
+let globalNetworkCache = {
+  lastCheck: 0,
+  isOnline: true,
+  checkInProgress: false
+};
+
 // 네트워크 상태 감지 Hook
 export const useNetworkStatus = () => {
   // 더 관용적인 초기값 - 기본적으로 온라인으로 가정
@@ -7,19 +14,50 @@ export const useNetworkStatus = () => {
   const [networkStrength, setNetworkStrength] = useState('unknown');
   const [connectionType, setConnectionType] = useState('unknown');
 
-  // 실제 네트워크 연결 확인 함수
+  // 실제 네트워크 연결 확인 함수 - 요청 빈도 제한 및 최적화
   const checkActualConnection = async () => {
+    const now = Date.now();
+    const CACHE_DURATION = 5000; // 5초 캐시
+    
+    // 캐시된 결과가 있고 최근 것이면 재사용
+    if (now - globalNetworkCache.lastCheck < CACHE_DURATION) {
+      return globalNetworkCache.isOnline;
+    }
+    
+    // 이미 확인 중이면 대기
+    if (globalNetworkCache.checkInProgress) {
+      return globalNetworkCache.isOnline;
+    }
+    
+    globalNetworkCache.checkInProgress = true;
+    
     try {
-      // 간단한 favicon 요청으로 실제 연결 확인
-      const response = await fetch('/vite.svg', { 
+      // 더 가벼운 리소스 사용 및 캐시 허용으로 리소스 부족 방지
+      const response = await fetch('/favicon.png', { 
         method: 'HEAD',
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(3000) // 3초 타임아웃
+        cache: 'force-cache', // 캐시 사용으로 네트워크 요청 최소화
+        signal: AbortSignal.timeout(2000) // 타임아웃 단축
       });
-      return response.ok;
+      
+      const result = response.ok;
+      globalNetworkCache.isOnline = result;
+      globalNetworkCache.lastCheck = now;
+      return result;
     } catch (error) {
+      // ERR_INSUFFICIENT_RESOURCES 오류 시 더 관용적으로 처리
+      if (error.message.includes('INSUFFICIENT_RESOURCES') || 
+          error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+        console.log('🔗 Resource limit reached, assuming online');
+        globalNetworkCache.isOnline = true;
+        globalNetworkCache.lastCheck = now;
+        return true; // 리소스 부족 시 온라인으로 가정
+      }
       console.log('🔗 Actual connection check failed:', error.message);
+      globalNetworkCache.isOnline = false;
+      globalNetworkCache.lastCheck = now;
       return false;
+    } finally {
+      globalNetworkCache.checkInProgress = false;
     }
   };
 
@@ -34,25 +72,30 @@ export const useNetworkStatus = () => {
     // 초기 상태를 navigator.onLine 기반으로 설정
     setIsOnline(navigator.onLine);
 
-    // 실제 연결 상태 확인
-    checkActualConnection().then(actuallyOnline => {
-      console.log('🌐 Actual connection status:', actuallyOnline);
-      
-      if (!navigator.onLine && actuallyOnline) {
-        console.warn('⚠️ navigator.onLine is false but actual connection works - fixing state');
-        setIsOnline(true);
-      } else if (navigator.onLine && !actuallyOnline) {
-        console.warn('⚠️ navigator.onLine is true but actual connection failed');
-        // navigator.onLine이 true이면 일단 믿어보기 (개발 환경에서는 false positive 많음)
-        setIsOnline(true);
-      } else {
-        setIsOnline(actuallyOnline);
-      }
-    }).catch(() => {
-      // 연결 확인 실패 시 navigator.onLine 기반으로 결정
-      console.log('🔗 Connection check failed, using navigator.onLine');
-      setIsOnline(navigator.onLine);
-    });
+    // 실제 연결 상태 확인 (초기 로드 시에만)
+    if (globalNetworkCache.lastCheck === 0) {
+      checkActualConnection().then(actuallyOnline => {
+        console.log('🌐 Actual connection status:', actuallyOnline);
+        
+        if (!navigator.onLine && actuallyOnline) {
+          console.warn('⚠️ navigator.onLine is false but actual connection works - fixing state');
+          setIsOnline(true);
+        } else if (navigator.onLine && !actuallyOnline) {
+          console.warn('⚠️ navigator.onLine is true but actual connection failed');
+          // navigator.onLine이 true이면 일단 믿어보기 (개발 환경에서는 false positive 많음)
+          setIsOnline(true);
+        } else {
+          setIsOnline(actuallyOnline);
+        }
+      }).catch(() => {
+        // 연결 확인 실패 시 navigator.onLine 기반으로 결정
+        console.log('🔗 Connection check failed, using navigator.onLine');
+        setIsOnline(navigator.onLine);
+      });
+    } else {
+      // 캐시된 상태 사용
+      setIsOnline(globalNetworkCache.isOnline);
+    }
 
     // 전역 디버그 함수 등록
     window.debugNetworkStatus = () => {
@@ -70,6 +113,13 @@ export const useNetworkStatus = () => {
 
     window.forceOnlineStatus = () => {
       console.log('🔧 Forcing online status...');
+      setIsOnline(true);
+    };
+
+    window.disableNetworkCheck = () => {
+      console.log('🔧 Disabling network checks...');
+      globalNetworkCache.lastCheck = Date.now();
+      globalNetworkCache.isOnline = true;
       setIsOnline(true);
     };
   }, [isOnline, networkStrength, connectionType]);
