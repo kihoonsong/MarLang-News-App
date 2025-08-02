@@ -75,15 +75,15 @@ const generateLevelsFromContent = (article) => {
   if (article.content && typeof article.content === 'object') {
     const levels = {
       1: {
-        title: 'Level 1 - Beginner',
+        title: 'Level 1',
         content: cleanHtmlContent(article.content.beginner || '')
       },
       2: {
-        title: 'Level 2 - Intermediate',
+        title: 'Level 2',
         content: cleanHtmlContent(article.content.intermediate || '')
       },
       3: {
-        title: 'Level 3 - Advanced',
+        title: 'Level 3',
         content: cleanHtmlContent(article.content.advanced || '')
       }
     };
@@ -101,15 +101,15 @@ const generateLevelsFromContent = (article) => {
 
     const levels = {
       1: {
-        title: 'Level 1 - Beginner',
+        title: 'Level 1',
         content: cleanContent
       },
       2: {
-        title: 'Level 2 - Intermediate',
+        title: 'Level 2',
         content: cleanContent
       },
       3: {
-        title: 'Level 3 - Advanced',
+        title: 'Level 3',
         content: cleanContent
       }
     };
@@ -472,9 +472,9 @@ const ArticleDetail = () => {
             console.warn('레벨 생성 실패:', levelError);
             // 최종 폴백
             return {
-              1: { title: 'Level 1 - Beginner', content: prerenderedData.summary || 'Content not available' },
-              2: { title: 'Level 2 - Intermediate', content: prerenderedData.summary || 'Content not available' },
-              3: { title: 'Level 3 - Advanced', content: prerenderedData.summary || 'Content not available' }
+              1: { title: 'Level 1', content: prerenderedData.summary || 'Content not available' },
+              2: { title: 'Level 2', content: prerenderedData.summary || 'Content not available' },
+              3: { title: 'Level 3', content: prerenderedData.summary || 'Content not available' }
             };
           }
         })(),
@@ -623,9 +623,9 @@ const ArticleDetail = () => {
                     // 최종 폴백
                     const fallbackContent = foundArticle.summary || foundArticle.description || 'Content not available';
                     return {
-                      1: { title: 'Level 1 - Beginner', content: fallbackContent },
-                      2: { title: 'Level 2 - Intermediate', content: fallbackContent },
-                      3: { title: 'Level 3 - Advanced', content: fallbackContent }
+                      1: { title: 'Level 1', content: fallbackContent },
+                      2: { title: 'Level 2', content: fallbackContent },
+                      3: { title: 'Level 3', content: fallbackContent }
                     };
                   }
                 })(),
@@ -2537,7 +2537,7 @@ const ArticleDetail = () => {
                         <ArrowBackIosIcon fontSize="inherit" />
                       </LevelChangeButton>
                       <ContentTitle>
-                        Level <LevelNumber>{level}</LevelNumber> - {level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}
+                        Level <LevelNumber>{level}</LevelNumber>
                       </ContentTitle>
                       <LevelChangeButton
                         onClick={(e) => {
@@ -3158,10 +3158,11 @@ const StyledWordSpan = styled.span`
 const ContentHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e3f2fd;
+  gap: 0.5rem;
   
   @media (max-width: 768px) {
     margin-bottom: 0.75rem;
@@ -3171,12 +3172,11 @@ const ContentHeader = styled.div`
 const LevelChangeButton = styled.button`
   background: transparent;
   border: none;
-  color: #dc3545;
+  color: #000000;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   transition: all 0.3s ease;
   padding: 0.5rem;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3184,13 +3184,13 @@ const LevelChangeButton = styled.button`
   min-height: 40px;
   
   &:hover {
-    color: #c82333;
-    background: rgba(220, 53, 69, 0.08);
+    color: #333333;
+    background: rgba(0, 0, 0, 0.08);
     transform: scale(1.1);
   }
   
   &:focus {
-    outline: 2px solid #dc3545;
+    outline: 2px solid #000000;
     outline-offset: 2px;
   }
   
@@ -3205,11 +3205,10 @@ const ContentTitle = styled.h3`
   color: ${props => props.theme.palette.primary.main};
   text-align: center;
   margin: 0;
-  flex-grow: 1;
 `;
 
 const LevelNumber = styled.span`
-  color: #dc3545;
+  color: #000000;
 `;
 
 const ContentText = styled.div`
