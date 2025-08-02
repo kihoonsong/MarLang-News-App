@@ -972,7 +972,7 @@ exports.publishScheduledArticles = functions.https.onRequest(async (req, res) =>
 const { prerenderArticle } = require('./prerenderArticle');
 exports.prerenderArticle = prerenderArticle;
 
-// 소셜 미디어 프리렌더링 함수
+// 소셜 미디어 프리렌더링 함수 (개선됨)
 const { socialPrerender } = require('./socialPrerender');
 exports.socialPrerender = socialPrerender;
 
@@ -980,10 +980,10 @@ exports.socialPrerender = socialPrerender;
 const { serveSitemap } = require('./serveSitemap');
 exports.serveSitemap = serveSitemap;
 
-// 소셜 메트릭 수집 함수들
-const { trackSocialShare, trackCrawlerAccess, generateSocialReport } = require('./socialMetrics');
+// 소셜 메트릭 수집 함수들 - 크롤러 접근 추적 제거됨
+const { trackSocialShare, generateSocialReport } = require('./socialMetrics');
 exports.trackSocialShare = trackSocialShare;
-exports.trackCrawlerAccess = trackCrawlerAccess;
+// exports.trackCrawlerAccess = trackCrawlerAccess; // 제거됨
 exports.generateSocialReport = generateSocialReport;
 
 // 자동 사이트맵 업데이트 시스템

@@ -314,18 +314,68 @@ function generateNotFoundHTML(articleId) {
 </html>`;
 }
 
-// 소셜 크롤러 감지 함수
+// 매우 엄격한 크롤러 감지 함수 (일반 사용자 완전 차단)
 const isSocialCrawler = (userAgent) => {
   if (!userAgent) return false;
   
   const ua = userAgent.toLowerCase();
-  const crawlers = [
-    'facebookexternalhit', 'facebookcatalog', 'facebookbot',
-    'twitterbot', 'linkedinbot', 'whatsappbot', 'telegrambot',
-    'discordbot', 'slackbot', 'googlebot', 'bingbot', 'applebot', 'threadsbot', 'threads'
+  
+  // 명확한 크롤러만 감지
+  const trustedCrawlers = [
+    'facebookexternalhit',
+    'facebookcatalog', 
+    'facebookbot',
+    'twitterbot',
+    'linkedinbot',
+    'whatsappbot',
+    'telegrambot',
+    'discordbot',
+    'slackbot',
+    'googlebot',
+    'bingbot',
+    'applebot',
+    'threadsbot',
+    'meta-externalagent'
   ];
   
-  return crawlers.some(crawler => ua.includes(crawler));
+  // 브라우저 패턴 감지
+  const browserPatterns = [
+    'mozilla',
+    'chrome',
+    'safari',
+    'firefox',
+    'edge',
+    'opera',
+    'webkit',
+    'gecko',
+    'trident',
+    'mobile',
+    'android',
+    'iphone',
+    'ipad',
+    'windows',
+    'macintosh',
+    'linux',
+    'x11'
+  ];
+  
+  // 브라우저 패턴이 있으면 일반 사용자로 간주
+  const hasAnyBrowserPattern = browserPatterns.some(pattern => ua.includes(pattern));
+  
+  // 명확한 크롤러 패턴이 있는지 확인
+  const hasExactCrawlerMatch = trustedCrawlers.some(crawler => ua.includes(crawler));
+  
+  // 매우 엄격한 조건: 명확한 크롤러이면서 브라우저 패턴이 없어야 함
+  if (!hasExactCrawlerMatch) {
+    return false; // 명확한 크롤러가 아니면 무조건 false
+  }
+  
+  if (hasAnyBrowserPattern) {
+    return false; // 브라우저 패턴이 하나라도 있으면 false
+  }
+  
+  // 오직 명확한 크롤러 패턴만 있을 때만 true
+  return true;
 };
 
 // 크롤러 타입 감지 함수
@@ -392,6 +442,23 @@ const prerenderArticle = onRequest(
       const crawlerType = isCrawler ? detectCrawlerType(userAgent) : null;
       
       console.log(`🤖 요청 분석: ${isCrawler ? `크롤러(${crawlerType})` : '일반 사용자'}`);
+      
+      // 일반 사용자는 React 앱으로 리다이렉트 (웹 스크래퍼 문제 해결)
+      if (!isCrawler) {
+        console.log(`🚫 일반 사용자 감지 - React 앱으로 리다이렉트: ${articleId}`);
+        console.log(`👤 User-Agent: ${userAgent.substring(0, 100)}`);
+        
+        // 무한 리다이렉트 방지를 위해 특별한 파라미터 추가
+        const redirectUrl = `${SITE_URL}/?redirect=article&id=${articleId}`;
+        
+        res.writeHead(301, { 
+          'Location': redirectUrl,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
+        return res.end();
+      }
+      
+      console.log(`🤖 크롤러 감지 - 프리렌더링 제공: ${crawlerType}`);
       
       // Firestore에서 기사 데이터 조회 (ID 정규화 포함)
       let article = null;

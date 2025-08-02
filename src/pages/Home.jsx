@@ -133,6 +133,19 @@ const Home = () => {
   // 오류 상태 추가
   const [homeError, setHomeError] = useState(null);
 
+  // 프리렌더링에서 리다이렉트된 경우 처리
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const redirectType = urlParams.get('redirect');
+    const articleId = urlParams.get('id');
+    
+    if (redirectType === 'article' && articleId) {
+      console.log('🔄 프리렌더링에서 리다이렉트된 기사 접근:', articleId);
+      // URL 파라미터 제거하고 기사 페이지로 이동
+      navigate(`/article/${articleId}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsData, setAllNewsData] = useState({});
 

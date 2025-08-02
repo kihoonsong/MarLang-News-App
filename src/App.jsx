@@ -236,9 +236,16 @@ const PageLoadingFallback = ({ pageName }) => (
   </div>
 );
 
-// Social → Article 경로 클라이언트 리다이렉트 (SPA 내 이동 문제 해결)
-const SocialArticleRedirect = () => {
+// 소셜 URL 접근 차단 컴포넌트 (일반 사용자 완전 차단)
+const SocialUrlBlocker = () => {
   const { articleId } = useParams();
+  
+  useEffect(() => {
+    // 즉시 정상 기사 페이지로 리다이렉트
+    console.log('🚫 소셜 URL 직접 접근 차단 - 리다이렉트:', articleId);
+  }, [articleId]);
+  
+  // 즉시 리다이렉트 (replace로 히스토리에서 제거)
   return <Navigate to={`/article/${articleId}`} replace />;
 };
 
@@ -400,11 +407,13 @@ function App() {
                       }
                     />
 
-                    {/* 소셜 메트릭 대시보드 (관리자 전용) */}
+                    {/* 소셜 URL 접근 방지 라우트 */}
                     <Route
                       path="/social/article/:articleId"
-                      element={<SocialArticleRedirect />}
+                      element={<SocialUrlBlocker />}
                     />
+
+                    {/* 소셜 메트릭 대시보드 (관리자 전용) */}
 
                     <Route
                       path="/social-metrics"
