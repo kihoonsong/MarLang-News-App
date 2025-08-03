@@ -74,15 +74,15 @@ const generateLevelsFromContent = (article) => {
   if (article.content && typeof article.content === 'object') {
     const levels = {
       1: {
-        title: 'Level 1',
+        title: 'Beginner',
         content: cleanHtmlContent(article.content.beginner || '')
       },
       2: {
-        title: 'Level 2',
+        title: 'Intermediate',
         content: cleanHtmlContent(article.content.intermediate || '')
       },
       3: {
-        title: 'Level 3',
+        title: 'Advanced',
         content: cleanHtmlContent(article.content.advanced || '')
       }
     };
@@ -100,15 +100,15 @@ const generateLevelsFromContent = (article) => {
 
     const levels = {
       1: {
-        title: 'Level 1',
+        title: 'Beginner',
         content: cleanContent
       },
       2: {
-        title: 'Level 2',
+        title: 'Intermediate',
         content: cleanContent
       },
       3: {
-        title: 'Level 3',
+        title: 'Advanced',
         content: cleanContent
       }
     };
@@ -471,9 +471,9 @@ const ArticleDetail = () => {
             console.warn('레벨 생성 실패:', levelError);
             // 최종 폴백
             return {
-              1: { title: 'Level 1', content: prerenderedData.summary || 'Content not available' },
-              2: { title: 'Level 2', content: prerenderedData.summary || 'Content not available' },
-              3: { title: 'Level 3', content: prerenderedData.summary || 'Content not available' }
+              1: { title: 'Beginner', content: prerenderedData.summary || 'Content not available' },
+              2: { title: 'Intermediate', content: prerenderedData.summary || 'Content not available' },
+              3: { title: 'Advanced', content: prerenderedData.summary || 'Content not available' }
             };
           }
         })(),
@@ -622,9 +622,9 @@ const ArticleDetail = () => {
                     // 최종 폴백
                     const fallbackContent = foundArticle.summary || foundArticle.description || 'Content not available';
                     return {
-                      1: { title: 'Level 1', content: fallbackContent },
-                      2: { title: 'Level 2', content: fallbackContent },
-                      3: { title: 'Level 3', content: fallbackContent }
+                      1: { title: 'Beginner', content: fallbackContent },
+                      2: { title: 'Intermediate', content: fallbackContent },
+                      3: { title: 'Advanced', content: fallbackContent }
                     };
                   }
                 })(),
@@ -2536,7 +2536,7 @@ const ArticleDetail = () => {
                         ⏮️
                       </LevelChangeButton>
                       <ContentTitle>
-                        Level <LevelNumber>{level}</LevelNumber>
+                        <LevelNumber>{level === 1 ? 'Beginner' : level === 2 ? 'Intermediate' : 'Advanced'}</LevelNumber>
                       </ContentTitle>
                       <LevelChangeButton
                         onClick={(e) => {
