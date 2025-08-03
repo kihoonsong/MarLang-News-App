@@ -3205,7 +3205,7 @@ const ContentTitle = styled.h3`
 `;
 
 const LevelNumber = styled.span`
-  color: #000000;
+  color: #1976d2;
 `;
 
 const ContentText = styled.div`
