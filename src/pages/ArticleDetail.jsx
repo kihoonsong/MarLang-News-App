@@ -1506,6 +1506,11 @@ const ArticleDetail = () => {
     return isIPad || isAndroidTablet || (isLargeScreen && 'ontouchend' in document);
   }, []);
 
+  // iPad를 모바일로 처리하기 위한 확장된 모바일 감지
+  const isMobileOrTablet = useMemo(() => {
+    return isMobile || isTablet;
+  }, [isMobile, isTablet]);
+
   // Visual Viewport 높이 관리 (Safari PWA 대응)
   const [viewportHeight, setViewportHeight] = useState(
     window.visualViewport?.height || window.innerHeight
@@ -2490,7 +2495,7 @@ const ArticleDetail = () => {
             {/* 콘텐츠 중간 광고 제거됨 */}
 
             {/* 스와이프 카드 시스템 */}
-            <SwipeCardContainer $isTablet={isTablet} {...(!isTablet ? swipeHandlers : {})}>
+            <SwipeCardContainer $isMobileOrTablet={isMobileOrTablet} {...(!isTablet ? swipeHandlers : {})}>
               {[1, 2, 3].map(level => {
                 // 순환 구조를 위한 position 계산 (3→1→2→3)
                 let position = level - selectedLevel;
@@ -2644,12 +2649,12 @@ const ArticleDetail = () => {
             vertical: 'top',
             horizontal: 'center',
           }}
-          disablePortal={isTablet} // iPad에서 위치 문제 최소화
+          disablePortal={isMobileOrTablet} // 모바일/iPad에서 위치 문제 최소화
           slotProps={{
             paper: {
               style: {
                 maxHeight: viewportHeight * 0.6, // 뷰포트 높이의 60%로 제한
-                marginTop: isTablet ? 12 : 8, // iPad에서 여유 공간 확보
+                marginTop: isMobileOrTablet ? 12 : 8, // 모바일/iPad에서 여유 공간 확보
                 touchAction: 'pan-y', // 수직 스크롤만 허용
               }
             }
@@ -2657,8 +2662,8 @@ const ArticleDetail = () => {
           sx={{
             '& .MuiPopover-paper': {
               overflow: 'auto',
-              ...(isTablet && {
-                maxWidth: '90vw', // 태블릿에서 너비 제한
+              ...(isMobileOrTablet && {
+                maxWidth: '90vw', // 모바일/태블릿에서 너비 제한
                 transform: 'translateY(8px) !important', // 강제 오프셋
               })
             }
@@ -3304,12 +3309,12 @@ const ContentText = styled.div`
     }
   }
   
-  /* Mobile styles - 내부 스크롤 해제 */
-  @media (max-width: 768px) {
+  /* Mobile and Tablet styles - 내부 스크롤 해제, iPad 포함 */
+  @media (max-width: 768px), (pointer: coarse) and (min-width: 768px) {
     overflow-y: visible;   /* 내부 스크롤 해제 */
     max-height: none;
     
-    /* 모바일에서는 페이드 효과 제거 */
+    /* 모바일/태블릿에서는 페이드 효과 제거 */
     &:before,
     &:after {
       display: none;
@@ -3411,18 +3416,18 @@ const SwipeCardContainer = styled.div`
   align-items: center;
   justify-content: center;
   user-select: none;
-  touch-action: ${props => props.$isTablet ? 'pan-y' : 'manipulation'}; /* 태블릿에서는 수직 스크롤만 허용 */
+  touch-action: ${props => props.$isMobileOrTablet ? 'pan-y' : 'manipulation'}; /* 모바일/태블릿에서는 수직 스크롤만 허용 */
 
   /* Desktop styles */
   height: 700px;
   overflow: visible;
 
-  /* Mobile styles */
-  @media (max-width: 768px) {
+  /* Mobile and Tablet styles - iPad 포함 */
+  @media (max-width: 768px), (pointer: coarse) and (min-width: 768px) {
     height: auto;          /* 내용 길이만큼 늘어남 → 외부 하나의 스크롤만 남음 */
     align-items: stretch;  /* 카드가 전체 폭·높이를 자연스럽게 차지 */
     overflow: visible;
-    touch-action: ${props => props.$isTablet ? 'pan-y' : 'manipulation'}; /* 태블릿: 수직만, 폰: JavaScript 제어 */
+    touch-action: pan-y; /* 수직 스크롤만 허용 */
   }
 `;
 
@@ -3469,8 +3474,8 @@ const SwipeCard = styled.div`
     `}
   }
 
-  /* Mobile styles */
-  @media (max-width: 768px) {
+  /* Mobile and Tablet styles - iPad 포함 */
+  @media (max-width: 768px), (pointer: coarse) and (min-width: 768px) {
     position: static; /* absolute → static으로 변경하여 문서 흐름에 포함 */
     width: 100%;
     padding: 1rem;
