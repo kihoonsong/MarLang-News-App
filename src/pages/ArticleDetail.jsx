@@ -10,8 +10,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+
 
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import CloseIcon from '@mui/icons-material/Close';
@@ -2534,7 +2533,7 @@ const ArticleDetail = () => {
                         aria-label="Previous Level"
                         tabIndex={0}
                       >
-                        <ArrowBackIosIcon fontSize="inherit" />
+                        ⏮️
                       </LevelChangeButton>
                       <ContentTitle>
                         Level <LevelNumber>{level}</LevelNumber>
@@ -2548,7 +2547,7 @@ const ArticleDetail = () => {
                         aria-label="Next Level"
                         tabIndex={0}
                       >
-                        <ArrowForwardIosIcon fontSize="inherit" />
+                        ⏭️
                       </LevelChangeButton>
                     </ContentHeader>
                     <ContentText>
@@ -3172,9 +3171,8 @@ const ContentHeader = styled.div`
 const LevelChangeButton = styled.button`
   background: transparent;
   border: none;
-  color: #000000;
   cursor: pointer;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   transition: all 0.3s ease;
   padding: 0.5rem;
   display: flex;
@@ -3184,7 +3182,6 @@ const LevelChangeButton = styled.button`
   min-height: 40px;
   
   &:hover {
-    color: #333333;
     background: rgba(0, 0, 0, 0.08);
     transform: scale(1.1);
   }
