@@ -6,6 +6,12 @@ const BasicAdFitBanner = ({
   height = 100,
   className = ''
 }) => {
+  // 아이패드 감지 (디버깅용)
+  const isIPad = /iPad/.test(navigator.userAgent) || 
+    (/Macintosh/.test(navigator.userAgent) && 'ontouchend' in document);
+  
+  // 아이패드에서도 모바일 광고 단위 사용 (데스크탑 광고 단위 사용 중단)
+  const finalAdUnitId = adUnitId;
   const adContainerRef = useRef(null);
   const [adStatus, setAdStatus] = useState('loading'); // loading, loaded, error, timeout, fallback
   const [debugInfo, setDebugInfo] = useState({});
@@ -39,10 +45,14 @@ const BasicAdFitBanner = ({
 
       try {
         console.log('🎯 광고 초기화 시작:', {
-          adUnitId,
+          originalAdUnitId: adUnitId,
+          finalAdUnitId,
+          isIPad,
           width,
           height,
           env: import.meta.env.VITE_ADFIT_REACT_BANNER_MOBILE,
+          desktopAdUnit: import.meta.env.VITE_ADFIT_BANNER_DESKTOP_AD_UNIT,
+          userAgent: navigator.userAgent,
           scriptExists: !!document.querySelector('script[src*="kas/static/ba.min.js"]')
         });
 
@@ -61,7 +71,7 @@ const BasicAdFitBanner = ({
         const adArea = document.createElement('ins');
         adArea.className = 'kakao_ad_area';
         adArea.style.display = 'block'; // 바로 표시
-        adArea.setAttribute('data-ad-unit', adUnitId);
+        adArea.setAttribute('data-ad-unit', finalAdUnitId);
         adArea.setAttribute('data-ad-width', width.toString());
         adArea.setAttribute('data-ad-height', height.toString());
 

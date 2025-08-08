@@ -33,7 +33,9 @@ import { useEnhancedToast } from '../components/EnhancedToastProvider';
 import PremiumContentGuard from '../components/PremiumContentGuard';
 // 광고 컴포넌트 직접 import (안정성 확보)
 import BasicAdFitBanner from '../components/ads/BasicAdFitBanner';
+import TestAdFitBanner from '../components/ads/TestAdFitBanner';
 import { useAdFit } from '../contexts/AdFitContext';
+import { trackArticleView } from '../utils/viewTracker';
 import DOMPurify from 'dompurify';
 
 // HTML 엔티티 디코딩 함수
@@ -547,9 +549,9 @@ const ArticleDetail = () => {
                 }
               }
 
-              // 기사 조회수 증가 (로그인된 사용자만)
-              if (user?.uid && isMounted) {
-                await safeIncrementArticleViews(transformedArticle.id);
+              // 기사 조회수 증가 (모든 사용자 - 로그인/비로그인 포함, 중복 방지)
+              if (isMounted) {
+                await trackArticleView(transformedArticle.id, safeIncrementArticleViews);
               }
 
               // 프리렌더 데이터 정리 (메모리 절약)
@@ -664,9 +666,9 @@ const ArticleDetail = () => {
                 }
               }
 
-              // 기사 조회수 증가 (로그인된 사용자만)
-              if (user?.uid && isMounted) {
-                await safeIncrementArticleViews(foundArticle.id);
+              // 기사 조회수 증가 (모든 사용자 - 로그인/비로그인 포함, 중복 방지)
+              if (isMounted) {
+                await trackArticleView(foundArticle.id, safeIncrementArticleViews);
               }
             } else if (isMounted) {
               // 기사를 찾을 수 없는 경우
@@ -2613,6 +2615,15 @@ const ArticleDetail = () => {
             </SwipeCardContainer>
 
           </PremiumContentGuard>
+
+          {/* 테스트 광고 (문제 진단용) */}
+          {import.meta.env.DEV && (
+            <TestAdFitBanner
+              adUnitId="DAN-RNzVkjnBfLSGDxqM"
+              width={320}
+              height={100}
+            />
+          )}
 
           {/* 기사 하단 배너 광고 (네비게이션 바 위) - 강제 렌더링 */}
           <BasicAdFitBanner

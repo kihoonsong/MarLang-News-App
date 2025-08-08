@@ -81,6 +81,20 @@ const DashboardStats = ({
                 size="small" 
                 sx={{ mt: 1 }}
               />
+              {/* 디버깅 정보 표시 (개발 환경에서만) */}
+              {import.meta.env.DEV && stats._debug && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    데이터 소스: {stats._debug.viewsDataSource}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    기사 조회수: {stats._debug.totalArticleViews?.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    사용자 기록: {stats._debug.totalUserViewRecords?.toLocaleString()}
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Grid>
         </Grid>

@@ -9,6 +9,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import MobileNavigation, { MobileContentWrapper } from '../components/MobileNavigation';
 import DashboardStats from '../components/DashboardStats';
+import DataValidationInfo from '../components/DataValidationInfo';
 import ArticleManagement from '../components/ArticleManagement';
 import CategoryManagement from '../components/CategoryManagement';
 import MemberManagement from '../components/MemberManagement';
@@ -83,8 +84,14 @@ const BlogStyleDashboard = () => {
       let totalLikes = 0;
       let totalWords = 0;
       let totalViewRecords = 0;
+      let totalArticleViews = 0; // 실제 기사 조회수 합계
       let userReadingStats = { high: 0, medium: 0, low: 0 };
       let userLearningStats = { active: 0, moderate: 0, passive: 0 };
+
+      // 실제 기사 조회수 계산 (정확한 데이터)
+      allArticles.forEach(article => {
+        totalArticleViews += article.views || 0;
+      });
 
       // Get user data for analytics
       for (const userData of allUsers) {
@@ -151,7 +158,7 @@ const BlogStyleDashboard = () => {
 
       setDashboardStats({
         totalArticles: allArticles.length,
-        totalViews: totalViewRecords,
+        totalViews: totalArticleViews, // 실제 기사 조회수 사용
         totalLikes: totalLikes,
         totalMembers: allUsers.length,
         todayArticles: todayArticles,
@@ -159,7 +166,13 @@ const BlogStyleDashboard = () => {
         totalWords: totalWords,
         avgReadArticles: allUsers.length > 0 ? Math.round(totalViewRecords / allUsers.length) : 0,
         avgSavedWords: allUsers.length > 0 ? Math.round(totalWords / allUsers.length) : 0,
-        categories: categories.length
+        categories: categories.length,
+        // 디버깅을 위한 추가 정보
+        _debug: {
+          totalArticleViews: totalArticleViews,
+          totalUserViewRecords: totalViewRecords,
+          viewsDataSource: 'articles.views' // 데이터 소스 명시
+        }
       });
 
       setCategoryStats(categoryStatsArray);
@@ -170,6 +183,27 @@ const BlogStyleDashboard = () => {
 
     } catch (error) {
       console.error('Error calculating dashboard stats:', error);
+      
+      // 에러 발생 시에도 기본 통계 제공
+      const fallbackArticleViews = allArticles.reduce((sum, article) => sum + (article.views || 0), 0);
+      setDashboardStats({
+        totalArticles: allArticles.length,
+        totalViews: fallbackArticleViews,
+        totalLikes: 0,
+        totalMembers: 0,
+        todayArticles: 0,
+        todayMembers: 0,
+        totalWords: 0,
+        avgReadArticles: 0,
+        avgSavedWords: 0,
+        categories: categories.length,
+        _debug: {
+          totalArticleViews: fallbackArticleViews,
+          totalUserViewRecords: 0,
+          viewsDataSource: 'articles.views (fallback)',
+          error: 'Data calculation failed, using fallback'
+        }
+      });
     }
   };
 
@@ -195,13 +229,18 @@ const BlogStyleDashboard = () => {
     }
     switch (activeTab) {
       case 0:
-        return <DashboardStats 
-          user={user}
-          stats={dashboardStats} 
-          categoryStats={categoryStats}
-          userAnalytics={userAnalytics}
-          lastUpdate={new Date()}
-        />;
+        return (
+          <>
+            <DataValidationInfo stats={dashboardStats} />
+            <DashboardStats 
+              user={user}
+              stats={dashboardStats} 
+              categoryStats={categoryStats}
+              userAnalytics={userAnalytics}
+              lastUpdate={new Date()}
+            />
+          </>
+        );
       case 1:
         return <ArticleManagement 
           articles={getCurrentPageArticles()} 

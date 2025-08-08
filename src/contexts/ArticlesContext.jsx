@@ -418,6 +418,7 @@ export const ArticlesProvider = ({ children }) => {
         
         if (import.meta.env.DEV) {
           console.log(`✅ 기사 ${articleId} 조회수 증가: ${currentViews} → ${currentViews + 1}`);
+          console.log(`📊 대시보드 데이터 업데이트됨 - 기사 조회수 기반`);
         }
         return true;
       }
