@@ -151,7 +151,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'sha256-your-hash-here' https://t1.daumcdn.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://asia-northeast3-marlang-app.cloudfunctions.net; frame-src 'self'; object-src 'none';"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://t1.daumcdn.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://asia-northeast3-marlang-app.cloudfunctions.net https://us-central1-marlang-app.cloudfunctions.net; frame-src 'self' https://t1.daumcdn.net https://ad.kakao.com https://display.ad.daum.net; object-src 'none';"
           },
           {
             "key": "X-Content-Type-Options",

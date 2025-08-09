@@ -90,7 +90,7 @@ async function generateSitemapXML() {
       });
     }
     
-    // 카테고리 정보 가져오기 (기본값 사용)
+    // 카테고리 정보 가져오기 (프론트 라우팅과 동일한 1단계 경로 사용)
     const categories = [
       { id: 'tech', name: 'Technology' },
       { id: 'business', name: 'Business' },
@@ -113,11 +113,11 @@ async function generateSitemapXML() {
   
 `;
     
-    // 카테고리 페이지 추가
+    // 카테고리 페이지 추가 (프론트 라우터 경로와 일치: /tech, /business ...)
     categories.forEach(category => {
       sitemap += `  <!-- ${category.name} 카테고리 -->
   <url>
-    <loc>${SITE_URL}/category/${category.id}</loc>
+    <loc>${SITE_URL}/${category.id}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>

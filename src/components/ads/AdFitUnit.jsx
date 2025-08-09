@@ -273,7 +273,7 @@ const AdFitUnit = ({
       >
         <ins 
           className="kakao_ad_area" 
-          style={{ display: 'none' }}
+          style={{ display: 'block' }}
           data-ad-unit={unitId}
           data-ad-width={adSize.width}
           data-ad-height={adSize.height}
