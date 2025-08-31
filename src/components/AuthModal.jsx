@@ -10,7 +10,7 @@ import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import { detectUserLanguage } from '../utils/languageDetection';
 
-import loginImage from '../assets/login-image.png';
+
 
 // 네이버 아이콘 컴포넌트
 const NaverIcon = () => (
@@ -38,8 +38,7 @@ const translations = {
     naverLogin: '네이버 계정으로 시작하기',
     lineLogin: 'LINE 계정으로 시작하기',
     or: '또는',
-    guestNotice: '로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.',
-    loginImage: 'NEWStep 로그인'
+    guestNotice: '로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.'
   },
   en: {
     title: 'Sign In',
@@ -47,8 +46,7 @@ const translations = {
     naverLogin: 'Continue with Naver',
     lineLogin: 'Continue with LINE',
     or: 'or',
-    guestNotice: 'You can browse without signing in, but personalized features like vocabulary will be limited.',
-    loginImage: 'NEWStep Login'
+    guestNotice: 'You can browse without signing in, but personalized features like vocabulary will be limited.'
   }
 };
 
@@ -123,13 +121,9 @@ const AuthModal = ({ open, onClose }) => {
           </Box>
           
           {/* 제목 */}
-          <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mb: 2, mt: 2 }}>
+          <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mb: 3, mt: 2 }}>
             {t.title}
           </Typography>
-          
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <img src={loginImage} alt={t.loginImage} style={{ maxWidth: '80%', height: 'auto' }} />
-          </Box>
           
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
