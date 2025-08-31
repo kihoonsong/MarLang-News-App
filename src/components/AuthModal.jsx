@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Dialog, DialogContent, Box, Typography, Button, Divider, IconButton, Alert, CircularProgress
+  Dialog, DialogContent, Box, Typography, Button, Divider, IconButton, Alert, CircularProgress, Chip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
+import LanguageIcon from '@mui/icons-material/Language';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
+import { detectUserLanguage } from '../utils/languageDetection';
 
 import loginImage from '../assets/login-image.png';
 
@@ -28,10 +30,47 @@ const LineIcon = () => (
   </svg>
 );
 
+// 다국어 번역 데이터
+const translations = {
+  ko: {
+    title: '로그인',
+    googleLogin: 'Google 계정으로 시작하기',
+    naverLogin: '네이버 계정으로 시작하기',
+    lineLogin: 'LINE 계정으로 시작하기',
+    or: '또는',
+    guestNotice: '로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.',
+    loginImage: 'NEWStep 로그인'
+  },
+  en: {
+    title: 'Sign In',
+    googleLogin: 'Continue with Google',
+    naverLogin: 'Continue with Naver',
+    lineLogin: 'Continue with LINE',
+    or: 'or',
+    guestNotice: 'You can browse without signing in, but personalized features like vocabulary will be limited.',
+    loginImage: 'NEWStep Login'
+  }
+};
+
 const AuthModal = ({ open, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [language, setLanguage] = useState('ko');
   const { signInWithGoogle, signInWithNaver, signInWithLine, isAuthenticated } = useAuth();
+
+  // 브라우저 언어 감지
+  useEffect(() => {
+    const detectedLanguage = detectUserLanguage();
+    setLanguage(detectedLanguage);
+  }, []);
+
+  // 현재 언어의 번역 텍스트
+  const t = translations[language] || translations.ko;
+
+  // 언어 변경 핸들러
+  const toggleLanguage = () => {
+    setLanguage(prevLang => prevLang === 'ko' ? 'en' : 'ko');
+  };
 
   useEffect(() => {
     if (isAuthenticated && open) {
@@ -61,37 +100,63 @@ const AuthModal = ({ open, onClose }) => {
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogContent sx={{ p: 0 }}>
         <Box sx={{ position: 'relative', p: 4 }}>
-          <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton>
+          <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            <CloseIcon />
+          </IconButton>
+          
+          {/* 언어 변경 버튼 */}
+          <Box sx={{ position: 'absolute', left: 8, top: 8 }}>
+            <Chip
+              icon={<LanguageIcon />}
+              label={language === 'ko' ? '한국어' : 'English'}
+              onClick={toggleLanguage}
+              variant="outlined"
+              size="small"
+              sx={{ 
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  color: 'white'
+                }
+              }}
+            />
+          </Box>
+          
+          {/* 제목 */}
+          <Typography variant="h5" fontWeight="bold" textAlign="center" sx={{ mb: 2, mt: 2 }}>
+            {t.title}
+          </Typography>
+          
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <img src={loginImage} alt="Marlang Login" style={{ maxWidth: '80%', height: 'auto' }} />
+            <img src={loginImage} alt={t.loginImage} style={{ maxWidth: '80%', height: 'auto' }} />
           </Box>
           
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           <SocialButton fullWidth variant="outlined" startIcon={<GoogleIcon />} onClick={handleGoogleLogin} disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : 'Google 계정으로 시작하기'}
+            {loading ? <CircularProgress size={24} /> : t.googleLogin}
           </SocialButton>
 
           <Box sx={{ my: 2 }}>
             <Divider>
               <Typography variant="body2" color="text.secondary">
-                또는
+                {t.or}
               </Typography>
             </Divider>
           </Box>
 
           <NaverButton fullWidth variant="outlined" startIcon={<NaverIcon />} onClick={handleNaverLogin} disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : '네이버 계정으로 시작하기'}
+            {loading ? <CircularProgress size={24} /> : t.naverLogin}
           </NaverButton>
 
           <Box sx={{ mt: 2 }}>
             <LineButton fullWidth variant="outlined" startIcon={<LineIcon />} onClick={handleLineLogin} disabled={loading}>
-              {loading ? <CircularProgress size={24} /> : 'LINE 계정으로 시작하기'}
+              {loading ? <CircularProgress size={24} /> : t.lineLogin}
             </LineButton>
           </Box>
 
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 3 }}>
-            로그인 없이 둘러볼 수 있지만, 단어장 등 개인화 기능은 제한됩니다.
+            {t.guestNotice}
           </Typography>
         </Box>
       </DialogContent>
