@@ -214,6 +214,7 @@ const BlogStyleDashboard = () => {
   }, [authLoading, articlesLoading, isAuthenticated, allArticles, categories]);
 
   const getCurrentPageArticles = () => {
+    if (!allArticles || allArticles.length === 0) return [];
     const startIndex = (currentPage - 1) * articlesPerPage;
     return allArticles.slice(startIndex, startIndex + articlesPerPage);
   };

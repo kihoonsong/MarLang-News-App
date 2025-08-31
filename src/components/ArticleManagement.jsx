@@ -4,7 +4,7 @@ import {
   MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent, 
   DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, 
   TableRow, Paper, Chip, IconButton, Tabs, Tab, RadioGroup, Radio, 
-  FormControlLabel, FormLabel, Alert, useMediaQuery, useTheme
+  FormControlLabel, FormLabel, Alert, useMediaQuery, useTheme, Pagination
 } from '@mui/material';
 import {
   Article, Add, Edit, Delete, Save, Cancel, Publish, 
@@ -55,6 +55,10 @@ const ArticleManagement = ({
   const [articleStats, setArticleStats] = useState({});
   const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
+  
+  // 페이지네이션 상태
+  const [localPage, setLocalPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   // 반응형 디자인
   const theme = useTheme();
   const _isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -229,6 +233,53 @@ const ArticleManagement = ({
       calculateArticleStats();
     }
   }, [allArticles, calculateArticleStats]);
+
+  // 외부 페이지 변경 시 로컬 페이지 동기화
+  React.useEffect(() => {
+    if (currentPage && currentPage !== localPage) {
+      setLocalPage(currentPage);
+    }
+  }, [currentPage]);
+
+  // 페이지네이션 처리
+  const handlePageChange = (event, newPage) => {
+    setLocalPage(newPage);
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
+  };
+
+  // 현재 페이지의 기사들 계산
+  const getCurrentPageArticles = () => {
+    if (!articles || articles.length === 0) return [];
+    
+    // 외부에서 페이지네이션이 처리되고 있다면 그대로 사용
+    if (onPageChange && currentPage && totalPages) {
+      return articles;
+    }
+    
+    // 로컬 페이지네이션 처리 (외부 페이지네이션이 없는 경우)
+    const startIndex = (localPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return articles.slice(startIndex, endIndex);
+  };
+
+  // 총 페이지 수 계산
+  const getTotalPages = () => {
+    if (totalPages && onPageChange) {
+      return totalPages;
+    }
+    // 전체 기사 수를 기준으로 페이지 수 계산 (외부 페이지네이션이 없는 경우)
+    return Math.ceil((totalArticles || allArticles?.length || articles?.length || 0) / itemsPerPage);
+  };
+
+  // 현재 페이지 번호
+  const getCurrentPage = () => {
+    if (currentPage && onPageChange) {
+      return currentPage;
+    }
+    return localPage;
+  };
 
   // 기사 추가 핸들러
   const handleAddArticle = async () => {
@@ -801,7 +852,16 @@ const ArticleManagement = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(articles || []).map((article) => (
+                {getCurrentPageArticles().length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body1" color="text.secondary">
+                        표시할 기사가 없습니다.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  getCurrentPageArticles().map((article) => (
                   <TableRow key={article.id} hover>
                     <TableCell>
                       <Box sx={{ maxWidth: 200 }}>
@@ -880,44 +940,40 @@ const ArticleManagement = ({
                       </Box>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
           
-          {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" alignItems="center" gap={1} sx={{ mt: 3 }}>
-              {/* 이전 */}
-              <Button 
-                variant="outlined" 
-                size="small" 
-                disabled={currentPage === 1}
-                onClick={() => onPageChange(currentPage - 1)}
-              >
-                ← 이전
-              </Button>
-              {/* 페이지 번호 */}
-              {Array.from({ length: totalPages || 0 }, (_, idx) => idx + 1).map(page => (
-                <Button 
-                  key={page}
-                  variant={currentPage === page ? 'contained' : 'outlined'}
-                  size="small"
-                  onClick={() => onPageChange(page)}
-                >
-                  {page}
-                </Button>
-              ))}
-              {/* 다음 */}
-              <Button 
-                variant="outlined" 
-                size="small" 
-                disabled={currentPage === totalPages}
-                onClick={() => onPageChange(currentPage + 1)}
-              >
-                다음 →
-              </Button>
-            </Box>
-          )}
+          {/* 페이지네이션 */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              총 {totalArticles || allArticles?.length || articles?.length || 0}개 기사 중 {Math.min(((getCurrentPage() - 1) * itemsPerPage) + 1, totalArticles || allArticles?.length || articles?.length || 0)}-{Math.min(getCurrentPage() * itemsPerPage, totalArticles || allArticles?.length || articles?.length || 0)}개 표시
+            </Typography>
+            <Pagination
+              count={getTotalPages()}
+              page={getCurrentPage()}
+              onChange={handlePageChange}
+              color="primary"
+              size="medium"
+              showFirstButton
+              showLastButton
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: '8px',
+                },
+                '& .Mui-selected': {
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                },
+              }}
+            />
+          </Box>
+
         </CardContent>
       </Card>
 
